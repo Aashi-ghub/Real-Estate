@@ -1,0 +1,26 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "composite": true
+  },
+  "references": [
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../logger"
+    },
+    {
+      "path": "../utils"
+    }
+  ],
+  "include": [
+    "src/**/*.ts",
+    "prisma/**/*.ts"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "name": "real-estate-lead-qualification",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "npm@10.8.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "typecheck": "tsc -b tsconfig.json --pretty false",
+    "dev:api": "tsx apps/api/src/index.ts",
+    "dev:worker": "tsx apps/worker/src/index.ts",
+    "db:generate": "npm run generate -w @real-estate/db",
+    "db:migrate": "npm run migrate -w @real-estate/db",
+    "db:deploy": "npm run deploy -w @real-estate/db",
+    "db:seed": "npm run seed -w @real-estate/db",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.4"
+  }
+}

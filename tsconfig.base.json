@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022"
+    ],
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "baseUrl": ".",
+    "paths": {
+      "@real-estate/config": [
+        "packages/config/src"
+      ],
+      "@real-estate/db": [
+        "packages/db/src"
+      ],
+      "@real-estate/logger": [
+        "packages/logger/src"
+      ],
+      "@real-estate/types": [
+        "packages/types/src"
+      ],
+      "@real-estate/utils": [
+        "packages/utils/src"
+      ]
+    }
+  }
+}

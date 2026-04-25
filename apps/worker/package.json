@@ -1,0 +1,23 @@
+{
+  "name": "@real-estate/worker",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@real-estate/config": "file:../../packages/config",
+    "@real-estate/db": "file:../../packages/db",
+    "@real-estate/logger": "file:../../packages/logger",
+    "@real-estate/types": "file:../../packages/types",
+    "@real-estate/utils": "file:../../packages/utils",
+    "bullmq": "^5.61.0",
+    "ioredis": "^5.8.2"
+  }
+}

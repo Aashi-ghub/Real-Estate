@@ -1,0 +1,31 @@
+{
+  "name": "@real-estate/db",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "prisma"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "generate": "prisma generate",
+    "migrate": "prisma migrate dev --schema prisma/schema.prisma",
+    "deploy": "prisma migrate deploy --schema prisma/schema.prisma",
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.7.0",
+    "@real-estate/config": "file:../config",
+    "@real-estate/logger": "file:../logger",
+    "@real-estate/utils": "file:../utils"
+  },
+  "devDependencies": {
+    "prisma": "^6.7.0",
+    "tsx": "^4.20.6"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}
