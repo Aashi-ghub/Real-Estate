@@ -1,12 +1,14 @@
 import { Worker } from "bullmq";
 
 import { getWorkerConfig } from "@real-estate/config";
-import { db, upsertJobMirror } from "@real-estate/db";
+import { db } from "@real-estate/db";
 import { createLogger } from "@real-estate/logger";
+import type { DeadLetterJobData } from "@real-estate/types";
 import { queueNames } from "@real-estate/types";
 import {
   assertRedisCompatibleWithBullMq,
   buildBullMqConnection,
+  createQueueMetricsHandle,
   createRedisClient,
   initializeMetrics,
   redactRedisConnection,
@@ -16,6 +18,7 @@ import {
 import { processCrmPush } from "./processors/crm";
 import { processFollowup } from "./processors/followup";
 import { processSendMessage } from "./processors/send-message";
+import { createWorkerProcessor, attachWorkerLifecycle, persistDeadLetterRecord } from "./services/job-runtime";
 import { WorkerQueues } from "./services/queue-runtime";
 
 async function main(): Promise<void> {
@@ -46,9 +49,18 @@ async function main(): Promise<void> {
   const queues = new WorkerQueues(bullmqConnection, {
     prefix: config.QUEUE_PREFIX,
     messageAttempts: config.MESSAGE_MAX_RETRIES,
-    crmAttempts: config.CRM_MAX_RETRIES
+    followupAttempts: config.followupMaxRetries,
+    crmAttempts: config.CRM_MAX_RETRIES,
+    retryBackoffMs: config.queueRetryBackoffMs
   });
   await queues.waitUntilReady();
+  const queueMetrics = createQueueMetricsHandle({
+    queues: queues.getMetricsTargets(),
+    intervalMs: config.queueMetricsSampleIntervalMs,
+    logger
+  });
+  await queueMetrics.sample();
+
   await runBullMqRoundTripHealthcheck({
     connection: bullmqConnection,
     prefix: config.QUEUE_PREFIX,
@@ -58,7 +70,11 @@ async function main(): Promise<void> {
 
   const messageWorker = new Worker(
     queueNames.messages,
-    (job) => processSendMessage(job, { db, logger, config, queues }),
+    createWorkerProcessor(
+      { queueName: queueNames.messages, workerName: "message-worker" },
+      { logger, deps: { db, config, queues } },
+      processSendMessage
+    ),
     {
       connection: bullmqConnection,
       prefix: config.QUEUE_PREFIX,
@@ -67,7 +83,11 @@ async function main(): Promise<void> {
   );
   const followupWorker = new Worker(
     queueNames.followups,
-    (job) => processFollowup(job, { db, logger, config, queues }),
+    createWorkerProcessor(
+      { queueName: queueNames.followups, workerName: "followup-worker" },
+      { logger, deps: { db, config, queues } },
+      processFollowup
+    ),
     {
       connection: bullmqConnection,
       prefix: config.QUEUE_PREFIX,
@@ -76,7 +96,11 @@ async function main(): Promise<void> {
   );
   const crmWorker = new Worker(
     queueNames.crm,
-    (job) => processCrmPush(job, { db, logger, config, queues }),
+    createWorkerProcessor(
+      { queueName: queueNames.crm, workerName: "crm-worker" },
+      { logger, deps: { db, config, queues } },
+      processCrmPush
+    ),
     {
       connection: bullmqConnection,
       prefix: config.QUEUE_PREFIX,
@@ -84,80 +108,89 @@ async function main(): Promise<void> {
     }
   );
 
+  const createDlqWorker = (
+    queueName: typeof queueNames.messagesDlq | typeof queueNames.followupsDlq | typeof queueNames.crmDlq,
+    workerName: string
+  ) =>
+    new Worker<DeadLetterJobData>(
+      queueName,
+      createWorkerProcessor(
+        { queueName, workerName },
+        { logger, deps: { db } },
+        async (job, { db: dlqDb, logger: dlqLogger }) => {
+          await persistDeadLetterRecord(dlqDb, job.data);
+          dlqLogger.warn(
+            {
+              queue: job.data.queue,
+              failed_job_id: job.data.jobId,
+              attempts_made: job.data.error.attemptsMade
+            },
+            "worker.dead_letter.persisted"
+          );
+        }
+      ),
+      {
+        connection: bullmqConnection,
+        prefix: config.QUEUE_PREFIX,
+        concurrency: 1
+      }
+    );
+
+  const messagesDlqWorker = createDlqWorker(queueNames.messagesDlq, "messages-dlq-worker");
+  const followupsDlqWorker = createDlqWorker(queueNames.followupsDlq, "followups-dlq-worker");
+  const crmDlqWorker = createDlqWorker(queueNames.crmDlq, "crm-dlq-worker");
+
+  attachWorkerLifecycle(messageWorker, {
+    db,
+    logger,
+    identity: { queueName: queueNames.messages, workerName: "message-worker" },
+    deadLetterQueue: queues.messagesDlq,
+    retryBackoffMs: config.queueRetryBackoffMs,
+    retryBackoffMaxMs: config.queueRetryBackoffMaxMs
+  });
+  attachWorkerLifecycle(followupWorker, {
+    db,
+    logger,
+    identity: { queueName: queueNames.followups, workerName: "followup-worker" },
+    deadLetterQueue: queues.followupsDlq,
+    retryBackoffMs: config.queueRetryBackoffMs,
+    retryBackoffMaxMs: config.queueRetryBackoffMaxMs
+  });
+  attachWorkerLifecycle(crmWorker, {
+    db,
+    logger,
+    identity: { queueName: queueNames.crm, workerName: "crm-worker" },
+    deadLetterQueue: queues.crmDlq,
+    retryBackoffMs: config.queueRetryBackoffMs * 2,
+    retryBackoffMaxMs: config.queueRetryBackoffMaxMs
+  });
+
+  for (const dlqWorker of [messagesDlqWorker, followupsDlqWorker, crmDlqWorker]) {
+    dlqWorker.on("error", (error) => {
+      logger.error({ err: error }, "worker.dlq.runtime.error");
+    });
+  }
+
   await Promise.all([
     messageWorker.waitUntilReady(),
     followupWorker.waitUntilReady(),
-    crmWorker.waitUntilReady()
+    crmWorker.waitUntilReady(),
+    messagesDlqWorker.waitUntilReady(),
+    followupsDlqWorker.waitUntilReady(),
+    crmDlqWorker.waitUntilReady()
   ]);
-
-  const attachDeadLetter = (
-    worker: Worker,
-    queueName: string,
-    addToDlq: (payload: Record<string, unknown>, jobId: string) => Promise<void>
-  ): void => {
-    worker.on("failed", async (job, error) => {
-      if (!job) {
-        return;
-      }
-
-      const attemptsAllowed = job.opts.attempts ?? 1;
-      if (job.attemptsMade < attemptsAllowed) {
-        return;
-      }
-
-      await addToDlq(
-        {
-          queue: queueName,
-          data: job.data,
-          error: error.message,
-          failedAt: new Date().toISOString()
-        },
-        String(job.id)
-      );
-      await upsertJobMirror(db, {
-        clientId: (job.data as { clientId: string }).clientId,
-        leadId: (job.data as { leadId?: string }).leadId,
-        queue: queueName,
-        name: String(job.name),
-        idempotencyKey: (job.data as { dedupeKey: string }).dedupeKey,
-        payload: job.data as Record<string, unknown>,
-        status: "dead_letter",
-        attempts: job.attemptsMade,
-        processedAt: new Date(),
-        lastError: error.message
-      });
-    });
-
-    worker.on("error", (error) => {
-      logger.error({ err: error, queue: queueName }, "worker.runtime.error");
-    });
-  };
-
-  attachDeadLetter(messageWorker, queueNames.messages, async (payload, jobId) => {
-    await queues.messagesDlq.add("dead_letter", payload, {
-      jobId,
-      removeOnComplete: 1_000,
-      removeOnFail: false
-    });
-  });
-  attachDeadLetter(followupWorker, queueNames.followups, async (payload, jobId) => {
-    await queues.followupsDlq.add("dead_letter", payload, {
-      jobId,
-      removeOnComplete: 1_000,
-      removeOnFail: false
-    });
-  });
-  attachDeadLetter(crmWorker, queueNames.crm, async (payload, jobId) => {
-    await queues.crmDlq.add("dead_letter", payload, {
-      jobId,
-      removeOnComplete: 1_000,
-      removeOnFail: false
-    });
-  });
 
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, "shutdown.start");
-    await Promise.all([messageWorker.close(), followupWorker.close(), crmWorker.close()]);
+    await Promise.all([
+      messageWorker.close(),
+      followupWorker.close(),
+      crmWorker.close(),
+      messagesDlqWorker.close(),
+      followupsDlqWorker.close(),
+      crmDlqWorker.close()
+    ]);
+    await queueMetrics.close();
     await queues.close();
     await redis.quit();
     await db.$disconnect();

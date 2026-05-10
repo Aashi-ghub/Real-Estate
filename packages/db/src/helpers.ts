@@ -1,4 +1,5 @@
 import { sanitizeJsonValue } from "@real-estate/utils";
+import type { TraceContext } from "@real-estate/types";
 
 import { Prisma, type PrismaClient } from "./generated";
 
@@ -21,6 +22,7 @@ export async function createAuditLog(
     entity: string;
     entityId: string;
     metadata: unknown;
+    trace?: TraceContext;
   }
 ): Promise<void> {
   await db.auditLog.create({
@@ -30,6 +32,8 @@ export async function createAuditLog(
       action: entry.action,
       entity: entry.entity,
       entityId: entry.entityId,
+      requestId: entry.trace?.requestId ?? null,
+      correlationId: entry.trace?.correlationId ?? null,
       metadata: toPrismaJson(entry.metadata)
     }
   });
@@ -44,13 +48,18 @@ export async function upsertJobMirror(
     name: string;
     idempotencyKey: string;
     payload: unknown;
+    metadata?: unknown;
     status?: "queued" | "processing" | "completed" | "failed" | "dead_letter";
     attempts?: number;
     scheduledAt?: Date | null;
     processedAt?: Date | null;
     lastError?: string | null;
+    trace?: TraceContext;
   }
 ): Promise<void> {
+  const metadataValue =
+    input.metadata === undefined ? undefined : input.metadata === null ? Prisma.JsonNull : toPrismaJson(input.metadata);
+
   await db.job.upsert({
     where: {
       idempotencyKey: input.idempotencyKey
@@ -61,7 +70,10 @@ export async function upsertJobMirror(
       queue: input.queue,
       name: input.name,
       idempotencyKey: input.idempotencyKey,
+      requestId: input.trace?.requestId ?? null,
+      correlationId: input.trace?.correlationId ?? null,
       payload: toPrismaJson(input.payload),
+      ...(metadataValue !== undefined ? { metadata: metadataValue } : {}),
       status: input.status ?? "queued",
       attempts: input.attempts ?? 0,
       scheduledAt: input.scheduledAt ?? null,
@@ -69,7 +81,10 @@ export async function upsertJobMirror(
       lastError: input.lastError ?? null
     },
     update: {
+      requestId: input.trace?.requestId ?? null,
+      correlationId: input.trace?.correlationId ?? null,
       payload: toPrismaJson(input.payload),
+      ...(metadataValue !== undefined ? { metadata: metadataValue } : {}),
       ...(input.status ? { status: input.status } : {}),
       ...(typeof input.attempts === "number" ? { attempts: input.attempts } : {}),
       ...(input.scheduledAt !== undefined ? { scheduledAt: input.scheduledAt } : {}),

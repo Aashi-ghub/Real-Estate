@@ -1,18 +1,31 @@
 import { Prisma } from "./generated";
 import { PrismaClient } from "./generated";
+import { createLogger } from "@real-estate/logger";
 
 declare global {
   // eslint-disable-next-line no-var
   var __realEstatePrisma__: PrismaClient | undefined;
 }
 
+const prismaLogger = createLogger("database", process.env.LOG_LEVEL);
+
 export function createPrismaClient(): PrismaClient {
-  return new PrismaClient({
+  const client = new PrismaClient({
     log: [
       { emit: "event", level: "warn" },
       { emit: "event", level: "error" }
     ]
   });
+
+  client.$on("warn", (event) => {
+    prismaLogger.warn({ target: event.target, message: event.message }, "prisma.warn");
+  });
+
+  client.$on("error", (event) => {
+    prismaLogger.error({ target: event.target, message: event.message }, "prisma.error");
+  });
+
+  return client;
 }
 
 export const db = globalThis.__realEstatePrisma__ ?? createPrismaClient();

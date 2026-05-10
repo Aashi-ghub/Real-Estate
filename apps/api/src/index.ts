@@ -4,6 +4,7 @@ import { createLogger } from "@real-estate/logger";
 import {
   assertRedisCompatibleWithBullMq,
   buildBullMqConnection,
+  createQueueMetricsHandle,
   createRedisClient,
   initializeMetrics,
   redactRedisConnection
@@ -41,16 +42,25 @@ async function main(): Promise<void> {
   const queues = new QueuePublisher(redis, bullmqConnection, {
     prefix: config.QUEUE_PREFIX,
     messageAttempts: config.MESSAGE_MAX_RETRIES,
-    crmAttempts: config.CRM_MAX_RETRIES
+    followupAttempts: config.followupMaxRetries,
+    crmAttempts: config.CRM_MAX_RETRIES,
+    retryBackoffMs: config.queueRetryBackoffMs
   });
   await queues.healthCheck();
+  const queueMetrics = createQueueMetricsHandle({
+    queues: queues.getMetricsTargets(),
+    intervalMs: config.queueMetricsSampleIntervalMs,
+    logger
+  });
+  await queueMetrics.sample();
 
   const service = new LeadService(db, queues, config, logger);
-  const app = await buildApp({ service, logger });
+  const app = await buildApp({ service, logger, config });
 
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, "shutdown.start");
     await app.close();
+    await queueMetrics.close();
     await queues.close();
     await redis.quit();
     await db.$disconnect();

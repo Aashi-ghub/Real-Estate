@@ -6,6 +6,7 @@ import type {
   ConversationContext,
   GenericCrmConfig,
   JsonValue,
+  TraceContext,
   WhatsAppProvider
 } from "@real-estate/types";
 import { sanitizeJsonValue, parseWhatsAppConfig } from "@real-estate/utils";
@@ -50,6 +51,8 @@ export async function markJobProcessing(
     dedupeKey: string;
     payload: unknown;
     attempts: number;
+    trace?: TraceContext;
+    metadata?: unknown;
   }
 ): Promise<void> {
   await upsertJobMirror(db, {
@@ -59,8 +62,10 @@ export async function markJobProcessing(
     name: job.name,
     idempotencyKey: job.dedupeKey,
     payload: sanitizeJsonValue(job.payload),
+    metadata: job.metadata,
     status: "processing",
-    attempts: job.attempts
+    attempts: job.attempts,
+    trace: job.trace
   });
 }
 
@@ -74,6 +79,8 @@ export async function markJobComplete(
     dedupeKey: string;
     payload: unknown;
     attempts: number;
+    trace?: TraceContext;
+    metadata?: unknown;
   }
 ): Promise<void> {
   await upsertJobMirror(db, {
@@ -83,10 +90,12 @@ export async function markJobComplete(
     name: job.name,
     idempotencyKey: job.dedupeKey,
     payload: sanitizeJsonValue(job.payload),
+    metadata: job.metadata,
     status: "completed",
     attempts: job.attempts,
     processedAt: new Date(),
-    lastError: null
+    lastError: null,
+    trace: job.trace
   });
 }
 
@@ -101,6 +110,8 @@ export async function markJobFailure(
     dedupeKey: string;
     payload: unknown;
     attempts: number;
+    trace?: TraceContext;
+    metadata?: unknown;
   },
   error: Error,
   status: "failed" | "dead_letter" = "failed"
@@ -113,10 +124,12 @@ export async function markJobFailure(
     name: job.name,
     idempotencyKey: job.dedupeKey,
     payload: sanitizeJsonValue(job.payload),
+    metadata: job.metadata,
     status,
     attempts: job.attempts,
     processedAt: new Date(),
-    lastError: error.message
+    lastError: error.message,
+    trace: job.trace
   });
 }
 

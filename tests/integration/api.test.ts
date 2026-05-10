@@ -11,6 +11,7 @@ const createLeadClientId = "22222222-2222-4222-8222-222222222222";
 
 class FakeRedis {
   private readonly counters = new Map<string, number>();
+  private readonly strings = new Map<string, string>();
 
   async incr(key: string): Promise<number> {
     const next = (this.counters.get(key) ?? 0) + 1;
@@ -24,6 +25,15 @@ class FakeRedis {
 
   async ping(): Promise<string> {
     return "PONG";
+  }
+
+  async get(key: string): Promise<string | null> {
+    return this.strings.get(key) ?? null;
+  }
+
+  async set(key: string, value: string): Promise<"OK"> {
+    this.strings.set(key, value);
+    return "OK";
   }
 }
 
@@ -68,12 +78,22 @@ function createApiConfig(): ApiConfig {
     REDIS_TLS_ENABLED: false,
     APP_ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     API_RATE_LIMIT_PER_MINUTE: 120,
+    API_RATE_LIMIT_WINDOW_SECONDS: 60,
+    WEBHOOK_RATE_LIMIT_PER_MINUTE: 300,
+    WEBHOOK_RATE_LIMIT_WINDOW_SECONDS: 60,
     WEBHOOK_BASE_URL: "http://localhost:3000/whatsapp/inbound",
     WEBHOOK_SIGNATURE_TOLERANCE_SECONDS: 300,
+    WEBHOOK_REPLAY_TTL_SECONDS: 86400,
+    REQUEST_BODY_LIMIT_BYTES: 262144,
+    WEBHOOK_BODY_LIMIT_BYTES: 262144,
     WORKER_CONCURRENCY: 1,
     FOLLOWUP_DELAY_MINUTES: 30,
     MESSAGE_MAX_RETRIES: 3,
+    FOLLOWUP_MAX_RETRIES: 3,
     CRM_MAX_RETRIES: 3,
+    QUEUE_RETRY_BACKOFF_MS: 1000,
+    QUEUE_RETRY_BACKOFF_MAX_MS: 60000,
+    QUEUE_METRICS_SAMPLE_INTERVAL_MS: 10000,
     QUEUE_PREFIX: "test",
     TWILIO_ACCOUNT_SID: "",
     TWILIO_AUTH_TOKEN: "",
@@ -87,6 +107,16 @@ function createApiConfig(): ApiConfig {
       db: 0,
       tlsEnabled: false
     },
+    apiRateLimitWindowSeconds: 60,
+    webhookRateLimitPerMinute: 300,
+    webhookRateLimitWindowSeconds: 60,
+    webhookReplayTtlSeconds: 86400,
+    requestBodyLimitBytes: 262144,
+    webhookBodyLimitBytes: 262144,
+    followupMaxRetries: 3,
+    queueRetryBackoffMs: 1000,
+    queueRetryBackoffMaxMs: 60000,
+    queueMetricsSampleIntervalMs: 10000,
     apiHost: "127.0.0.1",
     apiPort: 3000
   };
@@ -288,7 +318,7 @@ describe("API integration", () => {
     const queues = new FakeQueues();
     const db = createCreateLeadFakeDb(config);
     const service = new LeadService(db as never, queues as never, config, createLogger("test", "fatal"));
-    const app = await buildApp({ service, logger: createLogger("test", "fatal") });
+    const app = await buildApp({ service, logger: createLogger("test", "fatal"), config });
     apps.push(app);
 
     const response = await app.inject({
@@ -307,14 +337,18 @@ describe("API integration", () => {
     });
 
     expect(response.statusCode).toBe(201);
-    expect(response.json()).toEqual({
+    expect(response.json()).toMatchObject({
       lead_id: "lead-1",
       created: true
     });
     expect(queues.sendMessages).toHaveLength(1);
     expect(queues.sendMessages[0]).toMatchObject({
       reason: "intro",
-      leadId: "lead-1"
+      leadId: "lead-1",
+      trace: {
+        requestId: expect.any(String),
+        correlationId: expect.any(String)
+      }
     });
   });
 
@@ -323,7 +357,7 @@ describe("API integration", () => {
     const db = createInboundFakeDb(config);
     const queues = new FakeQueues();
     const service = new LeadService(db as never, queues as never, config, createLogger("test", "fatal"));
-    const app = await buildApp({ service, logger: createLogger("test", "fatal") });
+    const app = await buildApp({ service, logger: createLogger("test", "fatal"), config });
     apps.push(app);
 
     const body = buildMetaWebhookBody("client-1");
@@ -344,7 +378,7 @@ describe("API integration", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({
+    expect(response.json()).toMatchObject({
       status: "processed",
       leadId: "lead-existing"
     });
@@ -356,6 +390,43 @@ describe("API integration", () => {
       reason: "agent_notification"
     });
     expect(queues.crmPushes).toHaveLength(1);
+  });
+
+  it("propagates request_id from the API request into queued jobs", async () => {
+    const config = createApiConfig();
+    const queues = new FakeQueues();
+    const db = createCreateLeadFakeDb(config);
+    const service = new LeadService(db as never, queues as never, config, createLogger("test", "fatal"));
+    const app = await buildApp({ service, logger: createLogger("test", "fatal"), config });
+    apps.push(app);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/leads",
+      headers: {
+        "x-api-key": "test-api-key",
+        "idempotency-key": "lead-request-trace",
+        "x-request-id": "req-api-123",
+        "x-correlation-id": "corr-api-123"
+      },
+      payload: {
+        client_id: createLeadClientId,
+        name: "Rohan Mehta",
+        phone: "+919811112222",
+        source: "landing-page"
+      }
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.headers["x-request-id"]).toBe("req-api-123");
+    expect(response.headers["x-correlation-id"]).toBe("corr-api-123");
+    expect(queues.sendMessages[0]).toMatchObject({
+      trace: {
+        requestId: "req-api-123",
+        correlationId: "corr-api-123",
+        source: "api"
+      }
+    });
   });
 });
 

@@ -10,10 +10,12 @@ import {
   upsertJobMirror
 } from "@real-estate/db";
 import type { WorkerConfig } from "@real-estate/config";
-import type { ConversationState, SendMessageJobData } from "@real-estate/types";
+import type { ConversationState, JobTrace, SendMessageJobData } from "@real-estate/types";
 import {
   ExternalServiceError,
   buildJobDedupeKey,
+  buildJobTrace,
+  computeRetryMetadata,
   messagesFailedTotal,
   messagesSentTotal,
   sendMessage
@@ -36,10 +38,17 @@ export async function processSendMessage(
     logger: Logger;
     config: WorkerConfig;
     queues: WorkerQueues;
+    trace: JobTrace;
   }
 ): Promise<void> {
   const db = deps.db ?? defaultDb;
   const attempts = job.attemptsMade + 1;
+  const retryMetadata = computeRetryMetadata({
+    attemptsMade: attempts,
+    maxAttempts: job.opts.attempts ?? 1,
+    baseDelayMs: deps.config.queueRetryBackoffMs,
+    maxDelayMs: deps.config.queueRetryBackoffMaxMs
+  });
   await markJobProcessing(db, {
     clientId: job.data.clientId,
     leadId: job.data.leadId,
@@ -47,7 +56,12 @@ export async function processSendMessage(
     name: "send_message",
     dedupeKey: job.data.dedupeKey,
     payload: job.data,
-    attempts
+    attempts,
+    metadata: {
+      retry: retryMetadata,
+      workerName: "message-worker"
+    },
+    trace: deps.trace
   });
 
   const conversation = await db.conversation.findUnique({
@@ -84,7 +98,9 @@ export async function processSendMessage(
           dedupeKey: job.data.dedupeKey,
           status: "queued",
           metadata: toPrismaJson({
-            reason: job.data.reason
+            reason: job.data.reason,
+            requestId: deps.trace.requestId,
+            correlationId: deps.trace.correlationId
           })
         }
       });
@@ -104,7 +120,12 @@ export async function processSendMessage(
       name: "send_message",
       dedupeKey: job.data.dedupeKey,
       payload: job.data,
-      attempts
+      attempts,
+      metadata: {
+        retry: retryMetadata,
+        workerName: "message-worker"
+      },
+      trace: deps.trace
     });
     return;
   }
@@ -133,7 +154,9 @@ export async function processSendMessage(
           status: "sent",
           metadata: toPrismaJson({
             reason: job.data.reason,
-            sentAt: now.toISOString()
+            sentAt: now.toISOString(),
+            requestId: deps.trace.requestId,
+            correlationId: deps.trace.correlationId
           })
         }
       });
@@ -171,7 +194,8 @@ export async function processSendMessage(
           reason: job.data.reason,
           to: job.data.to,
           providerMessageId: sendResult.providerMessageId
-        }
+        },
+        trace: deps.trace
       });
     });
 
@@ -186,7 +210,12 @@ export async function processSendMessage(
       name: "send_message",
       dedupeKey: job.data.dedupeKey,
       payload: job.data,
-      attempts
+      attempts,
+      metadata: {
+        retry: retryMetadata,
+        workerName: "message-worker"
+      },
+      trace: deps.trace
     });
 
     if (
@@ -203,7 +232,9 @@ export async function processSendMessage(
           conversationId: job.data.conversationId,
           to: job.data.to,
           state: followupState,
-          lastOutboundAt: now
+          lastOutboundAt: now,
+          trace: deps.trace,
+          parentJobId: String(job.id)
         });
       }
     }
@@ -221,7 +252,9 @@ export async function processSendMessage(
         status: "failed",
         metadata: toPrismaJson({
           reason: job.data.reason,
-          error: outboundError.message
+          error: outboundError.message,
+          requestId: deps.trace.requestId,
+          correlationId: deps.trace.correlationId
         })
       }
     });
@@ -235,7 +268,12 @@ export async function processSendMessage(
         name: "send_message",
         dedupeKey: job.data.dedupeKey,
         payload: job.data,
-        attempts
+        attempts,
+        metadata: {
+          retry: retryMetadata,
+          workerName: "message-worker"
+        },
+        trace: deps.trace
       },
       outboundError
     );
@@ -259,6 +297,8 @@ async function scheduleFollowup(
     to: string;
     state: Exclude<ConversationState, "INIT" | "QUALIFIED">;
     lastOutboundAt: Date;
+    trace: JobTrace;
+    parentJobId: string;
   }
 ): Promise<void> {
   const dedupeKey = buildJobDedupeKey([
@@ -276,7 +316,14 @@ async function scheduleFollowup(
       to: input.to,
       dedupeKey,
       expectedState: input.state,
-      lastOutboundAt: input.lastOutboundAt.toISOString()
+      lastOutboundAt: input.lastOutboundAt.toISOString(),
+      trace: buildJobTrace(input.trace, {
+        requestId: input.trace.requestId,
+        correlationId: input.trace.correlationId,
+        source: "worker",
+        parentQueue: "messages",
+        parentJobId: input.parentJobId
+      })
     },
     config.FOLLOWUP_DELAY_MINUTES * 60_000
   );
@@ -292,9 +339,21 @@ async function scheduleFollowup(
       conversationId: input.conversationId,
       to: input.to,
       expectedState: input.state,
-      lastOutboundAt: input.lastOutboundAt.toISOString()
+      lastOutboundAt: input.lastOutboundAt.toISOString(),
+      trace: buildJobTrace(input.trace, {
+        requestId: input.trace.requestId,
+        correlationId: input.trace.correlationId,
+        source: "worker",
+        parentQueue: "messages",
+        parentJobId: input.parentJobId
+      })
+    },
+    metadata: {
+      queueName: "followups",
+      source: "worker"
     },
     status: "queued",
-    scheduledAt: new Date(input.lastOutboundAt.getTime() + config.FOLLOWUP_DELAY_MINUTES * 60_000)
+    scheduledAt: new Date(input.lastOutboundAt.getTime() + config.FOLLOWUP_DELAY_MINUTES * 60_000),
+    trace: input.trace
   });
 }

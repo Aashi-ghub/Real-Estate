@@ -3,6 +3,7 @@ import type IORedis from "ioredis";
 
 import type { CrmPushJobData, FollowupNoReplyJobData, SendMessageJobData } from "@real-estate/types";
 import { queueNames } from "@real-estate/types";
+import { buildQueueJobOptions } from "@real-estate/utils";
 
 export class QueuePublisher {
   private readonly messagesQueue: Queue<SendMessageJobData>;
@@ -15,7 +16,9 @@ export class QueuePublisher {
     private readonly options: {
       prefix: string;
       messageAttempts: number;
+      followupAttempts: number;
       crmAttempts: number;
+      retryBackoffMs: number;
     }
   ) {
     this.messagesQueue = new Queue(queueNames.messages, {
@@ -33,37 +36,43 @@ export class QueuePublisher {
   }
 
   async enqueueSendMessage(data: SendMessageJobData, overrides: JobsOptions = {}): Promise<void> {
-    await this.messagesQueue.add("send_message", data, {
-      jobId: data.dedupeKey,
-      attempts: this.options.messageAttempts,
-      backoff: { type: "exponential", delay: 1_000 },
-      removeOnComplete: 500,
-      removeOnFail: false,
-      ...overrides
-    });
+    await this.messagesQueue.add(
+      "send_message",
+      data,
+      buildQueueJobOptions({
+        jobId: data.dedupeKey,
+        attempts: this.options.messageAttempts,
+        backoffDelayMs: this.options.retryBackoffMs,
+        overrides
+      })
+    );
   }
 
   async enqueueFollowup(data: FollowupNoReplyJobData, delayMs: number, overrides: JobsOptions = {}): Promise<void> {
-    await this.followupsQueue.add("followup_no_reply", data, {
-      jobId: data.dedupeKey,
-      attempts: this.options.messageAttempts,
-      backoff: { type: "exponential", delay: 1_000 },
-      delay: delayMs,
-      removeOnComplete: 500,
-      removeOnFail: false,
-      ...overrides
-    });
+    await this.followupsQueue.add(
+      "followup_no_reply",
+      data,
+      buildQueueJobOptions({
+        jobId: data.dedupeKey,
+        attempts: this.options.followupAttempts,
+        backoffDelayMs: this.options.retryBackoffMs,
+        delayMs,
+        overrides
+      })
+    );
   }
 
   async enqueueCrmPush(data: CrmPushJobData, overrides: JobsOptions = {}): Promise<void> {
-    await this.crmQueue.add("crm_push", data, {
-      jobId: data.dedupeKey,
-      attempts: this.options.crmAttempts,
-      backoff: { type: "exponential", delay: 2_000 },
-      removeOnComplete: 500,
-      removeOnFail: false,
-      ...overrides
-    });
+    await this.crmQueue.add(
+      "crm_push",
+      data,
+      buildQueueJobOptions({
+        jobId: data.dedupeKey,
+        attempts: this.options.crmAttempts,
+        backoffDelayMs: this.options.retryBackoffMs * 2,
+        overrides
+      })
+    );
   }
 
   async close(): Promise<void> {
@@ -85,5 +94,13 @@ export class QueuePublisher {
 
   get redis(): IORedis {
     return this.redisClient;
+  }
+
+  getMetricsTargets() {
+    return [
+      { name: queueNames.messages, queue: this.messagesQueue },
+      { name: queueNames.followups, queue: this.followupsQueue },
+      { name: queueNames.crm, queue: this.crmQueue }
+    ];
   }
 }

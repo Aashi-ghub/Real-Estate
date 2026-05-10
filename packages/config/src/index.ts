@@ -15,32 +15,68 @@ const optionalNonEmptyStringSchema = z.preprocess(
   z.string().min(1).optional()
 );
 
-const baseEnvSchema = z.object({
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
-  DATABASE_URL: z.string().min(1),
-  REDIS_URL: z.string().url().optional(),
-  REDIS_HOST: optionalNonEmptyStringSchema,
-  REDIS_PORT: z.coerce.number().int().min(1).max(65_535).optional(),
-  REDIS_USERNAME: optionalNonEmptyStringSchema,
-  REDIS_PASSWORD: z.preprocess((value) => value === "" ? undefined : value, z.string().optional()),
-  REDIS_DB: z.coerce.number().int().min(0).default(0),
-  REDIS_TLS_ENABLED: booleanishSchema.default(false),
-  APP_ENCRYPTION_KEY: z.string().regex(/^[a-fA-F0-9]{64}$/, "APP_ENCRYPTION_KEY must be a 64-char hex string"),
-  API_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(120),
-  WEBHOOK_BASE_URL: z.url(),
-  WEBHOOK_SIGNATURE_TOLERANCE_SECONDS: z.coerce.number().int().positive().default(300),
-  WORKER_CONCURRENCY: z.coerce.number().int().positive().default(10),
-  FOLLOWUP_DELAY_MINUTES: z.coerce.number().int().positive().default(30),
-  MESSAGE_MAX_RETRIES: z.coerce.number().int().positive().default(5),
-  CRM_MAX_RETRIES: z.coerce.number().int().positive().default(5),
-  QUEUE_PREFIX: z.string().min(1).default("lead-qualifier"),
-  TWILIO_ACCOUNT_SID: z.string().optional(),
-  TWILIO_AUTH_TOKEN: z.string().optional(),
-  TWILIO_WHATSAPP_FROM: z.string().default("whatsapp:+14155238886"),
-  API_HOST: z.string().default("0.0.0.0"),
-  API_PORT: z.coerce.number().int().positive().default(3000)
-});
+const baseEnvSchema = z
+  .object({
+    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+    LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
+    DATABASE_URL: z.string().min(1),
+    REDIS_URL: z.string().url().optional(),
+    REDIS_HOST: optionalNonEmptyStringSchema,
+    REDIS_PORT: z.coerce.number().int().min(1).max(65_535).optional(),
+    REDIS_USERNAME: optionalNonEmptyStringSchema,
+    REDIS_PASSWORD: z.preprocess((value) => value === "" ? undefined : value, z.string().optional()),
+    REDIS_DB: z.coerce.number().int().min(0).default(0),
+    REDIS_TLS_ENABLED: booleanishSchema.default(false),
+    APP_ENCRYPTION_KEY: z.string().regex(/^[a-fA-F0-9]{64}$/, "APP_ENCRYPTION_KEY must be a 64-char hex string"),
+    API_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(90),
+    API_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().positive().default(60),
+    WEBHOOK_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(300),
+    WEBHOOK_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().positive().default(60),
+    WEBHOOK_BASE_URL: z.url(),
+    WEBHOOK_SIGNATURE_TOLERANCE_SECONDS: z.coerce.number().int().positive().default(300),
+    WEBHOOK_REPLAY_TTL_SECONDS: z.coerce.number().int().positive().default(86_400),
+    REQUEST_BODY_LIMIT_BYTES: z.coerce.number().int().positive().default(262_144),
+    WEBHOOK_BODY_LIMIT_BYTES: z.coerce.number().int().positive().default(262_144),
+    WORKER_CONCURRENCY: z.coerce.number().int().positive().default(10),
+    FOLLOWUP_DELAY_MINUTES: z.coerce.number().int().positive().default(30),
+    MESSAGE_MAX_RETRIES: z.coerce.number().int().positive().default(5),
+    FOLLOWUP_MAX_RETRIES: z.coerce.number().int().positive().optional(),
+    CRM_MAX_RETRIES: z.coerce.number().int().positive().default(5),
+    QUEUE_RETRY_BACKOFF_MS: z.coerce.number().int().positive().default(1_000),
+    QUEUE_RETRY_BACKOFF_MAX_MS: z.coerce.number().int().positive().default(60_000),
+    QUEUE_METRICS_SAMPLE_INTERVAL_MS: z.coerce.number().int().positive().default(10_000),
+    QUEUE_PREFIX: z.string().min(1).default("lead-qualifier"),
+    TWILIO_ACCOUNT_SID: z.string().optional(),
+    TWILIO_AUTH_TOKEN: z.string().optional(),
+    TWILIO_WHATSAPP_FROM: z.string().default("whatsapp:+14155238886"),
+    API_HOST: z.string().default("0.0.0.0"),
+    API_PORT: z.coerce.number().int().positive().default(3000)
+  })
+  .superRefine((value, ctx) => {
+    if (value.QUEUE_RETRY_BACKOFF_MAX_MS < value.QUEUE_RETRY_BACKOFF_MS) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["QUEUE_RETRY_BACKOFF_MAX_MS"],
+        message: "QUEUE_RETRY_BACKOFF_MAX_MS must be greater than or equal to QUEUE_RETRY_BACKOFF_MS"
+      });
+    }
+
+    if (value.TWILIO_ACCOUNT_SID && !value.TWILIO_AUTH_TOKEN) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["TWILIO_AUTH_TOKEN"],
+        message: "TWILIO_AUTH_TOKEN is required when TWILIO_ACCOUNT_SID is set"
+      });
+    }
+
+    if (value.WEBHOOK_BODY_LIMIT_BYTES > value.REQUEST_BODY_LIMIT_BYTES) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["WEBHOOK_BODY_LIMIT_BYTES"],
+        message: "WEBHOOK_BODY_LIMIT_BYTES cannot exceed REQUEST_BODY_LIMIT_BYTES"
+      });
+    }
+  });
 
 type BaseEnvConfig = z.infer<typeof baseEnvSchema>;
 
@@ -56,6 +92,16 @@ export interface RedisConnectionConfig {
 
 export type BaseConfig = BaseEnvConfig & {
   redisConnection: RedisConnectionConfig;
+  apiRateLimitWindowSeconds: number;
+  webhookRateLimitPerMinute: number;
+  webhookRateLimitWindowSeconds: number;
+  webhookReplayTtlSeconds: number;
+  requestBodyLimitBytes: number;
+  webhookBodyLimitBytes: number;
+  followupMaxRetries: number;
+  queueRetryBackoffMs: number;
+  queueRetryBackoffMaxMs: number;
+  queueMetricsSampleIntervalMs: number;
 };
 
 let cachedConfig: BaseConfig | null = null;
@@ -153,7 +199,17 @@ export function getBaseConfig(env: NodeJS.ProcessEnv = process.env): BaseConfig 
   const parsed = baseEnvSchema.parse(env);
   cachedConfig = {
     ...parsed,
-    redisConnection: resolveRedisConnection(parsed)
+    redisConnection: resolveRedisConnection(parsed),
+    apiRateLimitWindowSeconds: parsed.API_RATE_LIMIT_WINDOW_SECONDS,
+    webhookRateLimitPerMinute: parsed.WEBHOOK_RATE_LIMIT_PER_MINUTE,
+    webhookRateLimitWindowSeconds: parsed.WEBHOOK_RATE_LIMIT_WINDOW_SECONDS,
+    webhookReplayTtlSeconds: parsed.WEBHOOK_REPLAY_TTL_SECONDS,
+    requestBodyLimitBytes: parsed.REQUEST_BODY_LIMIT_BYTES,
+    webhookBodyLimitBytes: parsed.WEBHOOK_BODY_LIMIT_BYTES,
+    followupMaxRetries: parsed.FOLLOWUP_MAX_RETRIES ?? parsed.MESSAGE_MAX_RETRIES,
+    queueRetryBackoffMs: parsed.QUEUE_RETRY_BACKOFF_MS,
+    queueRetryBackoffMaxMs: parsed.QUEUE_RETRY_BACKOFF_MAX_MS,
+    queueMetricsSampleIntervalMs: parsed.QUEUE_METRICS_SAMPLE_INTERVAL_MS
   };
   return cachedConfig;
 }

@@ -199,9 +199,12 @@ exports.Prisma.JobScalarFieldEnum = {
   queue: 'queue',
   name: 'name',
   idempotencyKey: 'idempotencyKey',
+  requestId: 'requestId',
+  correlationId: 'correlationId',
   status: 'status',
   attempts: 'attempts',
   payload: 'payload',
+  metadata: 'metadata',
   scheduledAt: 'scheduledAt',
   processedAt: 'processedAt',
   lastError: 'lastError',
@@ -216,6 +219,8 @@ exports.Prisma.AuditLogScalarFieldEnum = {
   action: 'action',
   entity: 'entity',
   entityId: 'entityId',
+  requestId: 'requestId',
+  correlationId: 'correlationId',
   metadata: 'metadata',
   createdAt: 'createdAt'
 };

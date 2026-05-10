@@ -9,8 +9,14 @@ import {
   upsertJobMirror
 } from "@real-estate/db";
 import type { WorkerConfig } from "@real-estate/config";
-import type { CrmPushJobData, JsonValue } from "@real-estate/types";
-import { ExternalServiceError, crmPushFailedTotal, crmPushSuccessTotal, pushToCRM } from "@real-estate/utils";
+import type { CrmPushJobData, JobTrace, JsonValue } from "@real-estate/types";
+import {
+  ExternalServiceError,
+  computeRetryMetadata,
+  crmPushFailedTotal,
+  crmPushSuccessTotal,
+  pushToCRM
+} from "@real-estate/utils";
 
 import { WorkerQueues } from "../services/queue-runtime";
 import { markJobComplete, markJobFailure, markJobProcessing, toClientRuntime } from "../services/runtime-helpers";
@@ -22,10 +28,17 @@ export async function processCrmPush(
     logger: Logger;
     config: WorkerConfig;
     queues: WorkerQueues;
+    trace: JobTrace;
   }
 ): Promise<void> {
   const db = deps.db ?? defaultDb;
   const attempts = job.attemptsMade + 1;
+  const retryMetadata = computeRetryMetadata({
+    attemptsMade: attempts,
+    maxAttempts: job.opts.attempts ?? 1,
+    baseDelayMs: deps.config.queueRetryBackoffMs * 2,
+    maxDelayMs: deps.config.queueRetryBackoffMaxMs
+  });
   await markJobProcessing(db, {
     clientId: job.data.clientId,
     leadId: job.data.leadId,
@@ -33,7 +46,12 @@ export async function processCrmPush(
     name: "crm_push",
     dedupeKey: job.data.dedupeKey,
     payload: job.data,
-    attempts
+    attempts,
+    metadata: {
+      retry: retryMetadata,
+      workerName: "crm-worker"
+    },
+    trace: deps.trace
   });
 
   const lead = await db.lead.findUnique({
@@ -129,7 +147,8 @@ export async function processCrmPush(
         metadata: {
           statusCode: result.statusCode,
           externalId: result.externalId
-        }
+        },
+        trace: deps.trace
       });
     });
 
@@ -141,7 +160,12 @@ export async function processCrmPush(
       name: "crm_push",
       dedupeKey: job.data.dedupeKey,
       payload: job.data,
-      attempts
+      attempts,
+      metadata: {
+        retry: retryMetadata,
+        workerName: "crm-worker"
+      },
+      trace: deps.trace
     });
   } catch (error) {
     const crmError = error as Error;
@@ -166,7 +190,12 @@ export async function processCrmPush(
         name: "crm_push",
         dedupeKey: job.data.dedupeKey,
         payload: job.data,
-        attempts
+        attempts,
+        metadata: {
+          retry: retryMetadata,
+          workerName: "crm-worker"
+        },
+        trace: deps.trace
       },
       crmError
     );

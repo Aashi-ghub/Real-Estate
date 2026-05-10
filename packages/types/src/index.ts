@@ -5,6 +5,18 @@ export interface JsonObject {
   [key: string]: JsonValue;
 }
 
+export interface TraceContext {
+  requestId: string;
+  correlationId: string;
+}
+
+export interface JobTrace extends TraceContext {
+  source: "api" | "webhook" | "worker";
+  enqueuedAt: string;
+  parentQueue?: QueueName;
+  parentJobId?: string;
+}
+
 export const clientStatuses = ["active", "paused"] as const;
 export type ClientStatus = (typeof clientStatuses)[number];
 
@@ -176,6 +188,7 @@ export interface SendMessageJobData {
   reason: "intro" | "prompt" | "followup" | "qualification_ack" | "agent_notification";
   transitionAfterSend?: ConversationState;
   metadata?: JsonObject;
+  trace?: JobTrace;
 }
 
 export interface FollowupNoReplyJobData {
@@ -186,6 +199,7 @@ export interface FollowupNoReplyJobData {
   dedupeKey: string;
   expectedState: Exclude<ConversationState, "INIT" | "QUALIFIED">;
   lastOutboundAt: string;
+  trace?: JobTrace;
 }
 
 export interface CrmPushJobData {
@@ -194,6 +208,27 @@ export interface CrmPushJobData {
   conversationId: string;
   dedupeKey: string;
   qualifiedAt: string;
+  trace?: JobTrace;
+}
+
+export interface DeadLetterJobData {
+  queue: QueueName;
+  workerName: string;
+  jobId: string;
+  jobName: string;
+  clientId?: string;
+  leadId?: string;
+  dedupeKey?: string;
+  payload: JsonValue;
+  error: {
+    message: string;
+    failedAt: string;
+    attemptsMade: number;
+    maxAttempts: number;
+    willRetry: boolean;
+    nextRetryDelayMs: number;
+  };
+  trace?: JobTrace;
 }
 
 export interface AuthenticatedApiKey {

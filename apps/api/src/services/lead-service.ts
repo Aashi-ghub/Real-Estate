@@ -1,3 +1,5 @@
+import { performance } from "node:perf_hooks";
+
 import type { Logger } from "pino";
 import { z } from "zod";
 
@@ -22,24 +24,29 @@ import type {
   LeadAttributeKey,
   NormalizedInboundMessage,
   SendMessageJobData,
+  TraceContext,
   WhatsAppProvider
 } from "@real-estate/types";
 import {
   advanceState,
+  buildJobTrace,
   buildJobDedupeKey,
   buildTenantIdempotencyKey,
   computeQualificationScore,
   hashApiKey,
+  incrementWebhookFailure,
   leadCreatedTotal,
   normalizeEmail,
   normalizePhoneE164,
   normalizeInboundMessage,
+  observeWebhookProcessingLatency,
   parseWhatsAppConfig,
   sanitizeFreeText,
   sanitizeJsonValue,
   setQualificationRate,
   verifyWebhookSignature
 } from "@real-estate/utils";
+import { withLogContext } from "@real-estate/logger";
 
 import { QueuePublisher } from "./queue-publisher";
 
@@ -124,14 +131,20 @@ export class LeadService {
     };
   }
 
-  async enforceRateLimit(subject: string): Promise<void> {
-    const windowKey = `rate_limit:${subject}:${Math.floor(Date.now() / 60_000)}`;
+  async enforceRateLimit(
+    subject: string,
+    options: {
+      limit: number;
+      windowSeconds: number;
+    }
+  ): Promise<void> {
+    const windowKey = `rate_limit:${subject}:${Math.floor(Date.now() / (options.windowSeconds * 1_000))}`;
     const count = await this.queues.redis.incr(windowKey);
     if (count === 1) {
-      await this.queues.redis.expire(windowKey, 60);
+      await this.queues.redis.expire(windowKey, options.windowSeconds);
     }
 
-    if (count > this.config.API_RATE_LIMIT_PER_MINUTE) {
+    if (count > options.limit) {
       const error = new Error("Rate limit exceeded");
       (error as Error & { statusCode?: number }).statusCode = 429;
       throw error;
@@ -142,136 +155,166 @@ export class LeadService {
     auth: AuthenticatedApiKey;
     idempotencyKey: string;
     body: unknown;
+    trace: TraceContext;
   }): Promise<{ leadId: string; created: boolean }> {
-    const body = createLeadBodySchema.parse(input.body);
-    if (body.client_id !== input.auth.clientId) {
-      const error = new Error("API key does not match client_id");
-      (error as Error & { statusCode?: number }).statusCode = 403;
-      throw error;
-    }
+    return withLogContext(
+      {
+        request_id: input.trace.requestId,
+        correlation_id: input.trace.correlationId,
+        client_id: input.auth.clientId
+      },
+      async () => {
+        const body = createLeadBodySchema.parse(input.body);
+        if (body.client_id !== input.auth.clientId) {
+          const error = new Error("API key does not match client_id");
+          (error as Error & { statusCode?: number }).statusCode = 403;
+          throw error;
+        }
 
-    if (input.auth.clientStatus !== "active") {
-      const error = new Error("Client is paused");
-      (error as Error & { statusCode?: number }).statusCode = 403;
-      throw error;
-    }
+        if (input.auth.clientStatus !== "active") {
+          const error = new Error("Client is paused");
+          (error as Error & { statusCode?: number }).statusCode = 403;
+          throw error;
+        }
 
-    const normalizedPhone = normalizePhoneE164(body.phone);
-    const normalizedEmail = normalizeEmail(body.email ?? null);
-    const storedIdempotencyKey = buildTenantIdempotencyKey(body.client_id, input.idempotencyKey);
+        const normalizedPhone = normalizePhoneE164(body.phone);
+        const normalizedEmail = normalizeEmail(body.email ?? null);
+        const storedIdempotencyKey = buildTenantIdempotencyKey(body.client_id, input.idempotencyKey);
 
-    try {
-      const result = await this.db.$transaction(
-        async (tx) => {
-          const existing = await tx.lead.findUnique({
-            where: {
-              idempotencyKey: storedIdempotencyKey
+        try {
+          const result = await this.db.$transaction(
+            async (tx) => {
+              const existing = await tx.lead.findUnique({
+                where: {
+                  idempotencyKey: storedIdempotencyKey
+                },
+                include: {
+                  conversation: true
+                }
+              });
+
+              if (existing?.conversation) {
+                return {
+                  leadId: existing.id,
+                  conversationId: existing.conversation.id,
+                  created: false,
+                  phone: existing.phone
+                };
+              }
+
+              const lead = await tx.lead.create({
+                data: {
+                  clientId: body.client_id,
+                  name: sanitizeFreeText(body.name, 160),
+                  phone: normalizedPhone,
+                  email: normalizedEmail,
+                  source: sanitizeFreeText(body.source, 100),
+                  idempotencyKey: storedIdempotencyKey,
+                  ...(body.metadata ? { metadata: toPrismaJson(sanitizeJsonValue(body.metadata)) } : {}),
+                  conversation: {
+                    create: {
+                      channel: "whatsapp",
+                      state: "INIT",
+                      context: toPrismaJson({ responseCount: 0 } satisfies JsonObject)
+                    }
+                  }
+                },
+                include: {
+                  conversation: true
+                }
+              });
+
+              await createAuditLog(tx, {
+                clientId: body.client_id,
+                actor: `api_key:${input.auth.id}`,
+                action: "lead.create",
+                entity: "Lead",
+                entityId: lead.id,
+                metadata: {
+                  phone: normalizedPhone,
+                  email: normalizedEmail,
+                  source: body.source
+                },
+                trace: input.trace
+              });
+
+              return {
+                leadId: lead.id,
+                conversationId: lead.conversation!.id,
+                created: true,
+                phone: lead.phone
+              };
             },
-            include: {
-              conversation: true
-            }
-          });
+            interactiveTransactionOptions
+          );
 
-          if (existing?.conversation) {
-            return {
-              leadId: existing.id,
-              conversationId: existing.conversation.id,
-              created: false,
-              phone: existing.phone
+          if (result.created) {
+            const dedupeKey = buildJobDedupeKey(["intro", result.conversationId]);
+            const job: SendMessageJobData = {
+              clientId: body.client_id,
+              leadId: result.leadId,
+              conversationId: result.conversationId,
+              to: result.phone,
+              text: "Hi, thanks for your interest in our properties. I will ask a few quick questions to match the right options. What budget range are you considering?",
+              dedupeKey,
+              reason: "intro",
+              transitionAfterSend: "ASK_BUDGET",
+              trace: buildJobTrace(undefined, {
+                requestId: input.trace.requestId,
+                correlationId: input.trace.correlationId,
+                source: "api"
+              })
             };
+
+            await upsertJobMirror(this.db, {
+              clientId: body.client_id,
+              leadId: result.leadId,
+              queue: "messages",
+              name: "send_message",
+              idempotencyKey: dedupeKey,
+              payload: job,
+              metadata: {
+                queueName: "messages",
+                source: "api"
+              },
+              status: "queued",
+              trace: input.trace
+            });
+            await this.queues.enqueueSendMessage(job);
+            this.logger.info(
+              {
+                clientId: body.client_id,
+                leadId: result.leadId,
+                queue: "messages",
+                request_id: input.trace.requestId
+              },
+              "lead.intro.enqueued"
+            );
+            leadCreatedTotal.inc({ client_id: body.client_id });
+            await this.refreshQualificationRate(body.client_id);
           }
 
-          const lead = await tx.lead.create({
-            data: {
-              clientId: body.client_id,
-              name: sanitizeFreeText(body.name, 160),
-              phone: normalizedPhone,
-              email: normalizedEmail,
-              source: sanitizeFreeText(body.source, 100),
-              idempotencyKey: storedIdempotencyKey,
-              ...(body.metadata ? { metadata: toPrismaJson(sanitizeJsonValue(body.metadata)) } : {}),
-              conversation: {
-                create: {
-                  channel: "whatsapp",
-                  state: "INIT",
-                  context: toPrismaJson({ responseCount: 0 } satisfies JsonObject)
-                }
-              }
-            },
-            include: {
-              conversation: true
-            }
-          });
-
-          await createAuditLog(tx, {
-            clientId: body.client_id,
-            actor: `api_key:${input.auth.id}`,
-            action: "lead.create",
-            entity: "Lead",
-            entityId: lead.id,
-            metadata: {
-              phone: normalizedPhone,
-              email: normalizedEmail,
-              source: body.source
-            }
-          });
-
           return {
-            leadId: lead.id,
-            conversationId: lead.conversation!.id,
-            created: true,
-            phone: lead.phone
+            leadId: result.leadId,
+            created: result.created
           };
-        },
-        interactiveTransactionOptions
-      );
+        } catch (error) {
+          if (isUniqueConstraintError(error)) {
+            const existing = await this.db.lead.findUnique({
+              where: { idempotencyKey: storedIdempotencyKey }
+            });
+            if (existing) {
+              return {
+                leadId: existing.id,
+                created: false
+              };
+            }
+          }
 
-      if (result.created) {
-        const dedupeKey = buildJobDedupeKey(["intro", result.conversationId]);
-        const job: SendMessageJobData = {
-          clientId: body.client_id,
-          leadId: result.leadId,
-          conversationId: result.conversationId,
-          to: result.phone,
-          text: "Hi, thanks for your interest in our properties. I will ask a few quick questions to match the right options. What budget range are you considering?",
-          dedupeKey,
-          reason: "intro",
-          transitionAfterSend: "ASK_BUDGET"
-        };
-
-        await upsertJobMirror(this.db, {
-          clientId: body.client_id,
-          leadId: result.leadId,
-          queue: "messages",
-          name: "send_message",
-          idempotencyKey: dedupeKey,
-          payload: job,
-          status: "queued"
-        });
-        await this.queues.enqueueSendMessage(job);
-        leadCreatedTotal.inc({ client_id: body.client_id });
-        await this.refreshQualificationRate(body.client_id);
-      }
-
-      return {
-        leadId: result.leadId,
-        created: result.created
-      };
-    } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        const existing = await this.db.lead.findUnique({
-          where: { idempotencyKey: storedIdempotencyKey }
-        });
-        if (existing) {
-          return {
-            leadId: existing.id,
-            created: false
-          };
+          throw error;
         }
       }
-
-      throw error;
-    }
+    );
   }
 
   async handleInboundWebhook(input: {
@@ -279,260 +322,330 @@ export class LeadService {
     body: unknown;
     rawBody: string;
     requestUrl: string;
+    requestIp: string;
+    trace: TraceContext;
   }): Promise<{ status: "processed" | "duplicate" | "ignored"; leadId?: string }> {
-    const parsedBody = inboundBodySchema.parse(input.body);
-    const provider = detectProvider(input.headers, parsedBody);
-    const normalized = normalizeInboundMessage({
-      provider,
-      body: parsedBody
-    });
-
-    const client = await this.resolveClientForInbound(provider, normalized);
-    const clientRuntime = this.toClientRuntime(client);
-    const signatureValid = verifyWebhookSignature({
-      provider,
-      headers: input.headers,
-      rawBody: input.rawBody,
-      requestUrl: this.config.WEBHOOK_BASE_URL,
-      parsedBody,
-      config: clientRuntime.whatsappConfig,
-      encryptionKey: this.config.APP_ENCRYPTION_KEY,
-      fallbackTwilioAuthToken: this.config.TWILIO_AUTH_TOKEN
-    });
-
-    if (!signatureValid) {
-      const error = new Error("Webhook signature verification failed");
-      (error as Error & { statusCode?: number }).statusCode = 401;
-      throw error;
-    }
-
-    const now = new Date();
-    const outcome = await this.db.$transaction(
-      async (tx) => {
-        const lead = await tx.lead.findFirst({
-          where: {
-            clientId: client.id,
-            phone: normalized.from
-          },
-          include: {
-            attributes: true,
-            conversation: true
-          },
-          orderBy: {
-            updatedAt: "desc"
-          }
-        });
-
-        if (!lead?.conversation) {
-          await createAuditLog(tx, {
-            clientId: client.id,
-            actor: `webhook:${provider}`,
-            action: "webhook.unmatched",
-            entity: "Lead",
-            entityId: normalized.from,
-            metadata: {
-              providerMessageId: normalized.providerMessageId,
-              phone: normalized.from
-            }
-          });
-
-          return { status: "ignored" as const };
-        }
-
-        await acquireAdvisoryLock(tx, `conversation:${lead.conversation.id}`);
+    return withLogContext(
+      {
+        request_id: input.trace.requestId,
+        correlation_id: input.trace.correlationId
+      },
+      async () => {
+        const startedAt = performance.now();
+        let provider: WhatsAppProvider | "unknown" = "unknown";
+        let outcomeStatus: "processed" | "duplicate" | "ignored" | "failed" = "failed";
 
         try {
-          await tx.message.create({
-            data: {
-              conversationId: lead.conversation.id,
-              direction: "inbound",
-              content: normalized.text,
-              providerMessageId: normalized.providerMessageId,
-              status: "delivered",
-              metadata: toPrismaJson({
+          const parsedBody = inboundBodySchema.parse(input.body);
+          provider = detectProvider(input.headers, parsedBody);
+          await this.enforceRateLimit(`webhook:${provider}:${input.requestIp}`, {
+            limit: this.config.webhookRateLimitPerMinute,
+            windowSeconds: this.config.webhookRateLimitWindowSeconds
+          });
+
+          const normalized = normalizeInboundMessage({
+            provider,
+            body: parsedBody
+          });
+          const client = await this.resolveClientForInbound(provider, normalized);
+          const clientRuntime = this.toClientRuntime(client);
+          const signatureValid = verifyWebhookSignature({
+            provider,
+            headers: input.headers,
+            rawBody: input.rawBody,
+            requestUrl: input.requestUrl,
+            parsedBody,
+            config: clientRuntime.whatsappConfig,
+            encryptionKey: this.config.APP_ENCRYPTION_KEY,
+            fallbackTwilioAuthToken: this.config.TWILIO_AUTH_TOKEN
+          });
+
+          if (!signatureValid) {
+            const error = new Error("Webhook signature verification failed");
+            (error as Error & { statusCode?: number }).statusCode = 401;
+            throw error;
+          }
+
+          const replayKey = this.buildWebhookReplayKey(provider, client.id, normalized.providerMessageId);
+          if (await this.isWebhookReplay(replayKey)) {
+            this.logger.warn(
+              {
+                clientId: client.id,
                 provider,
-                raw: normalized.rawPayload
-              })
-            }
-          });
-        } catch (error) {
-          if (isUniqueConstraintError(error)) {
-            return { status: "duplicate" as const, leadId: lead.id };
+                providerMessageId: normalized.providerMessageId
+              },
+              "webhook.replay.detected"
+            );
+            outcomeStatus = "duplicate";
+            return { status: "duplicate", leadId: undefined };
           }
 
-          throw error;
-        }
+          const now = new Date();
+          const outcome = await this.db.$transaction(
+            async (tx) => {
+              const lead = await tx.lead.findFirst({
+                where: {
+                  clientId: client.id,
+                  phone: normalized.from
+                },
+                include: {
+                  attributes: true,
+                  conversation: true
+                },
+                orderBy: {
+                  updatedAt: "desc"
+                }
+              });
 
-        const currentContext = asConversationContext(lead.conversation.context);
-        const responseLatencyMs = currentContext.lastOutboundAt
-          ? now.getTime() - new Date(currentContext.lastOutboundAt).getTime()
-          : null;
-        const advance = advanceState(
-          {
-            id: lead.conversation.id,
-            leadId: lead.id,
-            state: lead.conversation.state,
-            context: currentContext,
-            lastMessageAt: lead.conversation.lastMessageAt
-          },
-          normalized.text
-        );
+              if (!lead?.conversation) {
+                await createAuditLog(tx, {
+                  clientId: client.id,
+                  actor: `webhook:${provider}`,
+                  action: "webhook.unmatched",
+                  entity: "Lead",
+                  entityId: normalized.from,
+                  metadata: {
+                    providerMessageId: normalized.providerMessageId,
+                    phone: normalized.from
+                  },
+                  trace: input.trace
+                });
 
-        const attributeMap = new Map<LeadAttributeKey, JsonValue>(
-          lead.attributes.map((attribute) => [attribute.key as LeadAttributeKey, attribute.value as JsonValue])
-        );
-        for (const attribute of advance.attributesToUpsert) {
-          attributeMap.set(attribute.key, attribute.value);
-          await tx.leadAttribute.upsert({
-            where: {
-              leadId_key: {
-                leadId: lead.id,
-                key: attribute.key
+                return { status: "ignored" as const };
               }
+
+              await acquireAdvisoryLock(tx, `conversation:${lead.conversation.id}`);
+
+              try {
+                await tx.message.create({
+                  data: {
+                    conversationId: lead.conversation.id,
+                    direction: "inbound",
+                    content: normalized.text,
+                    providerMessageId: normalized.providerMessageId,
+                    status: "delivered",
+                    metadata: toPrismaJson({
+                      provider,
+                      requestId: input.trace.requestId,
+                      correlationId: input.trace.correlationId,
+                      raw: normalized.rawPayload
+                    })
+                  }
+                });
+              } catch (error) {
+                if (isUniqueConstraintError(error)) {
+                  return { status: "duplicate" as const, leadId: lead.id };
+                }
+
+                throw error;
+              }
+
+              const currentContext = asConversationContext(lead.conversation.context);
+              const responseLatencyMs = currentContext.lastOutboundAt
+                ? now.getTime() - new Date(currentContext.lastOutboundAt).getTime()
+                : null;
+              const advance = advanceState(
+                {
+                  id: lead.conversation.id,
+                  leadId: lead.id,
+                  state: lead.conversation.state,
+                  context: currentContext,
+                  lastMessageAt: lead.conversation.lastMessageAt
+                },
+                normalized.text
+              );
+
+              const attributeMap = new Map<LeadAttributeKey, JsonValue>(
+                lead.attributes.map((attribute) => [attribute.key as LeadAttributeKey, attribute.value as JsonValue])
+              );
+              for (const attribute of advance.attributesToUpsert) {
+                attributeMap.set(attribute.key, attribute.value);
+                await tx.leadAttribute.upsert({
+                  where: {
+                    leadId_key: {
+                      leadId: lead.id,
+                      key: attribute.key
+                    }
+                  },
+                  create: {
+                    leadId: lead.id,
+                    key: attribute.key,
+                    value: toPrismaJson(attribute.value)
+                  },
+                  update: {
+                    value: toPrismaJson(attribute.value)
+                  }
+                });
+              }
+
+              const nextContext: ConversationContext = {
+                ...currentContext,
+                lastInboundAt: now.toISOString(),
+                responseCount: (currentContext.responseCount ?? 0) + 1,
+                ...(typeof responseLatencyMs === "number" ? { lastResponseLatencyMs: responseLatencyMs } : {}),
+                ...(advance.nextState === "QUALIFIED"
+                  ? { qualifiedAt: now.toISOString() }
+                  : currentContext.qualifiedAt
+                    ? { qualifiedAt: currentContext.qualifiedAt }
+                    : {})
+              };
+
+              const score =
+                advance.nextState === "QUALIFIED"
+                  ? computeQualificationScore({
+                      timeline: advance.parsedAnswers.timeline,
+                      responseLatencyMs,
+                      completenessCount: attributeMap.size
+                    })
+                  : lead.score;
+
+              await tx.lead.update({
+                where: { id: lead.id },
+                data: {
+                  status:
+                    advance.nextState === "QUALIFIED" ? "qualified" : lead.status === "new" ? "contacted" : lead.status,
+                  score
+                }
+              });
+
+              await tx.conversation.update({
+                where: { id: lead.conversation.id },
+                data: {
+                  state: advance.nextState,
+                  context: toPrismaJson(nextContext),
+                  lastMessageAt: now
+                }
+              });
+
+              await createAuditLog(tx, {
+                clientId: client.id,
+                actor: `webhook:${provider}`,
+                action: "message.inbound",
+                entity: "Conversation",
+                entityId: lead.conversation.id,
+                metadata: {
+                  leadId: lead.id,
+                  providerMessageId: normalized.providerMessageId,
+                  nextState: advance.nextState,
+                  phone: normalized.from
+                },
+                trace: input.trace
+              });
+
+              return {
+                status: "processed" as const,
+                leadId: lead.id,
+                conversationId: lead.conversation.id,
+                phone: lead.phone,
+                nextState: advance.nextState,
+                outboundMessage: advance.outboundMessage,
+                qualifiedAt: nextContext.qualifiedAt
+              };
             },
-            create: {
-              leadId: lead.id,
-              key: attribute.key,
-              value: toPrismaJson(attribute.value)
-            },
-            update: {
-              value: toPrismaJson(attribute.value)
-            }
+            interactiveTransactionOptions
+          );
+
+          if (outcome.status !== "processed") {
+            await this.storeWebhookReplay(replayKey);
+            outcomeStatus = outcome.status;
+            return outcome;
+          }
+
+          const webhookTrace = buildJobTrace(undefined, {
+            requestId: input.trace.requestId,
+            correlationId: input.trace.correlationId,
+            source: "webhook"
           });
+
+          if (outcome.outboundMessage) {
+            const outboundDedupeKey = buildJobDedupeKey([
+              "reply",
+              outcome.conversationId,
+              normalized.providerMessageId,
+              outcome.nextState
+            ]);
+
+            const outboundJob: SendMessageJobData = {
+              clientId: client.id,
+              leadId: outcome.leadId,
+              conversationId: outcome.conversationId,
+              to: outcome.phone,
+              text: outcome.outboundMessage,
+              dedupeKey: outboundDedupeKey,
+              reason: outcome.nextState === "QUALIFIED" ? "qualification_ack" : "prompt",
+              ...(outcome.nextState === "QUALIFIED" ? {} : { transitionAfterSend: outcome.nextState }),
+              trace: webhookTrace
+            };
+
+            await upsertJobMirror(this.db, {
+              clientId: client.id,
+              leadId: outcome.leadId,
+              queue: "messages",
+              name: "send_message",
+              idempotencyKey: outboundDedupeKey,
+              payload: outboundJob,
+              metadata: {
+                queueName: "messages",
+                source: "webhook"
+              },
+              status: "queued",
+              trace: input.trace
+            });
+            await this.queues.enqueueSendMessage(outboundJob);
+          }
+
+          if (outcome.nextState === "QUALIFIED" && outcome.qualifiedAt) {
+            const qualifiedAt = outcome.qualifiedAt;
+            const crmJob: CrmPushJobData = {
+              clientId: client.id,
+              leadId: outcome.leadId,
+              conversationId: outcome.conversationId,
+              dedupeKey: buildJobDedupeKey(["crm", outcome.leadId, qualifiedAt]),
+              qualifiedAt,
+              trace: webhookTrace
+            };
+
+            await upsertJobMirror(this.db, {
+              clientId: client.id,
+              leadId: outcome.leadId,
+              queue: "crm",
+              name: "crm_push",
+              idempotencyKey: crmJob.dedupeKey,
+              payload: crmJob,
+              metadata: {
+                queueName: "crm",
+                source: "webhook"
+              },
+              status: "queued",
+              trace: input.trace
+            });
+            await this.queues.enqueueCrmPush(crmJob);
+            await this.enqueueAgentNotification(
+              clientRuntime,
+              {
+                leadId: outcome.leadId,
+                conversationId: outcome.conversationId,
+                qualifiedAt
+              },
+              input.trace
+            );
+            await this.refreshQualificationRate(client.id);
+          }
+
+          await this.storeWebhookReplay(replayKey);
+          outcomeStatus = "processed";
+          return {
+            status: "processed",
+            leadId: outcome.leadId
+          };
+        } catch (error) {
+          incrementWebhookFailure(provider, this.classifyWebhookFailure(error));
+          throw error;
+        } finally {
+          observeWebhookProcessingLatency(provider, outcomeStatus, performance.now() - startedAt);
         }
-
-        const nextContext: ConversationContext = {
-          ...currentContext,
-          lastInboundAt: now.toISOString(),
-          responseCount: (currentContext.responseCount ?? 0) + 1,
-          ...(typeof responseLatencyMs === "number" ? { lastResponseLatencyMs: responseLatencyMs } : {}),
-          ...(advance.nextState === "QUALIFIED"
-            ? { qualifiedAt: now.toISOString() }
-            : currentContext.qualifiedAt
-              ? { qualifiedAt: currentContext.qualifiedAt }
-              : {})
-        };
-
-        const score =
-          advance.nextState === "QUALIFIED"
-            ? computeQualificationScore({
-                timeline: advance.parsedAnswers.timeline,
-                responseLatencyMs,
-                completenessCount: attributeMap.size
-              })
-            : lead.score;
-
-        await tx.lead.update({
-          where: { id: lead.id },
-          data: {
-            status: advance.nextState === "QUALIFIED" ? "qualified" : lead.status === "new" ? "contacted" : lead.status,
-            score
-          }
-        });
-
-        await tx.conversation.update({
-          where: { id: lead.conversation.id },
-          data: {
-            state: advance.nextState,
-            context: toPrismaJson(nextContext),
-            lastMessageAt: now
-          }
-        });
-
-        await createAuditLog(tx, {
-          clientId: client.id,
-          actor: `webhook:${provider}`,
-          action: "message.inbound",
-          entity: "Conversation",
-          entityId: lead.conversation.id,
-          metadata: {
-            leadId: lead.id,
-            providerMessageId: normalized.providerMessageId,
-            nextState: advance.nextState,
-            phone: normalized.from
-          }
-        });
-
-        return {
-          status: "processed" as const,
-          leadId: lead.id,
-          conversationId: lead.conversation.id,
-          phone: lead.phone,
-          nextState: advance.nextState,
-          outboundMessage: advance.outboundMessage,
-          qualifiedAt: nextContext.qualifiedAt
-        };
-      },
-      interactiveTransactionOptions
+      }
     );
-
-    if (outcome.status !== "processed") {
-      return outcome;
-    }
-
-    if (outcome.outboundMessage) {
-      const outboundDedupeKey = buildJobDedupeKey([
-        "reply",
-        outcome.conversationId,
-        normalized.providerMessageId,
-        outcome.nextState
-      ]);
-
-      const outboundJob: SendMessageJobData = {
-        clientId: client.id,
-        leadId: outcome.leadId,
-        conversationId: outcome.conversationId,
-        to: outcome.phone,
-        text: outcome.outboundMessage,
-        dedupeKey: outboundDedupeKey,
-        reason: outcome.nextState === "QUALIFIED" ? "qualification_ack" : "prompt",
-        ...(outcome.nextState === "QUALIFIED" ? {} : { transitionAfterSend: outcome.nextState })
-      };
-
-      await upsertJobMirror(this.db, {
-        clientId: client.id,
-        leadId: outcome.leadId,
-        queue: "messages",
-        name: "send_message",
-        idempotencyKey: outboundDedupeKey,
-        payload: outboundJob,
-        status: "queued"
-      });
-      await this.queues.enqueueSendMessage(outboundJob);
-    }
-
-    if (outcome.nextState === "QUALIFIED" && outcome.qualifiedAt) {
-      const qualifiedAt = outcome.qualifiedAt;
-      const crmJob: CrmPushJobData = {
-        clientId: client.id,
-        leadId: outcome.leadId,
-        conversationId: outcome.conversationId,
-        dedupeKey: buildJobDedupeKey(["crm", outcome.leadId, qualifiedAt]),
-        qualifiedAt
-      };
-
-      await upsertJobMirror(this.db, {
-        clientId: client.id,
-        leadId: outcome.leadId,
-        queue: "crm",
-        name: "crm_push",
-        idempotencyKey: crmJob.dedupeKey,
-        payload: crmJob,
-        status: "queued"
-      });
-      await this.queues.enqueueCrmPush(crmJob);
-      await this.enqueueAgentNotification(clientRuntime, {
-        leadId: outcome.leadId,
-        conversationId: outcome.conversationId,
-        qualifiedAt
-      });
-      await this.refreshQualificationRate(client.id);
-    }
-
-    return {
-      status: "processed",
-      leadId: outcome.leadId
-    };
   }
 
   async healthCheck(): Promise<{ ok: true; postgres: string; redis: string; queues: string }> {
@@ -611,13 +724,48 @@ export class LeadService {
     };
   }
 
+  private buildWebhookReplayKey(provider: WhatsAppProvider, clientId: string, providerMessageId: string): string {
+    return `webhook:replay:${provider}:${clientId}:${providerMessageId}`;
+  }
+
+  private async isWebhookReplay(key: string): Promise<boolean> {
+    const existing = await this.queues.redis.get(key);
+    return existing === "1";
+  }
+
+  private async storeWebhookReplay(key: string): Promise<void> {
+    await this.queues.redis.set(key, "1", "EX", this.config.webhookReplayTtlSeconds);
+  }
+
+  private classifyWebhookFailure(error: unknown): string {
+    if (error instanceof z.ZodError) {
+      return "validation";
+    }
+
+    const typedError = error as Error & { statusCode?: number };
+    if (typedError.statusCode === 401) {
+      return "signature";
+    }
+
+    if (typedError.statusCode === 404) {
+      return "unmatched_client";
+    }
+
+    if (typedError.statusCode === 429) {
+      return "rate_limit";
+    }
+
+    return "processing";
+  }
+
   private async enqueueAgentNotification(
     client: ClientRuntimeConfig,
     payload: {
       leadId: string;
       conversationId: string;
       qualifiedAt: string;
-    }
+    },
+    trace: TraceContext
   ): Promise<void> {
     const agentPhone =
       "agentNotificationPhone" in client.whatsappConfig ? client.whatsappConfig.agentNotificationPhone : null;
@@ -633,7 +781,12 @@ export class LeadService {
       to: normalizePhoneE164(agentPhone),
       text: `Qualified lead ${payload.leadId} is ready for follow-up.`,
       dedupeKey: buildJobDedupeKey(["agent", payload.leadId, payload.qualifiedAt]),
-      reason: "agent_notification"
+      reason: "agent_notification",
+      trace: buildJobTrace(undefined, {
+        requestId: trace.requestId,
+        correlationId: trace.correlationId,
+        source: "webhook"
+      })
     };
 
     await upsertJobMirror(this.db, {
@@ -643,7 +796,12 @@ export class LeadService {
       name: "send_message",
       idempotencyKey: job.dedupeKey,
       payload: job,
-      status: "queued"
+      metadata: {
+        queueName: "messages",
+        source: "webhook"
+      },
+      status: "queued",
+      trace
     });
     await this.queues.enqueueSendMessage(job);
   }

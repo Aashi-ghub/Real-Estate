@@ -8848,6 +8848,8 @@ export namespace Prisma {
     queue: string | null
     name: string | null
     idempotencyKey: string | null
+    requestId: string | null
+    correlationId: string | null
     status: $Enums.JobStatus | null
     attempts: number | null
     scheduledAt: Date | null
@@ -8864,6 +8866,8 @@ export namespace Prisma {
     queue: string | null
     name: string | null
     idempotencyKey: string | null
+    requestId: string | null
+    correlationId: string | null
     status: $Enums.JobStatus | null
     attempts: number | null
     scheduledAt: Date | null
@@ -8880,9 +8884,12 @@ export namespace Prisma {
     queue: number
     name: number
     idempotencyKey: number
+    requestId: number
+    correlationId: number
     status: number
     attempts: number
     payload: number
+    metadata: number
     scheduledAt: number
     processedAt: number
     lastError: number
@@ -8907,6 +8914,8 @@ export namespace Prisma {
     queue?: true
     name?: true
     idempotencyKey?: true
+    requestId?: true
+    correlationId?: true
     status?: true
     attempts?: true
     scheduledAt?: true
@@ -8923,6 +8932,8 @@ export namespace Prisma {
     queue?: true
     name?: true
     idempotencyKey?: true
+    requestId?: true
+    correlationId?: true
     status?: true
     attempts?: true
     scheduledAt?: true
@@ -8939,9 +8950,12 @@ export namespace Prisma {
     queue?: true
     name?: true
     idempotencyKey?: true
+    requestId?: true
+    correlationId?: true
     status?: true
     attempts?: true
     payload?: true
+    metadata?: true
     scheduledAt?: true
     processedAt?: true
     lastError?: true
@@ -9043,9 +9057,12 @@ export namespace Prisma {
     queue: string
     name: string
     idempotencyKey: string
+    requestId: string | null
+    correlationId: string | null
     status: $Enums.JobStatus
     attempts: number
     payload: JsonValue
+    metadata: JsonValue | null
     scheduledAt: Date | null
     processedAt: Date | null
     lastError: string | null
@@ -9079,9 +9096,12 @@ export namespace Prisma {
     queue?: boolean
     name?: boolean
     idempotencyKey?: boolean
+    requestId?: boolean
+    correlationId?: boolean
     status?: boolean
     attempts?: boolean
     payload?: boolean
+    metadata?: boolean
     scheduledAt?: boolean
     processedAt?: boolean
     lastError?: boolean
@@ -9098,9 +9118,12 @@ export namespace Prisma {
     queue?: boolean
     name?: boolean
     idempotencyKey?: boolean
+    requestId?: boolean
+    correlationId?: boolean
     status?: boolean
     attempts?: boolean
     payload?: boolean
+    metadata?: boolean
     scheduledAt?: boolean
     processedAt?: boolean
     lastError?: boolean
@@ -9117,9 +9140,12 @@ export namespace Prisma {
     queue?: boolean
     name?: boolean
     idempotencyKey?: boolean
+    requestId?: boolean
+    correlationId?: boolean
     status?: boolean
     attempts?: boolean
     payload?: boolean
+    metadata?: boolean
     scheduledAt?: boolean
     processedAt?: boolean
     lastError?: boolean
@@ -9136,9 +9162,12 @@ export namespace Prisma {
     queue?: boolean
     name?: boolean
     idempotencyKey?: boolean
+    requestId?: boolean
+    correlationId?: boolean
     status?: boolean
     attempts?: boolean
     payload?: boolean
+    metadata?: boolean
     scheduledAt?: boolean
     processedAt?: boolean
     lastError?: boolean
@@ -9146,7 +9175,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type JobOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "clientId" | "leadId" | "queue" | "name" | "idempotencyKey" | "status" | "attempts" | "payload" | "scheduledAt" | "processedAt" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["job"]>
+  export type JobOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "clientId" | "leadId" | "queue" | "name" | "idempotencyKey" | "requestId" | "correlationId" | "status" | "attempts" | "payload" | "metadata" | "scheduledAt" | "processedAt" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["job"]>
   export type JobInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     client?: boolean | ClientDefaultArgs<ExtArgs>
     lead?: boolean | Job$leadArgs<ExtArgs>
@@ -9173,9 +9202,12 @@ export namespace Prisma {
       queue: string
       name: string
       idempotencyKey: string
+      requestId: string | null
+      correlationId: string | null
       status: $Enums.JobStatus
       attempts: number
       payload: Prisma.JsonValue
+      metadata: Prisma.JsonValue | null
       scheduledAt: Date | null
       processedAt: Date | null
       lastError: string | null
@@ -9612,9 +9644,12 @@ export namespace Prisma {
     readonly queue: FieldRef<"Job", 'String'>
     readonly name: FieldRef<"Job", 'String'>
     readonly idempotencyKey: FieldRef<"Job", 'String'>
+    readonly requestId: FieldRef<"Job", 'String'>
+    readonly correlationId: FieldRef<"Job", 'String'>
     readonly status: FieldRef<"Job", 'JobStatus'>
     readonly attempts: FieldRef<"Job", 'Int'>
     readonly payload: FieldRef<"Job", 'Json'>
+    readonly metadata: FieldRef<"Job", 'Json'>
     readonly scheduledAt: FieldRef<"Job", 'DateTime'>
     readonly processedAt: FieldRef<"Job", 'DateTime'>
     readonly lastError: FieldRef<"Job", 'String'>
@@ -10070,6 +10105,8 @@ export namespace Prisma {
     action: string | null
     entity: string | null
     entityId: string | null
+    requestId: string | null
+    correlationId: string | null
     createdAt: Date | null
   }
 
@@ -10080,6 +10117,8 @@ export namespace Prisma {
     action: string | null
     entity: string | null
     entityId: string | null
+    requestId: string | null
+    correlationId: string | null
     createdAt: Date | null
   }
 
@@ -10090,6 +10129,8 @@ export namespace Prisma {
     action: number
     entity: number
     entityId: number
+    requestId: number
+    correlationId: number
     metadata: number
     createdAt: number
     _all: number
@@ -10103,6 +10144,8 @@ export namespace Prisma {
     action?: true
     entity?: true
     entityId?: true
+    requestId?: true
+    correlationId?: true
     createdAt?: true
   }
 
@@ -10113,6 +10156,8 @@ export namespace Prisma {
     action?: true
     entity?: true
     entityId?: true
+    requestId?: true
+    correlationId?: true
     createdAt?: true
   }
 
@@ -10123,6 +10168,8 @@ export namespace Prisma {
     action?: true
     entity?: true
     entityId?: true
+    requestId?: true
+    correlationId?: true
     metadata?: true
     createdAt?: true
     _all?: true
@@ -10207,6 +10254,8 @@ export namespace Prisma {
     action: string
     entity: string
     entityId: string
+    requestId: string | null
+    correlationId: string | null
     metadata: JsonValue
     createdAt: Date
     _count: AuditLogCountAggregateOutputType | null
@@ -10235,6 +10284,8 @@ export namespace Prisma {
     action?: boolean
     entity?: boolean
     entityId?: boolean
+    requestId?: boolean
+    correlationId?: boolean
     metadata?: boolean
     createdAt?: boolean
     client?: boolean | AuditLog$clientArgs<ExtArgs>
@@ -10247,6 +10298,8 @@ export namespace Prisma {
     action?: boolean
     entity?: boolean
     entityId?: boolean
+    requestId?: boolean
+    correlationId?: boolean
     metadata?: boolean
     createdAt?: boolean
     client?: boolean | AuditLog$clientArgs<ExtArgs>
@@ -10259,6 +10312,8 @@ export namespace Prisma {
     action?: boolean
     entity?: boolean
     entityId?: boolean
+    requestId?: boolean
+    correlationId?: boolean
     metadata?: boolean
     createdAt?: boolean
     client?: boolean | AuditLog$clientArgs<ExtArgs>
@@ -10271,11 +10326,13 @@ export namespace Prisma {
     action?: boolean
     entity?: boolean
     entityId?: boolean
+    requestId?: boolean
+    correlationId?: boolean
     metadata?: boolean
     createdAt?: boolean
   }
 
-  export type AuditLogOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "clientId" | "actor" | "action" | "entity" | "entityId" | "metadata" | "createdAt", ExtArgs["result"]["auditLog"]>
+  export type AuditLogOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "clientId" | "actor" | "action" | "entity" | "entityId" | "requestId" | "correlationId" | "metadata" | "createdAt", ExtArgs["result"]["auditLog"]>
   export type AuditLogInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     client?: boolean | AuditLog$clientArgs<ExtArgs>
   }
@@ -10298,6 +10355,8 @@ export namespace Prisma {
       action: string
       entity: string
       entityId: string
+      requestId: string | null
+      correlationId: string | null
       metadata: Prisma.JsonValue
       createdAt: Date
     }, ExtArgs["result"]["auditLog"]>
@@ -10730,6 +10789,8 @@ export namespace Prisma {
     readonly action: FieldRef<"AuditLog", 'String'>
     readonly entity: FieldRef<"AuditLog", 'String'>
     readonly entityId: FieldRef<"AuditLog", 'String'>
+    readonly requestId: FieldRef<"AuditLog", 'String'>
+    readonly correlationId: FieldRef<"AuditLog", 'String'>
     readonly metadata: FieldRef<"AuditLog", 'Json'>
     readonly createdAt: FieldRef<"AuditLog", 'DateTime'>
   }
@@ -12458,9 +12519,12 @@ export namespace Prisma {
     queue: 'queue',
     name: 'name',
     idempotencyKey: 'idempotencyKey',
+    requestId: 'requestId',
+    correlationId: 'correlationId',
     status: 'status',
     attempts: 'attempts',
     payload: 'payload',
+    metadata: 'metadata',
     scheduledAt: 'scheduledAt',
     processedAt: 'processedAt',
     lastError: 'lastError',
@@ -12478,6 +12542,8 @@ export namespace Prisma {
     action: 'action',
     entity: 'entity',
     entityId: 'entityId',
+    requestId: 'requestId',
+    correlationId: 'correlationId',
     metadata: 'metadata',
     createdAt: 'createdAt'
   };
@@ -13282,9 +13348,12 @@ export namespace Prisma {
     queue?: StringFilter<"Job"> | string
     name?: StringFilter<"Job"> | string
     idempotencyKey?: StringFilter<"Job"> | string
+    requestId?: StringNullableFilter<"Job"> | string | null
+    correlationId?: StringNullableFilter<"Job"> | string | null
     status?: EnumJobStatusFilter<"Job"> | $Enums.JobStatus
     attempts?: IntFilter<"Job"> | number
     payload?: JsonFilter<"Job">
+    metadata?: JsonNullableFilter<"Job">
     scheduledAt?: DateTimeNullableFilter<"Job"> | Date | string | null
     processedAt?: DateTimeNullableFilter<"Job"> | Date | string | null
     lastError?: StringNullableFilter<"Job"> | string | null
@@ -13301,9 +13370,12 @@ export namespace Prisma {
     queue?: SortOrder
     name?: SortOrder
     idempotencyKey?: SortOrder
+    requestId?: SortOrderInput | SortOrder
+    correlationId?: SortOrderInput | SortOrder
     status?: SortOrder
     attempts?: SortOrder
     payload?: SortOrder
+    metadata?: SortOrderInput | SortOrder
     scheduledAt?: SortOrderInput | SortOrder
     processedAt?: SortOrderInput | SortOrder
     lastError?: SortOrderInput | SortOrder
@@ -13323,9 +13395,12 @@ export namespace Prisma {
     leadId?: UuidNullableFilter<"Job"> | string | null
     queue?: StringFilter<"Job"> | string
     name?: StringFilter<"Job"> | string
+    requestId?: StringNullableFilter<"Job"> | string | null
+    correlationId?: StringNullableFilter<"Job"> | string | null
     status?: EnumJobStatusFilter<"Job"> | $Enums.JobStatus
     attempts?: IntFilter<"Job"> | number
     payload?: JsonFilter<"Job">
+    metadata?: JsonNullableFilter<"Job">
     scheduledAt?: DateTimeNullableFilter<"Job"> | Date | string | null
     processedAt?: DateTimeNullableFilter<"Job"> | Date | string | null
     lastError?: StringNullableFilter<"Job"> | string | null
@@ -13342,9 +13417,12 @@ export namespace Prisma {
     queue?: SortOrder
     name?: SortOrder
     idempotencyKey?: SortOrder
+    requestId?: SortOrderInput | SortOrder
+    correlationId?: SortOrderInput | SortOrder
     status?: SortOrder
     attempts?: SortOrder
     payload?: SortOrder
+    metadata?: SortOrderInput | SortOrder
     scheduledAt?: SortOrderInput | SortOrder
     processedAt?: SortOrderInput | SortOrder
     lastError?: SortOrderInput | SortOrder
@@ -13367,9 +13445,12 @@ export namespace Prisma {
     queue?: StringWithAggregatesFilter<"Job"> | string
     name?: StringWithAggregatesFilter<"Job"> | string
     idempotencyKey?: StringWithAggregatesFilter<"Job"> | string
+    requestId?: StringNullableWithAggregatesFilter<"Job"> | string | null
+    correlationId?: StringNullableWithAggregatesFilter<"Job"> | string | null
     status?: EnumJobStatusWithAggregatesFilter<"Job"> | $Enums.JobStatus
     attempts?: IntWithAggregatesFilter<"Job"> | number
     payload?: JsonWithAggregatesFilter<"Job">
+    metadata?: JsonNullableWithAggregatesFilter<"Job">
     scheduledAt?: DateTimeNullableWithAggregatesFilter<"Job"> | Date | string | null
     processedAt?: DateTimeNullableWithAggregatesFilter<"Job"> | Date | string | null
     lastError?: StringNullableWithAggregatesFilter<"Job"> | string | null
@@ -13387,6 +13468,8 @@ export namespace Prisma {
     action?: StringFilter<"AuditLog"> | string
     entity?: StringFilter<"AuditLog"> | string
     entityId?: StringFilter<"AuditLog"> | string
+    requestId?: StringNullableFilter<"AuditLog"> | string | null
+    correlationId?: StringNullableFilter<"AuditLog"> | string | null
     metadata?: JsonFilter<"AuditLog">
     createdAt?: DateTimeFilter<"AuditLog"> | Date | string
     client?: XOR<ClientNullableScalarRelationFilter, ClientWhereInput> | null
@@ -13399,6 +13482,8 @@ export namespace Prisma {
     action?: SortOrder
     entity?: SortOrder
     entityId?: SortOrder
+    requestId?: SortOrderInput | SortOrder
+    correlationId?: SortOrderInput | SortOrder
     metadata?: SortOrder
     createdAt?: SortOrder
     client?: ClientOrderByWithRelationInput
@@ -13414,6 +13499,8 @@ export namespace Prisma {
     action?: StringFilter<"AuditLog"> | string
     entity?: StringFilter<"AuditLog"> | string
     entityId?: StringFilter<"AuditLog"> | string
+    requestId?: StringNullableFilter<"AuditLog"> | string | null
+    correlationId?: StringNullableFilter<"AuditLog"> | string | null
     metadata?: JsonFilter<"AuditLog">
     createdAt?: DateTimeFilter<"AuditLog"> | Date | string
     client?: XOR<ClientNullableScalarRelationFilter, ClientWhereInput> | null
@@ -13426,6 +13513,8 @@ export namespace Prisma {
     action?: SortOrder
     entity?: SortOrder
     entityId?: SortOrder
+    requestId?: SortOrderInput | SortOrder
+    correlationId?: SortOrderInput | SortOrder
     metadata?: SortOrder
     createdAt?: SortOrder
     _count?: AuditLogCountOrderByAggregateInput
@@ -13443,6 +13532,8 @@ export namespace Prisma {
     action?: StringWithAggregatesFilter<"AuditLog"> | string
     entity?: StringWithAggregatesFilter<"AuditLog"> | string
     entityId?: StringWithAggregatesFilter<"AuditLog"> | string
+    requestId?: StringNullableWithAggregatesFilter<"AuditLog"> | string | null
+    correlationId?: StringNullableWithAggregatesFilter<"AuditLog"> | string | null
     metadata?: JsonWithAggregatesFilter<"AuditLog">
     createdAt?: DateTimeWithAggregatesFilter<"AuditLog"> | Date | string
   }
@@ -14079,9 +14170,12 @@ export namespace Prisma {
     queue: string
     name: string
     idempotencyKey: string
+    requestId?: string | null
+    correlationId?: string | null
     status?: $Enums.JobStatus
     attempts?: number
     payload: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: Date | string | null
     processedAt?: Date | string | null
     lastError?: string | null
@@ -14098,9 +14192,12 @@ export namespace Prisma {
     queue: string
     name: string
     idempotencyKey: string
+    requestId?: string | null
+    correlationId?: string | null
     status?: $Enums.JobStatus
     attempts?: number
     payload: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: Date | string | null
     processedAt?: Date | string | null
     lastError?: string | null
@@ -14113,9 +14210,12 @@ export namespace Prisma {
     queue?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestId?: NullableStringFieldUpdateOperationsInput | string | null
+    correlationId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
     attempts?: IntFieldUpdateOperationsInput | number
     payload?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
@@ -14132,9 +14232,12 @@ export namespace Prisma {
     queue?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestId?: NullableStringFieldUpdateOperationsInput | string | null
+    correlationId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
     attempts?: IntFieldUpdateOperationsInput | number
     payload?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
@@ -14149,9 +14252,12 @@ export namespace Prisma {
     queue: string
     name: string
     idempotencyKey: string
+    requestId?: string | null
+    correlationId?: string | null
     status?: $Enums.JobStatus
     attempts?: number
     payload: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: Date | string | null
     processedAt?: Date | string | null
     lastError?: string | null
@@ -14164,9 +14270,12 @@ export namespace Prisma {
     queue?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestId?: NullableStringFieldUpdateOperationsInput | string | null
+    correlationId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
     attempts?: IntFieldUpdateOperationsInput | number
     payload?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
@@ -14181,9 +14290,12 @@ export namespace Prisma {
     queue?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestId?: NullableStringFieldUpdateOperationsInput | string | null
+    correlationId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
     attempts?: IntFieldUpdateOperationsInput | number
     payload?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
@@ -14197,6 +14309,8 @@ export namespace Prisma {
     action: string
     entity: string
     entityId: string
+    requestId?: string | null
+    correlationId?: string | null
     metadata: JsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     client?: ClientCreateNestedOneWithoutAuditLogsInput
@@ -14209,6 +14323,8 @@ export namespace Prisma {
     action: string
     entity: string
     entityId: string
+    requestId?: string | null
+    correlationId?: string | null
     metadata: JsonNullValueInput | InputJsonValue
     createdAt?: Date | string
   }
@@ -14219,6 +14335,8 @@ export namespace Prisma {
     action?: StringFieldUpdateOperationsInput | string
     entity?: StringFieldUpdateOperationsInput | string
     entityId?: StringFieldUpdateOperationsInput | string
+    requestId?: NullableStringFieldUpdateOperationsInput | string | null
+    correlationId?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     client?: ClientUpdateOneWithoutAuditLogsNestedInput
@@ -14231,6 +14349,8 @@ export namespace Prisma {
     action?: StringFieldUpdateOperationsInput | string
     entity?: StringFieldUpdateOperationsInput | string
     entityId?: StringFieldUpdateOperationsInput | string
+    requestId?: NullableStringFieldUpdateOperationsInput | string | null
+    correlationId?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -14242,6 +14362,8 @@ export namespace Prisma {
     action: string
     entity: string
     entityId: string
+    requestId?: string | null
+    correlationId?: string | null
     metadata: JsonNullValueInput | InputJsonValue
     createdAt?: Date | string
   }
@@ -14252,6 +14374,8 @@ export namespace Prisma {
     action?: StringFieldUpdateOperationsInput | string
     entity?: StringFieldUpdateOperationsInput | string
     entityId?: StringFieldUpdateOperationsInput | string
+    requestId?: NullableStringFieldUpdateOperationsInput | string | null
+    correlationId?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -14263,6 +14387,8 @@ export namespace Prisma {
     action?: StringFieldUpdateOperationsInput | string
     entity?: StringFieldUpdateOperationsInput | string
     entityId?: StringFieldUpdateOperationsInput | string
+    requestId?: NullableStringFieldUpdateOperationsInput | string | null
+    correlationId?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -15148,9 +15274,12 @@ export namespace Prisma {
     queue?: SortOrder
     name?: SortOrder
     idempotencyKey?: SortOrder
+    requestId?: SortOrder
+    correlationId?: SortOrder
     status?: SortOrder
     attempts?: SortOrder
     payload?: SortOrder
+    metadata?: SortOrder
     scheduledAt?: SortOrder
     processedAt?: SortOrder
     lastError?: SortOrder
@@ -15169,6 +15298,8 @@ export namespace Prisma {
     queue?: SortOrder
     name?: SortOrder
     idempotencyKey?: SortOrder
+    requestId?: SortOrder
+    correlationId?: SortOrder
     status?: SortOrder
     attempts?: SortOrder
     scheduledAt?: SortOrder
@@ -15185,6 +15316,8 @@ export namespace Prisma {
     queue?: SortOrder
     name?: SortOrder
     idempotencyKey?: SortOrder
+    requestId?: SortOrder
+    correlationId?: SortOrder
     status?: SortOrder
     attempts?: SortOrder
     scheduledAt?: SortOrder
@@ -15235,6 +15368,8 @@ export namespace Prisma {
     action?: SortOrder
     entity?: SortOrder
     entityId?: SortOrder
+    requestId?: SortOrder
+    correlationId?: SortOrder
     metadata?: SortOrder
     createdAt?: SortOrder
   }
@@ -15246,6 +15381,8 @@ export namespace Prisma {
     action?: SortOrder
     entity?: SortOrder
     entityId?: SortOrder
+    requestId?: SortOrder
+    correlationId?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -15256,6 +15393,8 @@ export namespace Prisma {
     action?: SortOrder
     entity?: SortOrder
     entityId?: SortOrder
+    requestId?: SortOrder
+    correlationId?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -16493,9 +16632,12 @@ export namespace Prisma {
     queue: string
     name: string
     idempotencyKey: string
+    requestId?: string | null
+    correlationId?: string | null
     status?: $Enums.JobStatus
     attempts?: number
     payload: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: Date | string | null
     processedAt?: Date | string | null
     lastError?: string | null
@@ -16510,9 +16652,12 @@ export namespace Prisma {
     queue: string
     name: string
     idempotencyKey: string
+    requestId?: string | null
+    correlationId?: string | null
     status?: $Enums.JobStatus
     attempts?: number
     payload: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: Date | string | null
     processedAt?: Date | string | null
     lastError?: string | null
@@ -16536,6 +16681,8 @@ export namespace Prisma {
     action: string
     entity: string
     entityId: string
+    requestId?: string | null
+    correlationId?: string | null
     metadata: JsonNullValueInput | InputJsonValue
     createdAt?: Date | string
   }
@@ -16546,6 +16693,8 @@ export namespace Prisma {
     action: string
     entity: string
     entityId: string
+    requestId?: string | null
+    correlationId?: string | null
     metadata: JsonNullValueInput | InputJsonValue
     createdAt?: Date | string
   }
@@ -16688,9 +16837,12 @@ export namespace Prisma {
     queue?: StringFilter<"Job"> | string
     name?: StringFilter<"Job"> | string
     idempotencyKey?: StringFilter<"Job"> | string
+    requestId?: StringNullableFilter<"Job"> | string | null
+    correlationId?: StringNullableFilter<"Job"> | string | null
     status?: EnumJobStatusFilter<"Job"> | $Enums.JobStatus
     attempts?: IntFilter<"Job"> | number
     payload?: JsonFilter<"Job">
+    metadata?: JsonNullableFilter<"Job">
     scheduledAt?: DateTimeNullableFilter<"Job"> | Date | string | null
     processedAt?: DateTimeNullableFilter<"Job"> | Date | string | null
     lastError?: StringNullableFilter<"Job"> | string | null
@@ -16724,6 +16876,8 @@ export namespace Prisma {
     action?: StringFilter<"AuditLog"> | string
     entity?: StringFilter<"AuditLog"> | string
     entityId?: StringFilter<"AuditLog"> | string
+    requestId?: StringNullableFilter<"AuditLog"> | string | null
+    correlationId?: StringNullableFilter<"AuditLog"> | string | null
     metadata?: JsonFilter<"AuditLog">
     createdAt?: DateTimeFilter<"AuditLog"> | Date | string
   }
@@ -16943,9 +17097,12 @@ export namespace Prisma {
     queue: string
     name: string
     idempotencyKey: string
+    requestId?: string | null
+    correlationId?: string | null
     status?: $Enums.JobStatus
     attempts?: number
     payload: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: Date | string | null
     processedAt?: Date | string | null
     lastError?: string | null
@@ -16960,9 +17117,12 @@ export namespace Prisma {
     queue: string
     name: string
     idempotencyKey: string
+    requestId?: string | null
+    correlationId?: string | null
     status?: $Enums.JobStatus
     attempts?: number
     payload: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: Date | string | null
     processedAt?: Date | string | null
     lastError?: string | null
@@ -17913,9 +18073,12 @@ export namespace Prisma {
     queue: string
     name: string
     idempotencyKey: string
+    requestId?: string | null
+    correlationId?: string | null
     status?: $Enums.JobStatus
     attempts?: number
     payload: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: Date | string | null
     processedAt?: Date | string | null
     lastError?: string | null
@@ -17929,6 +18092,8 @@ export namespace Prisma {
     action: string
     entity: string
     entityId: string
+    requestId?: string | null
+    correlationId?: string | null
     metadata: JsonNullValueInput | InputJsonValue
     createdAt?: Date | string
   }
@@ -18032,9 +18197,12 @@ export namespace Prisma {
     queue?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestId?: NullableStringFieldUpdateOperationsInput | string | null
+    correlationId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
     attempts?: IntFieldUpdateOperationsInput | number
     payload?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
@@ -18049,9 +18217,12 @@ export namespace Prisma {
     queue?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestId?: NullableStringFieldUpdateOperationsInput | string | null
+    correlationId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
     attempts?: IntFieldUpdateOperationsInput | number
     payload?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
@@ -18065,9 +18236,12 @@ export namespace Prisma {
     queue?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestId?: NullableStringFieldUpdateOperationsInput | string | null
+    correlationId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
     attempts?: IntFieldUpdateOperationsInput | number
     payload?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
@@ -18081,6 +18255,8 @@ export namespace Prisma {
     action?: StringFieldUpdateOperationsInput | string
     entity?: StringFieldUpdateOperationsInput | string
     entityId?: StringFieldUpdateOperationsInput | string
+    requestId?: NullableStringFieldUpdateOperationsInput | string | null
+    correlationId?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -18091,6 +18267,8 @@ export namespace Prisma {
     action?: StringFieldUpdateOperationsInput | string
     entity?: StringFieldUpdateOperationsInput | string
     entityId?: StringFieldUpdateOperationsInput | string
+    requestId?: NullableStringFieldUpdateOperationsInput | string | null
+    correlationId?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -18101,6 +18279,8 @@ export namespace Prisma {
     action?: StringFieldUpdateOperationsInput | string
     entity?: StringFieldUpdateOperationsInput | string
     entityId?: StringFieldUpdateOperationsInput | string
+    requestId?: NullableStringFieldUpdateOperationsInput | string | null
+    correlationId?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -18161,9 +18341,12 @@ export namespace Prisma {
     queue: string
     name: string
     idempotencyKey: string
+    requestId?: string | null
+    correlationId?: string | null
     status?: $Enums.JobStatus
     attempts?: number
     payload: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: Date | string | null
     processedAt?: Date | string | null
     lastError?: string | null
@@ -18214,9 +18397,12 @@ export namespace Prisma {
     queue?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestId?: NullableStringFieldUpdateOperationsInput | string | null
+    correlationId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
     attempts?: IntFieldUpdateOperationsInput | number
     payload?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
@@ -18231,9 +18417,12 @@ export namespace Prisma {
     queue?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestId?: NullableStringFieldUpdateOperationsInput | string | null
+    correlationId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
     attempts?: IntFieldUpdateOperationsInput | number
     payload?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
@@ -18247,9 +18436,12 @@ export namespace Prisma {
     queue?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestId?: NullableStringFieldUpdateOperationsInput | string | null
+    correlationId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
     attempts?: IntFieldUpdateOperationsInput | number
     payload?: JsonNullValueInput | InputJsonValue
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     scheduledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null

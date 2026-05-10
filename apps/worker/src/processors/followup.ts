@@ -3,8 +3,8 @@ import type { Logger } from "pino";
 
 import { db as defaultDb, upsertJobMirror, type PrismaClient } from "@real-estate/db";
 import type { WorkerConfig } from "@real-estate/config";
-import type { FollowupNoReplyJobData, SendMessageJobData } from "@real-estate/types";
-import { buildJobDedupeKey, promptForState } from "@real-estate/utils";
+import type { FollowupNoReplyJobData, JobTrace, SendMessageJobData } from "@real-estate/types";
+import { buildJobDedupeKey, buildJobTrace, computeRetryMetadata, promptForState } from "@real-estate/utils";
 
 import { WorkerQueues } from "../services/queue-runtime";
 import { markJobComplete, markJobFailure, markJobProcessing } from "../services/runtime-helpers";
@@ -16,10 +16,17 @@ export async function processFollowup(
     logger: Logger;
     config: WorkerConfig;
     queues: WorkerQueues;
+    trace: JobTrace;
   }
 ): Promise<void> {
   const db = deps.db ?? defaultDb;
   const attempts = job.attemptsMade + 1;
+  const retryMetadata = computeRetryMetadata({
+    attemptsMade: attempts,
+    maxAttempts: job.opts.attempts ?? 1,
+    baseDelayMs: deps.config.queueRetryBackoffMs,
+    maxDelayMs: deps.config.queueRetryBackoffMaxMs
+  });
 
   await markJobProcessing(db, {
     clientId: job.data.clientId,
@@ -28,7 +35,12 @@ export async function processFollowup(
     name: "followup_no_reply",
     dedupeKey: job.data.dedupeKey,
     payload: job.data,
-    attempts
+    attempts,
+    metadata: {
+      retry: retryMetadata,
+      workerName: "followup-worker"
+    },
+    trace: deps.trace
   });
 
   try {
@@ -58,7 +70,12 @@ export async function processFollowup(
         name: "followup_no_reply",
         dedupeKey: job.data.dedupeKey,
         payload: job.data,
-        attempts
+        attempts,
+        metadata: {
+          retry: retryMetadata,
+          workerName: "followup-worker"
+        },
+        trace: deps.trace
       });
       return;
     }
@@ -80,7 +97,12 @@ export async function processFollowup(
         name: "followup_no_reply",
         dedupeKey: job.data.dedupeKey,
         payload: job.data,
-        attempts
+        attempts,
+        metadata: {
+          retry: retryMetadata,
+          workerName: "followup-worker"
+        },
+        trace: deps.trace
       });
       return;
     }
@@ -92,7 +114,14 @@ export async function processFollowup(
       to: job.data.to,
       text: `Just following up. ${promptForState(job.data.expectedState)}`,
       dedupeKey: buildJobDedupeKey(["followup-message", job.data.conversationId, job.data.lastOutboundAt]),
-      reason: "followup"
+      reason: "followup",
+      trace: buildJobTrace(job.data.trace, {
+        requestId: deps.trace.requestId,
+        correlationId: deps.trace.correlationId,
+        source: "worker",
+        parentQueue: "followups",
+        parentJobId: String(job.id)
+      })
     };
 
     await upsertJobMirror(db, {
@@ -102,7 +131,12 @@ export async function processFollowup(
       name: "send_message",
       idempotencyKey: sendJob.dedupeKey,
       payload: sendJob,
-      status: "queued"
+      metadata: {
+        queueName: "messages",
+        source: "worker"
+      },
+      status: "queued",
+      trace: deps.trace
     });
     await deps.queues.enqueueSendMessage(sendJob);
 
@@ -113,7 +147,12 @@ export async function processFollowup(
       name: "followup_no_reply",
       dedupeKey: job.data.dedupeKey,
       payload: job.data,
-      attempts
+      attempts,
+      metadata: {
+        retry: retryMetadata,
+        workerName: "followup-worker"
+      },
+      trace: deps.trace
     });
   } catch (error) {
     await markJobFailure(
@@ -126,7 +165,12 @@ export async function processFollowup(
         name: "followup_no_reply",
         dedupeKey: job.data.dedupeKey,
         payload: job.data,
-        attempts
+        attempts,
+        metadata: {
+          retry: retryMetadata,
+          workerName: "followup-worker"
+        },
+        trace: deps.trace
       },
       error as Error
     );

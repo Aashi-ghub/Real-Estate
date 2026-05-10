@@ -201,9 +201,12 @@ model Job {
   queue          String    @db.VarChar(64)
   name           String    @db.VarChar(64)
   idempotencyKey String    @unique @db.VarChar(255)
+  requestId      String?   @db.VarChar(128)
+  correlationId  String?   @db.VarChar(128)
   status         JobStatus @default(queued)
   attempts       Int       @default(0)
   payload        Json
+  metadata       Json?
   scheduledAt    DateTime?
   processedAt    DateTime?
   lastError      String?   @db.Text
@@ -215,6 +218,7 @@ model Job {
 
   @@index([clientId, queue, status])
   @@index([leadId, name])
+  @@index([requestId, correlationId])
 }
 
 model AuditLog {
@@ -224,6 +228,8 @@ model AuditLog {
   action    String   @db.VarChar(120)
   entity    String   @db.VarChar(120)
   entityId  String   @db.VarChar(64)
+  requestId String?  @db.VarChar(128)
+  correlationId String? @db.VarChar(128)
   metadata  Json
   createdAt DateTime @default(now())
 
@@ -231,6 +237,7 @@ model AuditLog {
 
   @@index([clientId, createdAt])
   @@index([entity, entityId, createdAt])
+  @@index([requestId, correlationId, createdAt])
 }
 
 model CrmSync {
