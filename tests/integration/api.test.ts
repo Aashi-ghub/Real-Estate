@@ -7,6 +7,8 @@ import { LeadService } from "../../apps/api/src/services/lead-service";
 import { encryptSecret, hashApiKey } from "@real-estate/utils";
 import { afterEach, describe, expect, it } from "vitest";
 
+const createLeadClientId = "22222222-2222-4222-8222-222222222222";
+
 class FakeRedis {
   private readonly counters = new Map<string, number>();
 
@@ -46,6 +48,10 @@ class FakeQueues {
   async close(): Promise<void> {
     return;
   }
+
+  async healthCheck(): Promise<void> {
+    await this.redis.ping();
+  }
 }
 
 function createApiConfig(): ApiConfig {
@@ -54,6 +60,12 @@ function createApiConfig(): ApiConfig {
     LOG_LEVEL: "fatal",
     DATABASE_URL: "postgresql://test:test@localhost:5432/test",
     REDIS_URL: "redis://localhost:6379",
+    REDIS_HOST: "localhost",
+    REDIS_PORT: 6379,
+    REDIS_USERNAME: undefined,
+    REDIS_PASSWORD: undefined,
+    REDIS_DB: 0,
+    REDIS_TLS_ENABLED: false,
     APP_ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     API_RATE_LIMIT_PER_MINUTE: 120,
     WEBHOOK_BASE_URL: "http://localhost:3000/whatsapp/inbound",
@@ -68,6 +80,13 @@ function createApiConfig(): ApiConfig {
     TWILIO_WHATSAPP_FROM: "whatsapp:+14155238886",
     API_HOST: "127.0.0.1",
     API_PORT: 3000,
+    redisConnection: {
+      url: "redis://localhost:6379/0",
+      host: "localhost",
+      port: 6379,
+      db: 0,
+      tlsEnabled: false
+    },
     apiHost: "127.0.0.1",
     apiPort: 3000
   };
@@ -158,6 +177,10 @@ class FakeDb {
   }
 
   async $queryRaw(): Promise<number> {
+    return 1;
+  }
+
+  async $executeRaw(): Promise<number> {
     return 1;
   }
 
@@ -276,7 +299,7 @@ describe("API integration", () => {
         "idempotency-key": "lead-12345678"
       },
       payload: {
-        client_id: "11111111-1111-1111-1111-111111111111",
+        client_id: createLeadClientId,
         name: "Rohan Mehta",
         phone: "+919811112222",
         source: "landing-page"
@@ -340,7 +363,7 @@ function createCreateLeadFakeDb(config: ApiConfig): FakeDb {
   const db = new FakeDb(config);
   db.clients[0] = {
     ...db.clients[0],
-    id: "11111111-1111-1111-1111-111111111111",
+    id: createLeadClientId,
     whatsappProvider: "twilio",
     whatsappConfig: {
       fromNumber: "whatsapp:+14155238886"
@@ -348,7 +371,7 @@ function createCreateLeadFakeDb(config: ApiConfig): FakeDb {
   };
   db.apiKeysStore[0] = {
     ...db.apiKeysStore[0],
-    clientId: "11111111-1111-1111-1111-111111111111"
+    clientId: createLeadClientId
   };
   db.leads.length = 0;
   db.conversations.length = 0;

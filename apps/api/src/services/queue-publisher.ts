@@ -1,4 +1,4 @@
-import { Queue, type JobsOptions } from "bullmq";
+import { Queue, type ConnectionOptions, type JobsOptions } from "bullmq";
 import type IORedis from "ioredis";
 
 import type { CrmPushJobData, FollowupNoReplyJobData, SendMessageJobData } from "@real-estate/types";
@@ -10,7 +10,8 @@ export class QueuePublisher {
   private readonly crmQueue: Queue<CrmPushJobData>;
 
   constructor(
-    private readonly connection: IORedis,
+    private readonly redisClient: IORedis,
+    private readonly bullmqConnection: ConnectionOptions,
     private readonly options: {
       prefix: string;
       messageAttempts: number;
@@ -18,15 +19,15 @@ export class QueuePublisher {
     }
   ) {
     this.messagesQueue = new Queue(queueNames.messages, {
-      connection: this.connection,
+      connection: this.bullmqConnection,
       prefix: this.options.prefix
     });
     this.followupsQueue = new Queue(queueNames.followups, {
-      connection: this.connection,
+      connection: this.bullmqConnection,
       prefix: this.options.prefix
     });
     this.crmQueue = new Queue(queueNames.crm, {
-      connection: this.connection,
+      connection: this.bullmqConnection,
       prefix: this.options.prefix
     });
   }
@@ -73,7 +74,16 @@ export class QueuePublisher {
     ]);
   }
 
+  async healthCheck(): Promise<void> {
+    await this.redisClient.ping();
+    await Promise.all([
+      this.messagesQueue.waitUntilReady(),
+      this.followupsQueue.waitUntilReady(),
+      this.crmQueue.waitUntilReady()
+    ]);
+  }
+
   get redis(): IORedis {
-    return this.connection;
+    return this.redisClient;
   }
 }

@@ -36,7 +36,10 @@ services:
       - ../.env
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/real_estate?schema=public
-      REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      REDIS_TLS_ENABLED: "false"
       API_HOST: 0.0.0.0
       API_PORT: 3000
     ports:
@@ -65,7 +68,10 @@ services:
       - ../.env
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/real_estate?schema=public
-      REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      REDIS_TLS_ENABLED: "false"
     depends_on:
       postgres:
         condition: service_healthy

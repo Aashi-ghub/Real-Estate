@@ -1,11 +1,17 @@
 import { Worker } from "bullmq";
-import IORedis from "ioredis";
 
 import { getWorkerConfig } from "@real-estate/config";
 import { db, upsertJobMirror } from "@real-estate/db";
 import { createLogger } from "@real-estate/logger";
 import { queueNames } from "@real-estate/types";
-import { initializeMetrics } from "@real-estate/utils";
+import {
+  assertRedisCompatibleWithBullMq,
+  buildBullMqConnection,
+  createRedisClient,
+  initializeMetrics,
+  redactRedisConnection,
+  runBullMqRoundTripHealthcheck
+} from "@real-estate/utils";
 
 import { processCrmPush } from "./processors/crm";
 import { processFollowup } from "./processors/followup";
@@ -17,22 +23,44 @@ async function main(): Promise<void> {
   initializeMetrics("worker");
 
   const logger = createLogger("worker", config.LOG_LEVEL);
-  const redis = new IORedis(config.REDIS_URL, {
-    maxRetriesPerRequest: null,
-    enableReadyCheck: true,
-    lazyConnect: false
+  logger.info({ redis: redactRedisConnection(config.redisConnection) }, "redis.connection.config");
+
+  const redis = createRedisClient(config.redisConnection, {
+    connectionName: "worker-runtime"
   });
-  const queues = new WorkerQueues(redis, {
+  const redisCapabilities = await assertRedisCompatibleWithBullMq(redis, config.redisConnection);
+  logger.info(
+    {
+      redis: {
+        ...redactRedisConnection(config.redisConnection),
+        version: redisCapabilities.version,
+        mode: redisCapabilities.mode
+      }
+    },
+    "redis.compatibility.verified"
+  );
+
+  const bullmqConnection = buildBullMqConnection(config.redisConnection, {
+    connectionName: "worker-bullmq"
+  });
+  const queues = new WorkerQueues(bullmqConnection, {
     prefix: config.QUEUE_PREFIX,
     messageAttempts: config.MESSAGE_MAX_RETRIES,
     crmAttempts: config.CRM_MAX_RETRIES
+  });
+  await queues.waitUntilReady();
+  await runBullMqRoundTripHealthcheck({
+    connection: bullmqConnection,
+    prefix: config.QUEUE_PREFIX,
+    instanceName: `worker-${process.pid}`,
+    logger
   });
 
   const messageWorker = new Worker(
     queueNames.messages,
     (job) => processSendMessage(job, { db, logger, config, queues }),
     {
-      connection: redis,
+      connection: bullmqConnection,
       prefix: config.QUEUE_PREFIX,
       concurrency: config.workerConcurrency
     }
@@ -41,7 +69,7 @@ async function main(): Promise<void> {
     queueNames.followups,
     (job) => processFollowup(job, { db, logger, config, queues }),
     {
-      connection: redis,
+      connection: bullmqConnection,
       prefix: config.QUEUE_PREFIX,
       concurrency: Math.max(1, Math.floor(config.workerConcurrency / 2))
     }
@@ -50,11 +78,17 @@ async function main(): Promise<void> {
     queueNames.crm,
     (job) => processCrmPush(job, { db, logger, config, queues }),
     {
-      connection: redis,
+      connection: bullmqConnection,
       prefix: config.QUEUE_PREFIX,
       concurrency: Math.max(1, Math.floor(config.workerConcurrency / 2))
     }
   );
+
+  await Promise.all([
+    messageWorker.waitUntilReady(),
+    followupWorker.waitUntilReady(),
+    crmWorker.waitUntilReady()
+  ]);
 
   const attachDeadLetter = (
     worker: Worker,

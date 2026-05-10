@@ -1,5 +1,4 @@
-import { Queue, type JobsOptions } from "bullmq";
-import type IORedis from "ioredis";
+import { Queue, type ConnectionOptions, type JobsOptions } from "bullmq";
 
 import type { CrmPushJobData, FollowupNoReplyJobData, SendMessageJobData } from "@real-estate/types";
 import { queueNames } from "@real-estate/types";
@@ -13,7 +12,7 @@ export class WorkerQueues {
   readonly crmDlq: Queue;
 
   constructor(
-    readonly redis: IORedis,
+    private readonly bullmqConnection: ConnectionOptions,
     private readonly options: {
       prefix: string;
       messageAttempts: number;
@@ -21,27 +20,27 @@ export class WorkerQueues {
     }
   ) {
     this.messagesQueue = new Queue(queueNames.messages, {
-      connection: redis,
+      connection: this.bullmqConnection,
       prefix: options.prefix
     });
     this.followupsQueue = new Queue(queueNames.followups, {
-      connection: redis,
+      connection: this.bullmqConnection,
       prefix: options.prefix
     });
     this.crmQueue = new Queue(queueNames.crm, {
-      connection: redis,
+      connection: this.bullmqConnection,
       prefix: options.prefix
     });
     this.messagesDlq = new Queue(queueNames.messagesDlq, {
-      connection: redis,
+      connection: this.bullmqConnection,
       prefix: options.prefix
     });
     this.followupsDlq = new Queue(queueNames.followupsDlq, {
-      connection: redis,
+      connection: this.bullmqConnection,
       prefix: options.prefix
     });
     this.crmDlq = new Queue(queueNames.crmDlq, {
-      connection: redis,
+      connection: this.bullmqConnection,
       prefix: options.prefix
     });
   }
@@ -88,6 +87,17 @@ export class WorkerQueues {
       this.messagesDlq.close(),
       this.followupsDlq.close(),
       this.crmDlq.close()
+    ]);
+  }
+
+  async waitUntilReady(): Promise<void> {
+    await Promise.all([
+      this.messagesQueue.waitUntilReady(),
+      this.followupsQueue.waitUntilReady(),
+      this.crmQueue.waitUntilReady(),
+      this.messagesDlq.waitUntilReady(),
+      this.followupsDlq.waitUntilReady(),
+      this.crmDlq.waitUntilReady()
     ]);
   }
 }

@@ -27,11 +27,13 @@ Production-oriented TypeScript backend for multi-tenant real estate lead qualifi
 Copy `.env.example` to `.env` and update at least:
 
 - `DATABASE_URL`
-- `REDIS_URL`
+- `REDIS_URL` or `REDIS_HOST` / `REDIS_PORT`
 - `APP_ENCRYPTION_KEY`
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`
 - `TWILIO_WHATSAPP_FROM`
+
+BullMQ is validated at startup against Redis Lua scripting. Use real Redis 6+ or 7+ only. The API and worker will refuse to start if the target server does not support `EVAL` / `EVALSHA`.
 
 ## Local Run
 
@@ -47,7 +49,7 @@ npm run dev:worker
 
 The seed prints a local client id and API key. By default:
 
-- `client_id`: `11111111-1111-1111-1111-111111111111`
+- `client_id`: `11111111-1111-4111-8111-111111111111`
 - `x-api-key`: `local-dev-api-key-123456`
 
 ## Full Docker Compose
@@ -73,7 +75,7 @@ curl -X POST http://localhost:3000/leads \
   -H "x-api-key: local-dev-api-key-123456" \
   -H "idempotency-key: lead-0001" \
   -d '{
-    "client_id": "11111111-1111-1111-1111-111111111111",
+    "client_id": "11111111-1111-4111-8111-111111111111",
     "name": "Rohan Mehta",
     "phone": "+919811112222",
     "email": "rohan@example.com",
@@ -109,3 +111,4 @@ curl -X POST http://localhost:3000/whatsapp/inbound \
 - Webhook ingestion deduplicates on `providerMessageId`.
 - Workers keep no in-memory conversation state; all transitions read/write PostgreSQL.
 - Failed jobs are mirrored into the `Job` table and copied to queue-specific DLQs after retries are exhausted.
+- Startup performs a Redis compatibility check plus a BullMQ enqueue/process/complete round-trip health probe before workers declare readiness.

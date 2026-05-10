@@ -53,6 +53,11 @@ const createLeadBodySchema = z.object({
 });
 
 const inboundBodySchema = z.record(z.string(), z.unknown());
+const interactiveTransactionOptions = {
+  isolationLevel: "Serializable" as const,
+  maxWait: 10_000,
+  timeout: 15_000
+};
 
 function asConversationContext(value: unknown): ConversationContext {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -218,9 +223,7 @@ export class LeadService {
             phone: lead.phone
           };
         },
-        {
-          isolationLevel: "Serializable"
-        }
+        interactiveTransactionOptions
       );
 
       if (result.created) {
@@ -460,9 +463,7 @@ export class LeadService {
           qualifiedAt: nextContext.qualifiedAt
         };
       },
-      {
-        isolationLevel: "Serializable"
-      }
+      interactiveTransactionOptions
     );
 
     if (outcome.status !== "processed") {
@@ -534,13 +535,14 @@ export class LeadService {
     };
   }
 
-  async healthCheck(): Promise<{ ok: true; postgres: string; redis: string }> {
+  async healthCheck(): Promise<{ ok: true; postgres: string; redis: string; queues: string }> {
     await this.db.$queryRaw`SELECT 1`;
-    await this.queues.redis.ping();
+    await this.queues.healthCheck();
     return {
       ok: true,
       postgres: "up",
-      redis: "up"
+      redis: "up",
+      queues: "up"
     };
   }
 
