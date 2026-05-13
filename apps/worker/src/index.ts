@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import { Worker } from "bullmq";
 
 import { getWorkerConfig } from "@real-estate/config";

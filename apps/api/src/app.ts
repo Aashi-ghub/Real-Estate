@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
+import { performance } from "node:perf_hooks";
 
 import Fastify from "fastify";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import formbody from "@fastify/formbody";
 import helmet from "@fastify/helmet";
 import rawBody from "fastify-raw-body";
@@ -17,6 +19,9 @@ import type { LeadService } from "./services/lead-service";
 const leadHeadersSchema = z.object({
   "x-api-key": z.string().min(1),
   "idempotency-key": z.string().min(8).max(128)
+});
+const authHeadersSchema = z.object({
+  "x-api-key": z.string().min(1)
 });
 
 export async function buildApp(options: {
@@ -47,6 +52,27 @@ export async function buildApp(options: {
     requestId: request.id,
     correlationId: request.correlationId
   });
+
+  const timed = async <T>(
+    request: FastifyRequest,
+    operation: string,
+    task: () => Promise<T>
+  ): Promise<T> => {
+    const startedAt = performance.now();
+    try {
+      return await task();
+    } finally {
+      const durationMs = performance.now() - startedAt;
+      request.log.info(
+        {
+          request_id: request.id,
+          operation,
+          duration_ms: Math.round(durationMs)
+        },
+        "request.operation.timing"
+      );
+    }
+  };
 
   const app = Fastify({
     loggerInstance: options.logger,
@@ -115,25 +141,100 @@ export async function buildApp(options: {
       return reply.code(401).send({ error: "Unauthorized" });
     }
 
-    await options.service.enforceRateLimit(`api:${auth.id}`, {
-      limit: options.config.API_RATE_LIMIT_PER_MINUTE,
-      windowSeconds: options.config.apiRateLimitWindowSeconds
-    });
-    await options.service.enforceRateLimit(`api-ip:${request.ip}`, {
-      limit: options.config.API_RATE_LIMIT_PER_MINUTE * 2,
-      windowSeconds: options.config.apiRateLimitWindowSeconds
-    });
-    const result = await options.service.createLead({
-      auth,
-      idempotencyKey: headers["idempotency-key"],
-      body: request.body,
-      trace: buildTrace(request)
-    });
+    await Promise.all([
+      options.service.enforceRateLimit(`api:${auth.id}`, {
+        limit: options.config.API_RATE_LIMIT_PER_MINUTE,
+        windowSeconds: options.config.apiRateLimitWindowSeconds
+      }),
+      options.service.enforceRateLimit(`api-ip:${request.ip}`, {
+        limit: options.config.API_RATE_LIMIT_PER_MINUTE * 2,
+        windowSeconds: options.config.apiRateLimitWindowSeconds
+      })
+    ]);
+    const result = await timed(request, "lead.create", () =>
+      options.service.createLead({
+        auth,
+        idempotencyKey: headers["idempotency-key"],
+        body: request.body,
+        trace: buildTrace(request)
+      })
+    );
 
     return reply.code(result.created ? 201 : 200).send({
       lead_id: result.leadId,
       created: result.created
     });
+  });
+
+  async function authenticateDashboard(request: FastifyRequest, reply: FastifyReply) {
+    const headers = authHeadersSchema.parse(request.headers);
+    const auth = await options.service.authenticateApiKey(headers["x-api-key"]);
+    if (!auth) {
+      void reply.code(401).send({ error: "Unauthorized" });
+      return null;
+    }
+
+    await options.service.enforceRateLimit(`dashboard:${auth.id}`, {
+      limit: options.config.API_RATE_LIMIT_PER_MINUTE,
+      windowSeconds: options.config.apiRateLimitWindowSeconds
+    });
+    return auth;
+  }
+
+  app.get("/dashboard/leads", async (request, reply) => {
+    const auth = await authenticateDashboard(request, reply);
+    if (!auth) {
+      return;
+    }
+
+    return timed(request, "dashboard.leads.list", () =>
+      options.service.listDashboardLeads({ auth, query: request.query })
+    );
+  });
+
+  app.get("/dashboard/leads/:id", async (request, reply) => {
+    const auth = await authenticateDashboard(request, reply);
+    if (!auth) {
+      return;
+    }
+
+    const params = z.object({ id: z.string().uuid() }).parse(request.params);
+    return timed(request, "dashboard.leads.get", () =>
+      options.service.getDashboardLead({ auth, leadId: params.id })
+    );
+  });
+
+  app.get("/dashboard/analytics", async (request, reply) => {
+    const auth = await authenticateDashboard(request, reply);
+    if (!auth) {
+      return;
+    }
+
+    return timed(request, "dashboard.analytics", () =>
+      options.service.getDashboardAnalytics({ auth })
+    );
+  });
+
+  app.get("/dashboard/pipeline", async (request, reply) => {
+    const auth = await authenticateDashboard(request, reply);
+    if (!auth) {
+      return;
+    }
+
+    return timed(request, "dashboard.pipeline", () =>
+      options.service.getDashboardPipeline({ auth })
+    );
+  });
+
+  app.get("/dashboard/followups", async (request, reply) => {
+    const auth = await authenticateDashboard(request, reply);
+    if (!auth) {
+      return;
+    }
+
+    return timed(request, "dashboard.followups.list", () =>
+      options.service.listDashboardFollowups({ auth, query: request.query })
+    );
   });
 
   app.post(

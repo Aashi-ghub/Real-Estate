@@ -9,6 +9,12 @@ export function toPrismaJson(value: unknown): Prisma.InputJsonValue {
   return sanitizeJsonValue(value) as Prisma.InputJsonValue;
 }
 
+function isMissingTraceColumnError(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError
+    && error.code === "P2022"
+    && /requestId|correlationId/i.test(error.message);
+}
+
 export async function acquireAdvisoryLock(db: DbExecutor, key: string): Promise<void> {
   await db.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${key}))`);
 }
@@ -25,8 +31,7 @@ export async function createAuditLog(
     trace?: TraceContext;
   }
 ): Promise<void> {
-  await db.auditLog.create({
-    data: {
+  const data = {
       clientId: entry.clientId ?? null,
       actor: entry.actor,
       action: entry.action,
@@ -35,8 +40,18 @@ export async function createAuditLog(
       requestId: entry.trace?.requestId ?? null,
       correlationId: entry.trace?.correlationId ?? null,
       metadata: toPrismaJson(entry.metadata)
+    };
+
+  try {
+    await db.auditLog.create({ data });
+  } catch (error) {
+    if (!isMissingTraceColumnError(error)) {
+      throw error;
     }
-  });
+
+    const { requestId: _requestId, correlationId: _correlationId, ...legacyData } = data;
+    await db.auditLog.create({ data: legacyData });
+  }
 }
 
 export async function upsertJobMirror(
@@ -60,7 +75,7 @@ export async function upsertJobMirror(
   const metadataValue =
     input.metadata === undefined ? undefined : input.metadata === null ? Prisma.JsonNull : toPrismaJson(input.metadata);
 
-  await db.job.upsert({
+  const buildArgs = (includeTraceColumns: boolean) => ({
     where: {
       idempotencyKey: input.idempotencyKey
     },
@@ -70,8 +85,12 @@ export async function upsertJobMirror(
       queue: input.queue,
       name: input.name,
       idempotencyKey: input.idempotencyKey,
-      requestId: input.trace?.requestId ?? null,
-      correlationId: input.trace?.correlationId ?? null,
+      ...(includeTraceColumns
+        ? {
+            requestId: input.trace?.requestId ?? null,
+            correlationId: input.trace?.correlationId ?? null
+          }
+        : {}),
       payload: toPrismaJson(input.payload),
       ...(metadataValue !== undefined ? { metadata: metadataValue } : {}),
       status: input.status ?? "queued",
@@ -81,8 +100,12 @@ export async function upsertJobMirror(
       lastError: input.lastError ?? null
     },
     update: {
-      requestId: input.trace?.requestId ?? null,
-      correlationId: input.trace?.correlationId ?? null,
+      ...(includeTraceColumns
+        ? {
+            requestId: input.trace?.requestId ?? null,
+            correlationId: input.trace?.correlationId ?? null
+          }
+        : {}),
       payload: toPrismaJson(input.payload),
       ...(metadataValue !== undefined ? { metadata: metadataValue } : {}),
       ...(input.status ? { status: input.status } : {}),
@@ -92,4 +115,14 @@ export async function upsertJobMirror(
       ...(input.lastError !== undefined ? { lastError: input.lastError } : {})
     }
   });
+
+  try {
+    await db.job.upsert(buildArgs(true));
+  } catch (error) {
+    if (!isMissingTraceColumnError(error)) {
+      throw error;
+    }
+
+    await db.job.upsert(buildArgs(false));
+  }
 }

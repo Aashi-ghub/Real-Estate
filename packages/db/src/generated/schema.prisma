@@ -37,7 +37,9 @@ enum LeadAttributeKey {
   budget
   location
   timeline
+  property_type
   purpose
+  financing_needed
 }
 
 enum ConversationChannel {
@@ -85,6 +87,27 @@ enum CrmSyncStatus {
   failed
 }
 
+enum LeadPriority {
+  HOT
+  WARM
+  COLD
+}
+
+enum FollowUpTrigger {
+  no_reply
+  incomplete_qualification
+  warm_lead_reengagement
+  revisit_reminder
+}
+
+enum FollowUpStatus {
+  scheduled
+  sent
+  cancelled
+  skipped
+  failed
+}
+
 model Client {
   id               String           @id @default(uuid()) @db.Uuid
   name             String           @db.VarChar(120)
@@ -122,43 +145,83 @@ model ApiKey {
 }
 
 model Lead {
-  id             String     @id @default(uuid()) @db.Uuid
-  clientId       String     @db.Uuid
-  name           String     @db.VarChar(160)
-  phone          String     @db.VarChar(32)
-  email          String?    @db.VarChar(255)
-  source         String     @db.VarChar(100)
-  status         LeadStatus @default(new)
-  score          Int        @default(0)
-  idempotencyKey String     @unique @db.VarChar(255)
-  metadata       Json?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id                        String         @id @default(uuid()) @db.Uuid
+  clientId                  String         @db.Uuid
+  name                      String         @db.VarChar(160)
+  phone                     String         @db.VarChar(32)
+  email                     String?        @db.VarChar(255)
+  source                    String         @db.VarChar(100)
+  status                    LeadStatus     @default(new)
+  score                     Int            @default(0)
+  priority                  LeadPriority   @default(COLD)
+  qualificationCompleteness Int            @default(0)
+  intentConfidence          Float          @default(0)
+  crmSyncStatus             CrmSyncStatus?
+  crmExternalId             String?        @db.VarChar(128)
+  crmLastSyncAt             DateTime?
+  crmErrorLogs              Json?
+  idempotencyKey            String         @unique @db.VarChar(255)
+  metadata                  Json?
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
 
   client       Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
   attributes   LeadAttribute[]
   conversation Conversation?
   jobs         Job[]
   crmSyncs     CrmSync[]
+  scores       LeadScore[]
+  followUps    FollowUp[]
+  crmSyncLogs  CrmSyncLog[]
 
   @@index([phone])
   @@index([clientId, phone])
   @@index([clientId, status])
+  @@index([clientId, status, createdAt])
+  @@index([clientId, status, updatedAt])
+  @@index([clientId, priority, score])
+  @@index([clientId, priority, createdAt])
+  @@index([clientId, crmSyncStatus])
+  @@index([clientId, qualificationCompleteness])
+  @@index([clientId, qualificationCompleteness, createdAt])
   @@index([clientId, createdAt])
+  @@index([clientId, updatedAt])
+  @@index([clientId, score])
+  @@index([clientId, source, createdAt])
 }
 
 model LeadAttribute {
-  id        String           @id @default(uuid()) @db.Uuid
-  leadId    String           @db.Uuid
-  key       LeadAttributeKey
-  value     Json
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  id         String           @id @default(uuid()) @db.Uuid
+  leadId     String           @db.Uuid
+  key        LeadAttributeKey
+  value      Json
+  rawValue   String?          @db.Text
+  confidence Float            @default(1)
+  source     String           @default("rule") @db.VarChar(40)
+  metadata   Json?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
   lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   @@unique([leadId, key])
   @@index([leadId])
+}
+
+model LeadScore {
+  id        String       @id @default(uuid()) @db.Uuid
+  leadId    String       @db.Uuid
+  clientId  String       @db.Uuid
+  total     Int
+  priority  LeadPriority
+  breakdown Json
+  version   String       @db.VarChar(40)
+  createdAt DateTime     @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, total])
+  @@index([leadId, createdAt])
 }
 
 model Conversation {
@@ -192,6 +255,7 @@ model Message {
 
   @@index([conversationId])
   @@index([conversationId, createdAt])
+  @@index([conversationId, direction, createdAt])
 }
 
 model Job {
@@ -258,4 +322,46 @@ model CrmSync {
   lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   @@index([clientId, leadId, status])
+}
+
+model CrmSyncLog {
+  id             String        @id @default(uuid()) @db.Uuid
+  clientId       String        @db.Uuid
+  leadId         String        @db.Uuid
+  crmSyncId      String?       @db.Uuid
+  idempotencyKey String        @db.VarChar(255)
+  status         CrmSyncStatus
+  provider       CrmType
+  externalId     String?       @db.VarChar(128)
+  error          String?       @db.Text
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, leadId, createdAt])
+  @@index([idempotencyKey])
+}
+
+model FollowUp {
+  id             String          @id @default(uuid()) @db.Uuid
+  clientId       String          @db.Uuid
+  leadId         String          @db.Uuid
+  conversationId String          @db.Uuid
+  trigger        FollowUpTrigger
+  status         FollowUpStatus  @default(scheduled)
+  dedupeKey      String          @unique @db.VarChar(255)
+  scheduledAt    DateTime
+  sentAt         DateTime?
+  cancelledAt    DateTime?
+  metadata       Json?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, status, scheduledAt])
+  @@index([clientId, scheduledAt])
+  @@index([leadId, status])
+  @@index([conversationId, trigger])
 }

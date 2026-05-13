@@ -10,12 +10,30 @@ declare global {
 const prismaLogger = createLogger("database", process.env.LOG_LEVEL);
 
 export function createPrismaClient(): PrismaClient {
+  const enableQueryTiming = process.env.PRISMA_QUERY_TIMING === "true" || process.env.LOG_LEVEL === "debug";
   const client = new PrismaClient({
     log: [
+      ...(enableQueryTiming ? [{ emit: "event" as const, level: "query" as const }] : []),
       { emit: "event", level: "warn" },
       { emit: "event", level: "error" }
     ]
   });
+
+  if (enableQueryTiming) {
+    client.$on("query", (event) => {
+      const slowQueryMs = Number(process.env.PRISMA_SLOW_QUERY_MS ?? 250);
+      if (event.duration >= slowQueryMs) {
+        prismaLogger.warn(
+          {
+            duration_ms: event.duration,
+            target: event.target,
+            query: event.query
+          },
+          "prisma.slow_query"
+        );
+      }
+    });
+  }
 
   client.$on("warn", (event) => {
     prismaLogger.warn({ target: event.target, message: event.message }, "prisma.warn");

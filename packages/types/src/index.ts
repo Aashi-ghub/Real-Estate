@@ -40,9 +40,26 @@ export const leadAttributeKeys = [
   "budget",
   "location",
   "timeline",
+  "property_type",
   "purpose"
+  ,
+  "financing_needed"
 ] as const;
 export type LeadAttributeKey = (typeof leadAttributeKeys)[number];
+
+export const leadPriorities = ["HOT", "WARM", "COLD"] as const;
+export type LeadPriority = (typeof leadPriorities)[number];
+
+export const followUpTriggers = [
+  "no_reply",
+  "incomplete_qualification",
+  "warm_lead_reengagement",
+  "revisit_reminder"
+] as const;
+export type FollowUpTrigger = (typeof followUpTriggers)[number];
+
+export const followUpStatuses = ["scheduled", "sent", "cancelled", "skipped", "failed"] as const;
+export type FollowUpStatus = (typeof followUpStatuses)[number];
 
 export const conversationChannels = ["whatsapp"] as const;
 export type ConversationChannel = (typeof conversationChannels)[number];
@@ -103,6 +120,17 @@ export interface GenericCrmConfig {
   externalIdPath?: string;
 }
 
+export interface ProviderCrmConfig extends Partial<GenericCrmConfig> {
+  endpoint?: string;
+  accessTokenEncrypted?: string;
+  apiKeyEncrypted?: string;
+  portalId?: string;
+  module?: string;
+  fieldMap: Record<string, string>;
+  timeoutMs?: number;
+  externalIdPath?: string;
+}
+
 export interface ClientRuntimeConfig {
   id: string;
   name: string;
@@ -123,6 +151,10 @@ export interface ConversationContext {
   lastResponseLatencyMs?: number;
   responseCount?: number;
   qualifiedAt?: string;
+  completionPercentage?: number;
+  intentConfidence?: number;
+  escalationReason?: string;
+  timedOutAt?: string;
 }
 
 export interface ConversationSnapshot {
@@ -136,6 +168,10 @@ export interface ConversationSnapshot {
 export interface LeadAttributeUpsert {
   key: LeadAttributeKey;
   value: JsonValue;
+  rawValue?: string;
+  confidence?: number;
+  source?: string;
+  metadata?: JsonObject;
 }
 
 export interface ParsedBudget {
@@ -157,7 +193,25 @@ export interface ParsedAnswers {
   budget?: ParsedBudget;
   location?: string;
   timeline?: ParsedTimeline;
+  property_type?: string;
   purpose?: string;
+  financing_needed?: boolean;
+}
+
+export interface ExtractedLeadField {
+  key: LeadAttributeKey;
+  value: JsonValue;
+  rawValue: string;
+  confidence: number;
+  source: "rule";
+  metadata?: JsonObject;
+}
+
+export interface QualificationExtractionResult {
+  fields: ExtractedLeadField[];
+  parsedAnswers: ParsedAnswers;
+  completenessPercentage: number;
+  intentConfidence: number;
 }
 
 export interface AdvanceStateResult {
@@ -165,6 +219,9 @@ export interface AdvanceStateResult {
   attributesToUpsert: LeadAttributeUpsert[];
   outboundMessage: string | null;
   parsedAnswers: ParsedAnswers;
+  completenessPercentage: number;
+  intentConfidence: number;
+  escalationReason?: string;
 }
 
 export const queueNames = {

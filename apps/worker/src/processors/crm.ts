@@ -137,6 +137,28 @@ export async function processCrmPush(
           ...(result.externalId ? { externalId: result.externalId } : {})
         }
       });
+      await tx.lead.update({
+        where: { id: lead.id },
+        data: {
+          crmSyncStatus: "success",
+          crmLastSyncAt: new Date(),
+          crmErrorLogs: undefined,
+          ...(result.externalId ? { crmExternalId: result.externalId } : {})
+        }
+      });
+      await tx.crmSyncLog.create({
+        data: {
+          clientId: lead.clientId,
+          leadId: lead.id,
+          idempotencyKey: job.data.dedupeKey,
+          status: "success",
+          provider: lead.client.crmType,
+          ...(result.externalId ? { externalId: result.externalId } : {}),
+          metadata: toPrismaJson({
+            statusCode: result.statusCode
+          })
+        }
+      });
 
       await createAuditLog(tx, {
         clientId: lead.clientId,
@@ -177,6 +199,34 @@ export async function processCrmPush(
         status: "failed",
         attempts,
         lastError: crmError.message
+      }
+    });
+    await db.lead.updateMany({
+      where: {
+        id: lead.id,
+        clientId: lead.clientId
+      },
+      data: {
+        crmSyncStatus: "failed",
+        crmLastSyncAt: new Date(),
+        crmErrorLogs: toPrismaJson({
+          lastError: crmError.message,
+          attempts
+        })
+      }
+    });
+    await db.crmSyncLog.create({
+      data: {
+        clientId: lead.clientId,
+        leadId: lead.id,
+        idempotencyKey: job.data.dedupeKey,
+        status: "failed",
+        provider: lead.client.crmType,
+        error: crmError.message,
+        metadata: toPrismaJson({
+          attempts,
+          retry: retryMetadata
+        })
       }
     });
     crmPushFailedTotal.inc({ client_id: lead.clientId });

@@ -46,6 +46,7 @@ const baseEnvSchema = z
     QUEUE_RETRY_BACKOFF_MAX_MS: z.coerce.number().int().positive().default(60_000),
     QUEUE_METRICS_SAMPLE_INTERVAL_MS: z.coerce.number().int().positive().default(10_000),
     QUEUE_PREFIX: z.string().min(1).default("lead-qualifier"),
+    WHATSAPP_DRY_RUN: booleanishSchema.optional(),
     TWILIO_ACCOUNT_SID: z.string().optional(),
     TWILIO_AUTH_TOKEN: z.string().optional(),
     TWILIO_WHATSAPP_FROM: z.string().default("whatsapp:+14155238886"),
@@ -102,6 +103,7 @@ export type BaseConfig = BaseEnvConfig & {
   queueRetryBackoffMs: number;
   queueRetryBackoffMaxMs: number;
   queueMetricsSampleIntervalMs: number;
+  whatsappDryRun: boolean;
 };
 
 let cachedConfig: BaseConfig | null = null;
@@ -209,7 +211,8 @@ export function getBaseConfig(env: NodeJS.ProcessEnv = process.env): BaseConfig 
     followupMaxRetries: parsed.FOLLOWUP_MAX_RETRIES ?? parsed.MESSAGE_MAX_RETRIES,
     queueRetryBackoffMs: parsed.QUEUE_RETRY_BACKOFF_MS,
     queueRetryBackoffMaxMs: parsed.QUEUE_RETRY_BACKOFF_MAX_MS,
-    queueMetricsSampleIntervalMs: parsed.QUEUE_METRICS_SAMPLE_INTERVAL_MS
+    queueMetricsSampleIntervalMs: parsed.QUEUE_METRICS_SAMPLE_INTERVAL_MS,
+    whatsappDryRun: parsed.WHATSAPP_DRY_RUN ?? (parsed.NODE_ENV !== "production")
   };
   return cachedConfig;
 }

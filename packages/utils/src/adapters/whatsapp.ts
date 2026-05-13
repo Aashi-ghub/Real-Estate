@@ -54,10 +54,20 @@ export async function sendMessage(args: {
   to: string;
   text: string;
   encryptionKey: string;
+  dryRun?: boolean;
   fallbackTwilioAccountSid?: string;
   fallbackTwilioAuthToken?: string;
   fallbackTwilioFrom?: string;
 }): Promise<SendMessageResult> {
+  if (args.dryRun) {
+    const digest = crypto
+      .createHash("sha256")
+      .update(`${args.client.id}:${args.to}:${args.text}`)
+      .digest("hex")
+      .slice(0, 32);
+    return { providerMessageId: `dryrun_${digest}` };
+  }
+
   if (args.client.whatsappProvider === "twilio") {
     return sendTwilioMessage(args);
   }
@@ -82,7 +92,9 @@ async function sendTwilioMessage(args: {
   const fromNumber = config.fromNumber || args.fallbackTwilioFrom;
 
   if (!accountSid || !authToken || !fromNumber) {
-    throw new Error(`Twilio config is incomplete for client ${args.client.id}`);
+    throw new ExternalServiceError(`Twilio config is incomplete for client ${args.client.id}`, {
+      retryable: false
+    });
   }
 
   const body = new URLSearchParams({

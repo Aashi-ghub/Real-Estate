@@ -1,4 +1,4 @@
-import { Queue, type ConnectionOptions, type JobsOptions } from "bullmq";
+import { Queue, type ConnectionOptions, type Job, type JobsOptions } from "bullmq";
 import type IORedis from "ioredis";
 
 import type { CrmPushJobData, FollowupNoReplyJobData, SendMessageJobData } from "@real-estate/types";
@@ -36,7 +36,7 @@ export class QueuePublisher {
   }
 
   async enqueueSendMessage(data: SendMessageJobData, overrides: JobsOptions = {}): Promise<void> {
-    await this.messagesQueue.add(
+    const job = await this.messagesQueue.add(
       "send_message",
       data,
       buildQueueJobOptions({
@@ -46,10 +46,11 @@ export class QueuePublisher {
         overrides
       })
     );
+    await this.requeueFailedJob(job);
   }
 
   async enqueueFollowup(data: FollowupNoReplyJobData, delayMs: number, overrides: JobsOptions = {}): Promise<void> {
-    await this.followupsQueue.add(
+    const job = await this.followupsQueue.add(
       "followup_no_reply",
       data,
       buildQueueJobOptions({
@@ -60,10 +61,11 @@ export class QueuePublisher {
         overrides
       })
     );
+    await this.requeueFailedJob(job);
   }
 
   async enqueueCrmPush(data: CrmPushJobData, overrides: JobsOptions = {}): Promise<void> {
-    await this.crmQueue.add(
+    const job = await this.crmQueue.add(
       "crm_push",
       data,
       buildQueueJobOptions({
@@ -73,6 +75,14 @@ export class QueuePublisher {
         overrides
       })
     );
+    await this.requeueFailedJob(job);
+  }
+
+  private async requeueFailedJob(job: Job): Promise<void> {
+    const state = await job.getState();
+    if (state === "failed") {
+      await job.retry("failed");
+    }
   }
 
   async close(): Promise<void> {

@@ -34,6 +34,11 @@ export type Lead = $Result.DefaultSelection<Prisma.$LeadPayload>
  */
 export type LeadAttribute = $Result.DefaultSelection<Prisma.$LeadAttributePayload>
 /**
+ * Model LeadScore
+ * 
+ */
+export type LeadScore = $Result.DefaultSelection<Prisma.$LeadScorePayload>
+/**
  * Model Conversation
  * 
  */
@@ -58,6 +63,16 @@ export type AuditLog = $Result.DefaultSelection<Prisma.$AuditLogPayload>
  * 
  */
 export type CrmSync = $Result.DefaultSelection<Prisma.$CrmSyncPayload>
+/**
+ * Model CrmSyncLog
+ * 
+ */
+export type CrmSyncLog = $Result.DefaultSelection<Prisma.$CrmSyncLogPayload>
+/**
+ * Model FollowUp
+ * 
+ */
+export type FollowUp = $Result.DefaultSelection<Prisma.$FollowUpPayload>
 
 /**
  * Enums
@@ -104,7 +119,9 @@ export const LeadAttributeKey: {
   budget: 'budget',
   location: 'location',
   timeline: 'timeline',
-  purpose: 'purpose'
+  property_type: 'property_type',
+  purpose: 'purpose',
+  financing_needed: 'financing_needed'
 };
 
 export type LeadAttributeKey = (typeof LeadAttributeKey)[keyof typeof LeadAttributeKey]
@@ -175,6 +192,36 @@ export const CrmSyncStatus: {
 
 export type CrmSyncStatus = (typeof CrmSyncStatus)[keyof typeof CrmSyncStatus]
 
+
+export const LeadPriority: {
+  HOT: 'HOT',
+  WARM: 'WARM',
+  COLD: 'COLD'
+};
+
+export type LeadPriority = (typeof LeadPriority)[keyof typeof LeadPriority]
+
+
+export const FollowUpTrigger: {
+  no_reply: 'no_reply',
+  incomplete_qualification: 'incomplete_qualification',
+  warm_lead_reengagement: 'warm_lead_reengagement',
+  revisit_reminder: 'revisit_reminder'
+};
+
+export type FollowUpTrigger = (typeof FollowUpTrigger)[keyof typeof FollowUpTrigger]
+
+
+export const FollowUpStatus: {
+  scheduled: 'scheduled',
+  sent: 'sent',
+  cancelled: 'cancelled',
+  skipped: 'skipped',
+  failed: 'failed'
+};
+
+export type FollowUpStatus = (typeof FollowUpStatus)[keyof typeof FollowUpStatus]
+
 }
 
 export type ClientStatus = $Enums.ClientStatus
@@ -224,6 +271,18 @@ export const JobStatus: typeof $Enums.JobStatus
 export type CrmSyncStatus = $Enums.CrmSyncStatus
 
 export const CrmSyncStatus: typeof $Enums.CrmSyncStatus
+
+export type LeadPriority = $Enums.LeadPriority
+
+export const LeadPriority: typeof $Enums.LeadPriority
+
+export type FollowUpTrigger = $Enums.FollowUpTrigger
+
+export const FollowUpTrigger: typeof $Enums.FollowUpTrigger
+
+export type FollowUpStatus = $Enums.FollowUpStatus
+
+export const FollowUpStatus: typeof $Enums.FollowUpStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -384,6 +443,16 @@ export class PrismaClient<
   get leadAttribute(): Prisma.LeadAttributeDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.leadScore`: Exposes CRUD operations for the **LeadScore** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more LeadScores
+    * const leadScores = await prisma.leadScore.findMany()
+    * ```
+    */
+  get leadScore(): Prisma.LeadScoreDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.conversation`: Exposes CRUD operations for the **Conversation** model.
     * Example usage:
     * ```ts
@@ -432,6 +501,26 @@ export class PrismaClient<
     * ```
     */
   get crmSync(): Prisma.CrmSyncDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.crmSyncLog`: Exposes CRUD operations for the **CrmSyncLog** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more CrmSyncLogs
+    * const crmSyncLogs = await prisma.crmSyncLog.findMany()
+    * ```
+    */
+  get crmSyncLog(): Prisma.CrmSyncLogDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.followUp`: Exposes CRUD operations for the **FollowUp** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more FollowUps
+    * const followUps = await prisma.followUp.findMany()
+    * ```
+    */
+  get followUp(): Prisma.FollowUpDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -877,11 +966,14 @@ export namespace Prisma {
     ApiKey: 'ApiKey',
     Lead: 'Lead',
     LeadAttribute: 'LeadAttribute',
+    LeadScore: 'LeadScore',
     Conversation: 'Conversation',
     Message: 'Message',
     Job: 'Job',
     AuditLog: 'AuditLog',
-    CrmSync: 'CrmSync'
+    CrmSync: 'CrmSync',
+    CrmSyncLog: 'CrmSyncLog',
+    FollowUp: 'FollowUp'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -900,7 +992,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "client" | "apiKey" | "lead" | "leadAttribute" | "conversation" | "message" | "job" | "auditLog" | "crmSync"
+      modelProps: "client" | "apiKey" | "lead" | "leadAttribute" | "leadScore" | "conversation" | "message" | "job" | "auditLog" | "crmSync" | "crmSyncLog" | "followUp"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1197,6 +1289,80 @@ export namespace Prisma {
           count: {
             args: Prisma.LeadAttributeCountArgs<ExtArgs>
             result: $Utils.Optional<LeadAttributeCountAggregateOutputType> | number
+          }
+        }
+      }
+      LeadScore: {
+        payload: Prisma.$LeadScorePayload<ExtArgs>
+        fields: Prisma.LeadScoreFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.LeadScoreFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LeadScorePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.LeadScoreFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LeadScorePayload>
+          }
+          findFirst: {
+            args: Prisma.LeadScoreFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LeadScorePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.LeadScoreFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LeadScorePayload>
+          }
+          findMany: {
+            args: Prisma.LeadScoreFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LeadScorePayload>[]
+          }
+          create: {
+            args: Prisma.LeadScoreCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LeadScorePayload>
+          }
+          createMany: {
+            args: Prisma.LeadScoreCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.LeadScoreCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LeadScorePayload>[]
+          }
+          delete: {
+            args: Prisma.LeadScoreDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LeadScorePayload>
+          }
+          update: {
+            args: Prisma.LeadScoreUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LeadScorePayload>
+          }
+          deleteMany: {
+            args: Prisma.LeadScoreDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.LeadScoreUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.LeadScoreUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LeadScorePayload>[]
+          }
+          upsert: {
+            args: Prisma.LeadScoreUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LeadScorePayload>
+          }
+          aggregate: {
+            args: Prisma.LeadScoreAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLeadScore>
+          }
+          groupBy: {
+            args: Prisma.LeadScoreGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LeadScoreGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.LeadScoreCountArgs<ExtArgs>
+            result: $Utils.Optional<LeadScoreCountAggregateOutputType> | number
           }
         }
       }
@@ -1570,6 +1736,154 @@ export namespace Prisma {
           }
         }
       }
+      CrmSyncLog: {
+        payload: Prisma.$CrmSyncLogPayload<ExtArgs>
+        fields: Prisma.CrmSyncLogFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.CrmSyncLogFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CrmSyncLogPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.CrmSyncLogFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CrmSyncLogPayload>
+          }
+          findFirst: {
+            args: Prisma.CrmSyncLogFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CrmSyncLogPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.CrmSyncLogFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CrmSyncLogPayload>
+          }
+          findMany: {
+            args: Prisma.CrmSyncLogFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CrmSyncLogPayload>[]
+          }
+          create: {
+            args: Prisma.CrmSyncLogCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CrmSyncLogPayload>
+          }
+          createMany: {
+            args: Prisma.CrmSyncLogCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.CrmSyncLogCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CrmSyncLogPayload>[]
+          }
+          delete: {
+            args: Prisma.CrmSyncLogDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CrmSyncLogPayload>
+          }
+          update: {
+            args: Prisma.CrmSyncLogUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CrmSyncLogPayload>
+          }
+          deleteMany: {
+            args: Prisma.CrmSyncLogDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.CrmSyncLogUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.CrmSyncLogUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CrmSyncLogPayload>[]
+          }
+          upsert: {
+            args: Prisma.CrmSyncLogUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CrmSyncLogPayload>
+          }
+          aggregate: {
+            args: Prisma.CrmSyncLogAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCrmSyncLog>
+          }
+          groupBy: {
+            args: Prisma.CrmSyncLogGroupByArgs<ExtArgs>
+            result: $Utils.Optional<CrmSyncLogGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.CrmSyncLogCountArgs<ExtArgs>
+            result: $Utils.Optional<CrmSyncLogCountAggregateOutputType> | number
+          }
+        }
+      }
+      FollowUp: {
+        payload: Prisma.$FollowUpPayload<ExtArgs>
+        fields: Prisma.FollowUpFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.FollowUpFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FollowUpPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.FollowUpFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FollowUpPayload>
+          }
+          findFirst: {
+            args: Prisma.FollowUpFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FollowUpPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.FollowUpFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FollowUpPayload>
+          }
+          findMany: {
+            args: Prisma.FollowUpFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FollowUpPayload>[]
+          }
+          create: {
+            args: Prisma.FollowUpCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FollowUpPayload>
+          }
+          createMany: {
+            args: Prisma.FollowUpCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.FollowUpCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FollowUpPayload>[]
+          }
+          delete: {
+            args: Prisma.FollowUpDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FollowUpPayload>
+          }
+          update: {
+            args: Prisma.FollowUpUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FollowUpPayload>
+          }
+          deleteMany: {
+            args: Prisma.FollowUpDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.FollowUpUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.FollowUpUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FollowUpPayload>[]
+          }
+          upsert: {
+            args: Prisma.FollowUpUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FollowUpPayload>
+          }
+          aggregate: {
+            args: Prisma.FollowUpAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateFollowUp>
+          }
+          groupBy: {
+            args: Prisma.FollowUpGroupByArgs<ExtArgs>
+            result: $Utils.Optional<FollowUpGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.FollowUpCountArgs<ExtArgs>
+            result: $Utils.Optional<FollowUpCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1670,11 +1984,14 @@ export namespace Prisma {
     apiKey?: ApiKeyOmit
     lead?: LeadOmit
     leadAttribute?: LeadAttributeOmit
+    leadScore?: LeadScoreOmit
     conversation?: ConversationOmit
     message?: MessageOmit
     job?: JobOmit
     auditLog?: AuditLogOmit
     crmSync?: CrmSyncOmit
+    crmSyncLog?: CrmSyncLogOmit
+    followUp?: FollowUpOmit
   }
 
   /* Types for Logging */
@@ -1825,12 +2142,18 @@ export namespace Prisma {
     attributes: number
     jobs: number
     crmSyncs: number
+    scores: number
+    followUps: number
+    crmSyncLogs: number
   }
 
   export type LeadCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     attributes?: boolean | LeadCountOutputTypeCountAttributesArgs
     jobs?: boolean | LeadCountOutputTypeCountJobsArgs
     crmSyncs?: boolean | LeadCountOutputTypeCountCrmSyncsArgs
+    scores?: boolean | LeadCountOutputTypeCountScoresArgs
+    followUps?: boolean | LeadCountOutputTypeCountFollowUpsArgs
+    crmSyncLogs?: boolean | LeadCountOutputTypeCountCrmSyncLogsArgs
   }
 
   // Custom InputTypes
@@ -1863,6 +2186,27 @@ export namespace Prisma {
    */
   export type LeadCountOutputTypeCountCrmSyncsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: CrmSyncWhereInput
+  }
+
+  /**
+   * LeadCountOutputType without action
+   */
+  export type LeadCountOutputTypeCountScoresArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LeadScoreWhereInput
+  }
+
+  /**
+   * LeadCountOutputType without action
+   */
+  export type LeadCountOutputTypeCountFollowUpsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: FollowUpWhereInput
+  }
+
+  /**
+   * LeadCountOutputType without action
+   */
+  export type LeadCountOutputTypeCountCrmSyncLogsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CrmSyncLogWhereInput
   }
 
 
@@ -4251,10 +4595,14 @@ export namespace Prisma {
 
   export type LeadAvgAggregateOutputType = {
     score: number | null
+    qualificationCompleteness: number | null
+    intentConfidence: number | null
   }
 
   export type LeadSumAggregateOutputType = {
     score: number | null
+    qualificationCompleteness: number | null
+    intentConfidence: number | null
   }
 
   export type LeadMinAggregateOutputType = {
@@ -4266,6 +4614,12 @@ export namespace Prisma {
     source: string | null
     status: $Enums.LeadStatus | null
     score: number | null
+    priority: $Enums.LeadPriority | null
+    qualificationCompleteness: number | null
+    intentConfidence: number | null
+    crmSyncStatus: $Enums.CrmSyncStatus | null
+    crmExternalId: string | null
+    crmLastSyncAt: Date | null
     idempotencyKey: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -4280,6 +4634,12 @@ export namespace Prisma {
     source: string | null
     status: $Enums.LeadStatus | null
     score: number | null
+    priority: $Enums.LeadPriority | null
+    qualificationCompleteness: number | null
+    intentConfidence: number | null
+    crmSyncStatus: $Enums.CrmSyncStatus | null
+    crmExternalId: string | null
+    crmLastSyncAt: Date | null
     idempotencyKey: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -4294,6 +4654,13 @@ export namespace Prisma {
     source: number
     status: number
     score: number
+    priority: number
+    qualificationCompleteness: number
+    intentConfidence: number
+    crmSyncStatus: number
+    crmExternalId: number
+    crmLastSyncAt: number
+    crmErrorLogs: number
     idempotencyKey: number
     metadata: number
     createdAt: number
@@ -4304,10 +4671,14 @@ export namespace Prisma {
 
   export type LeadAvgAggregateInputType = {
     score?: true
+    qualificationCompleteness?: true
+    intentConfidence?: true
   }
 
   export type LeadSumAggregateInputType = {
     score?: true
+    qualificationCompleteness?: true
+    intentConfidence?: true
   }
 
   export type LeadMinAggregateInputType = {
@@ -4319,6 +4690,12 @@ export namespace Prisma {
     source?: true
     status?: true
     score?: true
+    priority?: true
+    qualificationCompleteness?: true
+    intentConfidence?: true
+    crmSyncStatus?: true
+    crmExternalId?: true
+    crmLastSyncAt?: true
     idempotencyKey?: true
     createdAt?: true
     updatedAt?: true
@@ -4333,6 +4710,12 @@ export namespace Prisma {
     source?: true
     status?: true
     score?: true
+    priority?: true
+    qualificationCompleteness?: true
+    intentConfidence?: true
+    crmSyncStatus?: true
+    crmExternalId?: true
+    crmLastSyncAt?: true
     idempotencyKey?: true
     createdAt?: true
     updatedAt?: true
@@ -4347,6 +4730,13 @@ export namespace Prisma {
     source?: true
     status?: true
     score?: true
+    priority?: true
+    qualificationCompleteness?: true
+    intentConfidence?: true
+    crmSyncStatus?: true
+    crmExternalId?: true
+    crmLastSyncAt?: true
+    crmErrorLogs?: true
     idempotencyKey?: true
     metadata?: true
     createdAt?: true
@@ -4449,6 +4839,13 @@ export namespace Prisma {
     source: string
     status: $Enums.LeadStatus
     score: number
+    priority: $Enums.LeadPriority
+    qualificationCompleteness: number
+    intentConfidence: number
+    crmSyncStatus: $Enums.CrmSyncStatus | null
+    crmExternalId: string | null
+    crmLastSyncAt: Date | null
+    crmErrorLogs: JsonValue | null
     idempotencyKey: string
     metadata: JsonValue | null
     createdAt: Date
@@ -4483,6 +4880,13 @@ export namespace Prisma {
     source?: boolean
     status?: boolean
     score?: boolean
+    priority?: boolean
+    qualificationCompleteness?: boolean
+    intentConfidence?: boolean
+    crmSyncStatus?: boolean
+    crmExternalId?: boolean
+    crmLastSyncAt?: boolean
+    crmErrorLogs?: boolean
     idempotencyKey?: boolean
     metadata?: boolean
     createdAt?: boolean
@@ -4492,6 +4896,9 @@ export namespace Prisma {
     conversation?: boolean | Lead$conversationArgs<ExtArgs>
     jobs?: boolean | Lead$jobsArgs<ExtArgs>
     crmSyncs?: boolean | Lead$crmSyncsArgs<ExtArgs>
+    scores?: boolean | Lead$scoresArgs<ExtArgs>
+    followUps?: boolean | Lead$followUpsArgs<ExtArgs>
+    crmSyncLogs?: boolean | Lead$crmSyncLogsArgs<ExtArgs>
     _count?: boolean | LeadCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["lead"]>
 
@@ -4504,6 +4911,13 @@ export namespace Prisma {
     source?: boolean
     status?: boolean
     score?: boolean
+    priority?: boolean
+    qualificationCompleteness?: boolean
+    intentConfidence?: boolean
+    crmSyncStatus?: boolean
+    crmExternalId?: boolean
+    crmLastSyncAt?: boolean
+    crmErrorLogs?: boolean
     idempotencyKey?: boolean
     metadata?: boolean
     createdAt?: boolean
@@ -4520,6 +4934,13 @@ export namespace Prisma {
     source?: boolean
     status?: boolean
     score?: boolean
+    priority?: boolean
+    qualificationCompleteness?: boolean
+    intentConfidence?: boolean
+    crmSyncStatus?: boolean
+    crmExternalId?: boolean
+    crmLastSyncAt?: boolean
+    crmErrorLogs?: boolean
     idempotencyKey?: boolean
     metadata?: boolean
     createdAt?: boolean
@@ -4536,19 +4957,29 @@ export namespace Prisma {
     source?: boolean
     status?: boolean
     score?: boolean
+    priority?: boolean
+    qualificationCompleteness?: boolean
+    intentConfidence?: boolean
+    crmSyncStatus?: boolean
+    crmExternalId?: boolean
+    crmLastSyncAt?: boolean
+    crmErrorLogs?: boolean
     idempotencyKey?: boolean
     metadata?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type LeadOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "clientId" | "name" | "phone" | "email" | "source" | "status" | "score" | "idempotencyKey" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["lead"]>
+  export type LeadOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "clientId" | "name" | "phone" | "email" | "source" | "status" | "score" | "priority" | "qualificationCompleteness" | "intentConfidence" | "crmSyncStatus" | "crmExternalId" | "crmLastSyncAt" | "crmErrorLogs" | "idempotencyKey" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["lead"]>
   export type LeadInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     client?: boolean | ClientDefaultArgs<ExtArgs>
     attributes?: boolean | Lead$attributesArgs<ExtArgs>
     conversation?: boolean | Lead$conversationArgs<ExtArgs>
     jobs?: boolean | Lead$jobsArgs<ExtArgs>
     crmSyncs?: boolean | Lead$crmSyncsArgs<ExtArgs>
+    scores?: boolean | Lead$scoresArgs<ExtArgs>
+    followUps?: boolean | Lead$followUpsArgs<ExtArgs>
+    crmSyncLogs?: boolean | Lead$crmSyncLogsArgs<ExtArgs>
     _count?: boolean | LeadCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type LeadIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -4566,6 +4997,9 @@ export namespace Prisma {
       conversation: Prisma.$ConversationPayload<ExtArgs> | null
       jobs: Prisma.$JobPayload<ExtArgs>[]
       crmSyncs: Prisma.$CrmSyncPayload<ExtArgs>[]
+      scores: Prisma.$LeadScorePayload<ExtArgs>[]
+      followUps: Prisma.$FollowUpPayload<ExtArgs>[]
+      crmSyncLogs: Prisma.$CrmSyncLogPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -4576,6 +5010,13 @@ export namespace Prisma {
       source: string
       status: $Enums.LeadStatus
       score: number
+      priority: $Enums.LeadPriority
+      qualificationCompleteness: number
+      intentConfidence: number
+      crmSyncStatus: $Enums.CrmSyncStatus | null
+      crmExternalId: string | null
+      crmLastSyncAt: Date | null
+      crmErrorLogs: Prisma.JsonValue | null
       idempotencyKey: string
       metadata: Prisma.JsonValue | null
       createdAt: Date
@@ -4979,6 +5420,9 @@ export namespace Prisma {
     conversation<T extends Lead$conversationArgs<ExtArgs> = {}>(args?: Subset<T, Lead$conversationArgs<ExtArgs>>): Prisma__ConversationClient<$Result.GetResult<Prisma.$ConversationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     jobs<T extends Lead$jobsArgs<ExtArgs> = {}>(args?: Subset<T, Lead$jobsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$JobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     crmSyncs<T extends Lead$crmSyncsArgs<ExtArgs> = {}>(args?: Subset<T, Lead$crmSyncsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CrmSyncPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    scores<T extends Lead$scoresArgs<ExtArgs> = {}>(args?: Subset<T, Lead$scoresArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LeadScorePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    followUps<T extends Lead$followUpsArgs<ExtArgs> = {}>(args?: Subset<T, Lead$followUpsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FollowUpPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    crmSyncLogs<T extends Lead$crmSyncLogsArgs<ExtArgs> = {}>(args?: Subset<T, Lead$crmSyncLogsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CrmSyncLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -5016,6 +5460,13 @@ export namespace Prisma {
     readonly source: FieldRef<"Lead", 'String'>
     readonly status: FieldRef<"Lead", 'LeadStatus'>
     readonly score: FieldRef<"Lead", 'Int'>
+    readonly priority: FieldRef<"Lead", 'LeadPriority'>
+    readonly qualificationCompleteness: FieldRef<"Lead", 'Int'>
+    readonly intentConfidence: FieldRef<"Lead", 'Float'>
+    readonly crmSyncStatus: FieldRef<"Lead", 'CrmSyncStatus'>
+    readonly crmExternalId: FieldRef<"Lead", 'String'>
+    readonly crmLastSyncAt: FieldRef<"Lead", 'DateTime'>
+    readonly crmErrorLogs: FieldRef<"Lead", 'Json'>
     readonly idempotencyKey: FieldRef<"Lead", 'String'>
     readonly metadata: FieldRef<"Lead", 'Json'>
     readonly createdAt: FieldRef<"Lead", 'DateTime'>
@@ -5507,6 +5958,78 @@ export namespace Prisma {
   }
 
   /**
+   * Lead.scores
+   */
+  export type Lead$scoresArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LeadScore
+     */
+    select?: LeadScoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LeadScore
+     */
+    omit?: LeadScoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LeadScoreInclude<ExtArgs> | null
+    where?: LeadScoreWhereInput
+    orderBy?: LeadScoreOrderByWithRelationInput | LeadScoreOrderByWithRelationInput[]
+    cursor?: LeadScoreWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: LeadScoreScalarFieldEnum | LeadScoreScalarFieldEnum[]
+  }
+
+  /**
+   * Lead.followUps
+   */
+  export type Lead$followUpsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FollowUp
+     */
+    select?: FollowUpSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FollowUp
+     */
+    omit?: FollowUpOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FollowUpInclude<ExtArgs> | null
+    where?: FollowUpWhereInput
+    orderBy?: FollowUpOrderByWithRelationInput | FollowUpOrderByWithRelationInput[]
+    cursor?: FollowUpWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: FollowUpScalarFieldEnum | FollowUpScalarFieldEnum[]
+  }
+
+  /**
+   * Lead.crmSyncLogs
+   */
+  export type Lead$crmSyncLogsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CrmSyncLog
+     */
+    select?: CrmSyncLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CrmSyncLog
+     */
+    omit?: CrmSyncLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CrmSyncLogInclude<ExtArgs> | null
+    where?: CrmSyncLogWhereInput
+    orderBy?: CrmSyncLogOrderByWithRelationInput | CrmSyncLogOrderByWithRelationInput[]
+    cursor?: CrmSyncLogWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CrmSyncLogScalarFieldEnum | CrmSyncLogScalarFieldEnum[]
+  }
+
+  /**
    * Lead without action
    */
   export type LeadDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -5531,14 +6054,27 @@ export namespace Prisma {
 
   export type AggregateLeadAttribute = {
     _count: LeadAttributeCountAggregateOutputType | null
+    _avg: LeadAttributeAvgAggregateOutputType | null
+    _sum: LeadAttributeSumAggregateOutputType | null
     _min: LeadAttributeMinAggregateOutputType | null
     _max: LeadAttributeMaxAggregateOutputType | null
+  }
+
+  export type LeadAttributeAvgAggregateOutputType = {
+    confidence: number | null
+  }
+
+  export type LeadAttributeSumAggregateOutputType = {
+    confidence: number | null
   }
 
   export type LeadAttributeMinAggregateOutputType = {
     id: string | null
     leadId: string | null
     key: $Enums.LeadAttributeKey | null
+    rawValue: string | null
+    confidence: number | null
+    source: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -5547,6 +6083,9 @@ export namespace Prisma {
     id: string | null
     leadId: string | null
     key: $Enums.LeadAttributeKey | null
+    rawValue: string | null
+    confidence: number | null
+    source: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -5556,16 +6095,31 @@ export namespace Prisma {
     leadId: number
     key: number
     value: number
+    rawValue: number
+    confidence: number
+    source: number
+    metadata: number
     createdAt: number
     updatedAt: number
     _all: number
   }
 
 
+  export type LeadAttributeAvgAggregateInputType = {
+    confidence?: true
+  }
+
+  export type LeadAttributeSumAggregateInputType = {
+    confidence?: true
+  }
+
   export type LeadAttributeMinAggregateInputType = {
     id?: true
     leadId?: true
     key?: true
+    rawValue?: true
+    confidence?: true
+    source?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -5574,6 +6128,9 @@ export namespace Prisma {
     id?: true
     leadId?: true
     key?: true
+    rawValue?: true
+    confidence?: true
+    source?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -5583,6 +6140,10 @@ export namespace Prisma {
     leadId?: true
     key?: true
     value?: true
+    rawValue?: true
+    confidence?: true
+    source?: true
+    metadata?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -5626,6 +6187,18 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
+     * Select which fields to average
+    **/
+    _avg?: LeadAttributeAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: LeadAttributeSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: LeadAttributeMinAggregateInputType
@@ -5656,6 +6229,8 @@ export namespace Prisma {
     take?: number
     skip?: number
     _count?: LeadAttributeCountAggregateInputType | true
+    _avg?: LeadAttributeAvgAggregateInputType
+    _sum?: LeadAttributeSumAggregateInputType
     _min?: LeadAttributeMinAggregateInputType
     _max?: LeadAttributeMaxAggregateInputType
   }
@@ -5665,9 +6240,15 @@ export namespace Prisma {
     leadId: string
     key: $Enums.LeadAttributeKey
     value: JsonValue
+    rawValue: string | null
+    confidence: number
+    source: string
+    metadata: JsonValue | null
     createdAt: Date
     updatedAt: Date
     _count: LeadAttributeCountAggregateOutputType | null
+    _avg: LeadAttributeAvgAggregateOutputType | null
+    _sum: LeadAttributeSumAggregateOutputType | null
     _min: LeadAttributeMinAggregateOutputType | null
     _max: LeadAttributeMaxAggregateOutputType | null
   }
@@ -5691,6 +6272,10 @@ export namespace Prisma {
     leadId?: boolean
     key?: boolean
     value?: boolean
+    rawValue?: boolean
+    confidence?: boolean
+    source?: boolean
+    metadata?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     lead?: boolean | LeadDefaultArgs<ExtArgs>
@@ -5701,6 +6286,10 @@ export namespace Prisma {
     leadId?: boolean
     key?: boolean
     value?: boolean
+    rawValue?: boolean
+    confidence?: boolean
+    source?: boolean
+    metadata?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     lead?: boolean | LeadDefaultArgs<ExtArgs>
@@ -5711,6 +6300,10 @@ export namespace Prisma {
     leadId?: boolean
     key?: boolean
     value?: boolean
+    rawValue?: boolean
+    confidence?: boolean
+    source?: boolean
+    metadata?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     lead?: boolean | LeadDefaultArgs<ExtArgs>
@@ -5721,11 +6314,15 @@ export namespace Prisma {
     leadId?: boolean
     key?: boolean
     value?: boolean
+    rawValue?: boolean
+    confidence?: boolean
+    source?: boolean
+    metadata?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type LeadAttributeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "leadId" | "key" | "value" | "createdAt" | "updatedAt", ExtArgs["result"]["leadAttribute"]>
+  export type LeadAttributeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "leadId" | "key" | "value" | "rawValue" | "confidence" | "source" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["leadAttribute"]>
   export type LeadAttributeInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     lead?: boolean | LeadDefaultArgs<ExtArgs>
   }
@@ -5746,6 +6343,10 @@ export namespace Prisma {
       leadId: string
       key: $Enums.LeadAttributeKey
       value: Prisma.JsonValue
+      rawValue: string | null
+      confidence: number
+      source: string
+      metadata: Prisma.JsonValue | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["leadAttribute"]>
@@ -6176,6 +6777,10 @@ export namespace Prisma {
     readonly leadId: FieldRef<"LeadAttribute", 'String'>
     readonly key: FieldRef<"LeadAttribute", 'LeadAttributeKey'>
     readonly value: FieldRef<"LeadAttribute", 'Json'>
+    readonly rawValue: FieldRef<"LeadAttribute", 'String'>
+    readonly confidence: FieldRef<"LeadAttribute", 'Float'>
+    readonly source: FieldRef<"LeadAttribute", 'String'>
+    readonly metadata: FieldRef<"LeadAttribute", 'Json'>
     readonly createdAt: FieldRef<"LeadAttribute", 'DateTime'>
     readonly updatedAt: FieldRef<"LeadAttribute", 'DateTime'>
   }
@@ -6589,6 +7194,1133 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: LeadAttributeInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model LeadScore
+   */
+
+  export type AggregateLeadScore = {
+    _count: LeadScoreCountAggregateOutputType | null
+    _avg: LeadScoreAvgAggregateOutputType | null
+    _sum: LeadScoreSumAggregateOutputType | null
+    _min: LeadScoreMinAggregateOutputType | null
+    _max: LeadScoreMaxAggregateOutputType | null
+  }
+
+  export type LeadScoreAvgAggregateOutputType = {
+    total: number | null
+  }
+
+  export type LeadScoreSumAggregateOutputType = {
+    total: number | null
+  }
+
+  export type LeadScoreMinAggregateOutputType = {
+    id: string | null
+    leadId: string | null
+    clientId: string | null
+    total: number | null
+    priority: $Enums.LeadPriority | null
+    version: string | null
+    createdAt: Date | null
+  }
+
+  export type LeadScoreMaxAggregateOutputType = {
+    id: string | null
+    leadId: string | null
+    clientId: string | null
+    total: number | null
+    priority: $Enums.LeadPriority | null
+    version: string | null
+    createdAt: Date | null
+  }
+
+  export type LeadScoreCountAggregateOutputType = {
+    id: number
+    leadId: number
+    clientId: number
+    total: number
+    priority: number
+    breakdown: number
+    version: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type LeadScoreAvgAggregateInputType = {
+    total?: true
+  }
+
+  export type LeadScoreSumAggregateInputType = {
+    total?: true
+  }
+
+  export type LeadScoreMinAggregateInputType = {
+    id?: true
+    leadId?: true
+    clientId?: true
+    total?: true
+    priority?: true
+    version?: true
+    createdAt?: true
+  }
+
+  export type LeadScoreMaxAggregateInputType = {
+    id?: true
+    leadId?: true
+    clientId?: true
+    total?: true
+    priority?: true
+    version?: true
+    createdAt?: true
+  }
+
+  export type LeadScoreCountAggregateInputType = {
+    id?: true
+    leadId?: true
+    clientId?: true
+    total?: true
+    priority?: true
+    breakdown?: true
+    version?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type LeadScoreAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LeadScore to aggregate.
+     */
+    where?: LeadScoreWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LeadScores to fetch.
+     */
+    orderBy?: LeadScoreOrderByWithRelationInput | LeadScoreOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: LeadScoreWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LeadScores from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LeadScores.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned LeadScores
+    **/
+    _count?: true | LeadScoreCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: LeadScoreAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: LeadScoreSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: LeadScoreMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: LeadScoreMaxAggregateInputType
+  }
+
+  export type GetLeadScoreAggregateType<T extends LeadScoreAggregateArgs> = {
+        [P in keyof T & keyof AggregateLeadScore]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateLeadScore[P]>
+      : GetScalarType<T[P], AggregateLeadScore[P]>
+  }
+
+
+
+
+  export type LeadScoreGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LeadScoreWhereInput
+    orderBy?: LeadScoreOrderByWithAggregationInput | LeadScoreOrderByWithAggregationInput[]
+    by: LeadScoreScalarFieldEnum[] | LeadScoreScalarFieldEnum
+    having?: LeadScoreScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: LeadScoreCountAggregateInputType | true
+    _avg?: LeadScoreAvgAggregateInputType
+    _sum?: LeadScoreSumAggregateInputType
+    _min?: LeadScoreMinAggregateInputType
+    _max?: LeadScoreMaxAggregateInputType
+  }
+
+  export type LeadScoreGroupByOutputType = {
+    id: string
+    leadId: string
+    clientId: string
+    total: number
+    priority: $Enums.LeadPriority
+    breakdown: JsonValue
+    version: string
+    createdAt: Date
+    _count: LeadScoreCountAggregateOutputType | null
+    _avg: LeadScoreAvgAggregateOutputType | null
+    _sum: LeadScoreSumAggregateOutputType | null
+    _min: LeadScoreMinAggregateOutputType | null
+    _max: LeadScoreMaxAggregateOutputType | null
+  }
+
+  type GetLeadScoreGroupByPayload<T extends LeadScoreGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<LeadScoreGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof LeadScoreGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], LeadScoreGroupByOutputType[P]>
+            : GetScalarType<T[P], LeadScoreGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type LeadScoreSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    leadId?: boolean
+    clientId?: boolean
+    total?: boolean
+    priority?: boolean
+    breakdown?: boolean
+    version?: boolean
+    createdAt?: boolean
+    lead?: boolean | LeadDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["leadScore"]>
+
+  export type LeadScoreSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    leadId?: boolean
+    clientId?: boolean
+    total?: boolean
+    priority?: boolean
+    breakdown?: boolean
+    version?: boolean
+    createdAt?: boolean
+    lead?: boolean | LeadDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["leadScore"]>
+
+  export type LeadScoreSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    leadId?: boolean
+    clientId?: boolean
+    total?: boolean
+    priority?: boolean
+    breakdown?: boolean
+    version?: boolean
+    createdAt?: boolean
+    lead?: boolean | LeadDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["leadScore"]>
+
+  export type LeadScoreSelectScalar = {
+    id?: boolean
+    leadId?: boolean
+    clientId?: boolean
+    total?: boolean
+    priority?: boolean
+    breakdown?: boolean
+    version?: boolean
+    createdAt?: boolean
+  }
+
+  export type LeadScoreOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "leadId" | "clientId" | "total" | "priority" | "breakdown" | "version" | "createdAt", ExtArgs["result"]["leadScore"]>
+  export type LeadScoreInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    lead?: boolean | LeadDefaultArgs<ExtArgs>
+  }
+  export type LeadScoreIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    lead?: boolean | LeadDefaultArgs<ExtArgs>
+  }
+  export type LeadScoreIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    lead?: boolean | LeadDefaultArgs<ExtArgs>
+  }
+
+  export type $LeadScorePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LeadScore"
+    objects: {
+      lead: Prisma.$LeadPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      leadId: string
+      clientId: string
+      total: number
+      priority: $Enums.LeadPriority
+      breakdown: Prisma.JsonValue
+      version: string
+      createdAt: Date
+    }, ExtArgs["result"]["leadScore"]>
+    composites: {}
+  }
+
+  type LeadScoreGetPayload<S extends boolean | null | undefined | LeadScoreDefaultArgs> = $Result.GetResult<Prisma.$LeadScorePayload, S>
+
+  type LeadScoreCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<LeadScoreFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: LeadScoreCountAggregateInputType | true
+    }
+
+  export interface LeadScoreDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LeadScore'], meta: { name: 'LeadScore' } }
+    /**
+     * Find zero or one LeadScore that matches the filter.
+     * @param {LeadScoreFindUniqueArgs} args - Arguments to find a LeadScore
+     * @example
+     * // Get one LeadScore
+     * const leadScore = await prisma.leadScore.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends LeadScoreFindUniqueArgs>(args: SelectSubset<T, LeadScoreFindUniqueArgs<ExtArgs>>): Prisma__LeadScoreClient<$Result.GetResult<Prisma.$LeadScorePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one LeadScore that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {LeadScoreFindUniqueOrThrowArgs} args - Arguments to find a LeadScore
+     * @example
+     * // Get one LeadScore
+     * const leadScore = await prisma.leadScore.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends LeadScoreFindUniqueOrThrowArgs>(args: SelectSubset<T, LeadScoreFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LeadScoreClient<$Result.GetResult<Prisma.$LeadScorePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LeadScore that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LeadScoreFindFirstArgs} args - Arguments to find a LeadScore
+     * @example
+     * // Get one LeadScore
+     * const leadScore = await prisma.leadScore.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends LeadScoreFindFirstArgs>(args?: SelectSubset<T, LeadScoreFindFirstArgs<ExtArgs>>): Prisma__LeadScoreClient<$Result.GetResult<Prisma.$LeadScorePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LeadScore that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LeadScoreFindFirstOrThrowArgs} args - Arguments to find a LeadScore
+     * @example
+     * // Get one LeadScore
+     * const leadScore = await prisma.leadScore.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends LeadScoreFindFirstOrThrowArgs>(args?: SelectSubset<T, LeadScoreFindFirstOrThrowArgs<ExtArgs>>): Prisma__LeadScoreClient<$Result.GetResult<Prisma.$LeadScorePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more LeadScores that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LeadScoreFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all LeadScores
+     * const leadScores = await prisma.leadScore.findMany()
+     * 
+     * // Get first 10 LeadScores
+     * const leadScores = await prisma.leadScore.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const leadScoreWithIdOnly = await prisma.leadScore.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends LeadScoreFindManyArgs>(args?: SelectSubset<T, LeadScoreFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LeadScorePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a LeadScore.
+     * @param {LeadScoreCreateArgs} args - Arguments to create a LeadScore.
+     * @example
+     * // Create one LeadScore
+     * const LeadScore = await prisma.leadScore.create({
+     *   data: {
+     *     // ... data to create a LeadScore
+     *   }
+     * })
+     * 
+     */
+    create<T extends LeadScoreCreateArgs>(args: SelectSubset<T, LeadScoreCreateArgs<ExtArgs>>): Prisma__LeadScoreClient<$Result.GetResult<Prisma.$LeadScorePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many LeadScores.
+     * @param {LeadScoreCreateManyArgs} args - Arguments to create many LeadScores.
+     * @example
+     * // Create many LeadScores
+     * const leadScore = await prisma.leadScore.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends LeadScoreCreateManyArgs>(args?: SelectSubset<T, LeadScoreCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many LeadScores and returns the data saved in the database.
+     * @param {LeadScoreCreateManyAndReturnArgs} args - Arguments to create many LeadScores.
+     * @example
+     * // Create many LeadScores
+     * const leadScore = await prisma.leadScore.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many LeadScores and only return the `id`
+     * const leadScoreWithIdOnly = await prisma.leadScore.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends LeadScoreCreateManyAndReturnArgs>(args?: SelectSubset<T, LeadScoreCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LeadScorePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a LeadScore.
+     * @param {LeadScoreDeleteArgs} args - Arguments to delete one LeadScore.
+     * @example
+     * // Delete one LeadScore
+     * const LeadScore = await prisma.leadScore.delete({
+     *   where: {
+     *     // ... filter to delete one LeadScore
+     *   }
+     * })
+     * 
+     */
+    delete<T extends LeadScoreDeleteArgs>(args: SelectSubset<T, LeadScoreDeleteArgs<ExtArgs>>): Prisma__LeadScoreClient<$Result.GetResult<Prisma.$LeadScorePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one LeadScore.
+     * @param {LeadScoreUpdateArgs} args - Arguments to update one LeadScore.
+     * @example
+     * // Update one LeadScore
+     * const leadScore = await prisma.leadScore.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends LeadScoreUpdateArgs>(args: SelectSubset<T, LeadScoreUpdateArgs<ExtArgs>>): Prisma__LeadScoreClient<$Result.GetResult<Prisma.$LeadScorePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more LeadScores.
+     * @param {LeadScoreDeleteManyArgs} args - Arguments to filter LeadScores to delete.
+     * @example
+     * // Delete a few LeadScores
+     * const { count } = await prisma.leadScore.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends LeadScoreDeleteManyArgs>(args?: SelectSubset<T, LeadScoreDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LeadScores.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LeadScoreUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many LeadScores
+     * const leadScore = await prisma.leadScore.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends LeadScoreUpdateManyArgs>(args: SelectSubset<T, LeadScoreUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LeadScores and returns the data updated in the database.
+     * @param {LeadScoreUpdateManyAndReturnArgs} args - Arguments to update many LeadScores.
+     * @example
+     * // Update many LeadScores
+     * const leadScore = await prisma.leadScore.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more LeadScores and only return the `id`
+     * const leadScoreWithIdOnly = await prisma.leadScore.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends LeadScoreUpdateManyAndReturnArgs>(args: SelectSubset<T, LeadScoreUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LeadScorePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one LeadScore.
+     * @param {LeadScoreUpsertArgs} args - Arguments to update or create a LeadScore.
+     * @example
+     * // Update or create a LeadScore
+     * const leadScore = await prisma.leadScore.upsert({
+     *   create: {
+     *     // ... data to create a LeadScore
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the LeadScore we want to update
+     *   }
+     * })
+     */
+    upsert<T extends LeadScoreUpsertArgs>(args: SelectSubset<T, LeadScoreUpsertArgs<ExtArgs>>): Prisma__LeadScoreClient<$Result.GetResult<Prisma.$LeadScorePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of LeadScores.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LeadScoreCountArgs} args - Arguments to filter LeadScores to count.
+     * @example
+     * // Count the number of LeadScores
+     * const count = await prisma.leadScore.count({
+     *   where: {
+     *     // ... the filter for the LeadScores we want to count
+     *   }
+     * })
+    **/
+    count<T extends LeadScoreCountArgs>(
+      args?: Subset<T, LeadScoreCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], LeadScoreCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a LeadScore.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LeadScoreAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends LeadScoreAggregateArgs>(args: Subset<T, LeadScoreAggregateArgs>): Prisma.PrismaPromise<GetLeadScoreAggregateType<T>>
+
+    /**
+     * Group by LeadScore.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LeadScoreGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends LeadScoreGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: LeadScoreGroupByArgs['orderBy'] }
+        : { orderBy?: LeadScoreGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, LeadScoreGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLeadScoreGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the LeadScore model
+   */
+  readonly fields: LeadScoreFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for LeadScore.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__LeadScoreClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    lead<T extends LeadDefaultArgs<ExtArgs> = {}>(args?: Subset<T, LeadDefaultArgs<ExtArgs>>): Prisma__LeadClient<$Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the LeadScore model
+   */
+  interface LeadScoreFieldRefs {
+    readonly id: FieldRef<"LeadScore", 'String'>
+    readonly leadId: FieldRef<"LeadScore", 'String'>
+    readonly clientId: FieldRef<"LeadScore", 'String'>
+    readonly total: FieldRef<"LeadScore", 'Int'>
+    readonly priority: FieldRef<"LeadScore", 'LeadPriority'>
+    readonly breakdown: FieldRef<"LeadScore", 'Json'>
+    readonly version: FieldRef<"LeadScore", 'String'>
+    readonly createdAt: FieldRef<"LeadScore", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * LeadScore findUnique
+   */
+  export type LeadScoreFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LeadScore
+     */
+    select?: LeadScoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LeadScore
+     */
+    omit?: LeadScoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LeadScoreInclude<ExtArgs> | null
+    /**
+     * Filter, which LeadScore to fetch.
+     */
+    where: LeadScoreWhereUniqueInput
+  }
+
+  /**
+   * LeadScore findUniqueOrThrow
+   */
+  export type LeadScoreFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LeadScore
+     */
+    select?: LeadScoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LeadScore
+     */
+    omit?: LeadScoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LeadScoreInclude<ExtArgs> | null
+    /**
+     * Filter, which LeadScore to fetch.
+     */
+    where: LeadScoreWhereUniqueInput
+  }
+
+  /**
+   * LeadScore findFirst
+   */
+  export type LeadScoreFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LeadScore
+     */
+    select?: LeadScoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LeadScore
+     */
+    omit?: LeadScoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LeadScoreInclude<ExtArgs> | null
+    /**
+     * Filter, which LeadScore to fetch.
+     */
+    where?: LeadScoreWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LeadScores to fetch.
+     */
+    orderBy?: LeadScoreOrderByWithRelationInput | LeadScoreOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LeadScores.
+     */
+    cursor?: LeadScoreWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LeadScores from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LeadScores.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LeadScores.
+     */
+    distinct?: LeadScoreScalarFieldEnum | LeadScoreScalarFieldEnum[]
+  }
+
+  /**
+   * LeadScore findFirstOrThrow
+   */
+  export type LeadScoreFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LeadScore
+     */
+    select?: LeadScoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LeadScore
+     */
+    omit?: LeadScoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LeadScoreInclude<ExtArgs> | null
+    /**
+     * Filter, which LeadScore to fetch.
+     */
+    where?: LeadScoreWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LeadScores to fetch.
+     */
+    orderBy?: LeadScoreOrderByWithRelationInput | LeadScoreOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LeadScores.
+     */
+    cursor?: LeadScoreWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LeadScores from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LeadScores.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LeadScores.
+     */
+    distinct?: LeadScoreScalarFieldEnum | LeadScoreScalarFieldEnum[]
+  }
+
+  /**
+   * LeadScore findMany
+   */
+  export type LeadScoreFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LeadScore
+     */
+    select?: LeadScoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LeadScore
+     */
+    omit?: LeadScoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LeadScoreInclude<ExtArgs> | null
+    /**
+     * Filter, which LeadScores to fetch.
+     */
+    where?: LeadScoreWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LeadScores to fetch.
+     */
+    orderBy?: LeadScoreOrderByWithRelationInput | LeadScoreOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing LeadScores.
+     */
+    cursor?: LeadScoreWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LeadScores from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LeadScores.
+     */
+    skip?: number
+    distinct?: LeadScoreScalarFieldEnum | LeadScoreScalarFieldEnum[]
+  }
+
+  /**
+   * LeadScore create
+   */
+  export type LeadScoreCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LeadScore
+     */
+    select?: LeadScoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LeadScore
+     */
+    omit?: LeadScoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LeadScoreInclude<ExtArgs> | null
+    /**
+     * The data needed to create a LeadScore.
+     */
+    data: XOR<LeadScoreCreateInput, LeadScoreUncheckedCreateInput>
+  }
+
+  /**
+   * LeadScore createMany
+   */
+  export type LeadScoreCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many LeadScores.
+     */
+    data: LeadScoreCreateManyInput | LeadScoreCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LeadScore createManyAndReturn
+   */
+  export type LeadScoreCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LeadScore
+     */
+    select?: LeadScoreSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LeadScore
+     */
+    omit?: LeadScoreOmit<ExtArgs> | null
+    /**
+     * The data used to create many LeadScores.
+     */
+    data: LeadScoreCreateManyInput | LeadScoreCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LeadScoreIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * LeadScore update
+   */
+  export type LeadScoreUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LeadScore
+     */
+    select?: LeadScoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LeadScore
+     */
+    omit?: LeadScoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LeadScoreInclude<ExtArgs> | null
+    /**
+     * The data needed to update a LeadScore.
+     */
+    data: XOR<LeadScoreUpdateInput, LeadScoreUncheckedUpdateInput>
+    /**
+     * Choose, which LeadScore to update.
+     */
+    where: LeadScoreWhereUniqueInput
+  }
+
+  /**
+   * LeadScore updateMany
+   */
+  export type LeadScoreUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update LeadScores.
+     */
+    data: XOR<LeadScoreUpdateManyMutationInput, LeadScoreUncheckedUpdateManyInput>
+    /**
+     * Filter which LeadScores to update
+     */
+    where?: LeadScoreWhereInput
+    /**
+     * Limit how many LeadScores to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * LeadScore updateManyAndReturn
+   */
+  export type LeadScoreUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LeadScore
+     */
+    select?: LeadScoreSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LeadScore
+     */
+    omit?: LeadScoreOmit<ExtArgs> | null
+    /**
+     * The data used to update LeadScores.
+     */
+    data: XOR<LeadScoreUpdateManyMutationInput, LeadScoreUncheckedUpdateManyInput>
+    /**
+     * Filter which LeadScores to update
+     */
+    where?: LeadScoreWhereInput
+    /**
+     * Limit how many LeadScores to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LeadScoreIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * LeadScore upsert
+   */
+  export type LeadScoreUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LeadScore
+     */
+    select?: LeadScoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LeadScore
+     */
+    omit?: LeadScoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LeadScoreInclude<ExtArgs> | null
+    /**
+     * The filter to search for the LeadScore to update in case it exists.
+     */
+    where: LeadScoreWhereUniqueInput
+    /**
+     * In case the LeadScore found by the `where` argument doesn't exist, create a new LeadScore with this data.
+     */
+    create: XOR<LeadScoreCreateInput, LeadScoreUncheckedCreateInput>
+    /**
+     * In case the LeadScore was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<LeadScoreUpdateInput, LeadScoreUncheckedUpdateInput>
+  }
+
+  /**
+   * LeadScore delete
+   */
+  export type LeadScoreDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LeadScore
+     */
+    select?: LeadScoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LeadScore
+     */
+    omit?: LeadScoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LeadScoreInclude<ExtArgs> | null
+    /**
+     * Filter which LeadScore to delete.
+     */
+    where: LeadScoreWhereUniqueInput
+  }
+
+  /**
+   * LeadScore deleteMany
+   */
+  export type LeadScoreDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LeadScores to delete
+     */
+    where?: LeadScoreWhereInput
+    /**
+     * Limit how many LeadScores to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * LeadScore without action
+   */
+  export type LeadScoreDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LeadScore
+     */
+    select?: LeadScoreSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LeadScore
+     */
+    omit?: LeadScoreOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LeadScoreInclude<ExtArgs> | null
   }
 
 
@@ -12410,6 +14142,2296 @@ export namespace Prisma {
 
 
   /**
+   * Model CrmSyncLog
+   */
+
+  export type AggregateCrmSyncLog = {
+    _count: CrmSyncLogCountAggregateOutputType | null
+    _min: CrmSyncLogMinAggregateOutputType | null
+    _max: CrmSyncLogMaxAggregateOutputType | null
+  }
+
+  export type CrmSyncLogMinAggregateOutputType = {
+    id: string | null
+    clientId: string | null
+    leadId: string | null
+    crmSyncId: string | null
+    idempotencyKey: string | null
+    status: $Enums.CrmSyncStatus | null
+    provider: $Enums.CrmType | null
+    externalId: string | null
+    error: string | null
+    createdAt: Date | null
+  }
+
+  export type CrmSyncLogMaxAggregateOutputType = {
+    id: string | null
+    clientId: string | null
+    leadId: string | null
+    crmSyncId: string | null
+    idempotencyKey: string | null
+    status: $Enums.CrmSyncStatus | null
+    provider: $Enums.CrmType | null
+    externalId: string | null
+    error: string | null
+    createdAt: Date | null
+  }
+
+  export type CrmSyncLogCountAggregateOutputType = {
+    id: number
+    clientId: number
+    leadId: number
+    crmSyncId: number
+    idempotencyKey: number
+    status: number
+    provider: number
+    externalId: number
+    error: number
+    metadata: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type CrmSyncLogMinAggregateInputType = {
+    id?: true
+    clientId?: true
+    leadId?: true
+    crmSyncId?: true
+    idempotencyKey?: true
+    status?: true
+    provider?: true
+    externalId?: true
+    error?: true
+    createdAt?: true
+  }
+
+  export type CrmSyncLogMaxAggregateInputType = {
+    id?: true
+    clientId?: true
+    leadId?: true
+    crmSyncId?: true
+    idempotencyKey?: true
+    status?: true
+    provider?: true
+    externalId?: true
+    error?: true
+    createdAt?: true
+  }
+
+  export type CrmSyncLogCountAggregateInputType = {
+    id?: true
+    clientId?: true
+    leadId?: true
+    crmSyncId?: true
+    idempotencyKey?: true
+    status?: true
+    provider?: true
+    externalId?: true
+    error?: true
+    metadata?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type CrmSyncLogAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CrmSyncLog to aggregate.
+     */
+    where?: CrmSyncLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CrmSyncLogs to fetch.
+     */
+    orderBy?: CrmSyncLogOrderByWithRelationInput | CrmSyncLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: CrmSyncLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CrmSyncLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CrmSyncLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned CrmSyncLogs
+    **/
+    _count?: true | CrmSyncLogCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: CrmSyncLogMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: CrmSyncLogMaxAggregateInputType
+  }
+
+  export type GetCrmSyncLogAggregateType<T extends CrmSyncLogAggregateArgs> = {
+        [P in keyof T & keyof AggregateCrmSyncLog]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCrmSyncLog[P]>
+      : GetScalarType<T[P], AggregateCrmSyncLog[P]>
+  }
+
+
+
+
+  export type CrmSyncLogGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CrmSyncLogWhereInput
+    orderBy?: CrmSyncLogOrderByWithAggregationInput | CrmSyncLogOrderByWithAggregationInput[]
+    by: CrmSyncLogScalarFieldEnum[] | CrmSyncLogScalarFieldEnum
+    having?: CrmSyncLogScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: CrmSyncLogCountAggregateInputType | true
+    _min?: CrmSyncLogMinAggregateInputType
+    _max?: CrmSyncLogMaxAggregateInputType
+  }
+
+  export type CrmSyncLogGroupByOutputType = {
+    id: string
+    clientId: string
+    leadId: string
+    crmSyncId: string | null
+    idempotencyKey: string
+    status: $Enums.CrmSyncStatus
+    provider: $Enums.CrmType
+    externalId: string | null
+    error: string | null
+    metadata: JsonValue | null
+    createdAt: Date
+    _count: CrmSyncLogCountAggregateOutputType | null
+    _min: CrmSyncLogMinAggregateOutputType | null
+    _max: CrmSyncLogMaxAggregateOutputType | null
+  }
+
+  type GetCrmSyncLogGroupByPayload<T extends CrmSyncLogGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<CrmSyncLogGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof CrmSyncLogGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], CrmSyncLogGroupByOutputType[P]>
+            : GetScalarType<T[P], CrmSyncLogGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type CrmSyncLogSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    clientId?: boolean
+    leadId?: boolean
+    crmSyncId?: boolean
+    idempotencyKey?: boolean
+    status?: boolean
+    provider?: boolean
+    externalId?: boolean
+    error?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    lead?: boolean | LeadDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["crmSyncLog"]>
+
+  export type CrmSyncLogSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    clientId?: boolean
+    leadId?: boolean
+    crmSyncId?: boolean
+    idempotencyKey?: boolean
+    status?: boolean
+    provider?: boolean
+    externalId?: boolean
+    error?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    lead?: boolean | LeadDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["crmSyncLog"]>
+
+  export type CrmSyncLogSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    clientId?: boolean
+    leadId?: boolean
+    crmSyncId?: boolean
+    idempotencyKey?: boolean
+    status?: boolean
+    provider?: boolean
+    externalId?: boolean
+    error?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    lead?: boolean | LeadDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["crmSyncLog"]>
+
+  export type CrmSyncLogSelectScalar = {
+    id?: boolean
+    clientId?: boolean
+    leadId?: boolean
+    crmSyncId?: boolean
+    idempotencyKey?: boolean
+    status?: boolean
+    provider?: boolean
+    externalId?: boolean
+    error?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+  }
+
+  export type CrmSyncLogOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "clientId" | "leadId" | "crmSyncId" | "idempotencyKey" | "status" | "provider" | "externalId" | "error" | "metadata" | "createdAt", ExtArgs["result"]["crmSyncLog"]>
+  export type CrmSyncLogInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    lead?: boolean | LeadDefaultArgs<ExtArgs>
+  }
+  export type CrmSyncLogIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    lead?: boolean | LeadDefaultArgs<ExtArgs>
+  }
+  export type CrmSyncLogIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    lead?: boolean | LeadDefaultArgs<ExtArgs>
+  }
+
+  export type $CrmSyncLogPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "CrmSyncLog"
+    objects: {
+      lead: Prisma.$LeadPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      clientId: string
+      leadId: string
+      crmSyncId: string | null
+      idempotencyKey: string
+      status: $Enums.CrmSyncStatus
+      provider: $Enums.CrmType
+      externalId: string | null
+      error: string | null
+      metadata: Prisma.JsonValue | null
+      createdAt: Date
+    }, ExtArgs["result"]["crmSyncLog"]>
+    composites: {}
+  }
+
+  type CrmSyncLogGetPayload<S extends boolean | null | undefined | CrmSyncLogDefaultArgs> = $Result.GetResult<Prisma.$CrmSyncLogPayload, S>
+
+  type CrmSyncLogCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<CrmSyncLogFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: CrmSyncLogCountAggregateInputType | true
+    }
+
+  export interface CrmSyncLogDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['CrmSyncLog'], meta: { name: 'CrmSyncLog' } }
+    /**
+     * Find zero or one CrmSyncLog that matches the filter.
+     * @param {CrmSyncLogFindUniqueArgs} args - Arguments to find a CrmSyncLog
+     * @example
+     * // Get one CrmSyncLog
+     * const crmSyncLog = await prisma.crmSyncLog.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends CrmSyncLogFindUniqueArgs>(args: SelectSubset<T, CrmSyncLogFindUniqueArgs<ExtArgs>>): Prisma__CrmSyncLogClient<$Result.GetResult<Prisma.$CrmSyncLogPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one CrmSyncLog that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {CrmSyncLogFindUniqueOrThrowArgs} args - Arguments to find a CrmSyncLog
+     * @example
+     * // Get one CrmSyncLog
+     * const crmSyncLog = await prisma.crmSyncLog.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends CrmSyncLogFindUniqueOrThrowArgs>(args: SelectSubset<T, CrmSyncLogFindUniqueOrThrowArgs<ExtArgs>>): Prisma__CrmSyncLogClient<$Result.GetResult<Prisma.$CrmSyncLogPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CrmSyncLog that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CrmSyncLogFindFirstArgs} args - Arguments to find a CrmSyncLog
+     * @example
+     * // Get one CrmSyncLog
+     * const crmSyncLog = await prisma.crmSyncLog.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends CrmSyncLogFindFirstArgs>(args?: SelectSubset<T, CrmSyncLogFindFirstArgs<ExtArgs>>): Prisma__CrmSyncLogClient<$Result.GetResult<Prisma.$CrmSyncLogPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CrmSyncLog that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CrmSyncLogFindFirstOrThrowArgs} args - Arguments to find a CrmSyncLog
+     * @example
+     * // Get one CrmSyncLog
+     * const crmSyncLog = await prisma.crmSyncLog.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends CrmSyncLogFindFirstOrThrowArgs>(args?: SelectSubset<T, CrmSyncLogFindFirstOrThrowArgs<ExtArgs>>): Prisma__CrmSyncLogClient<$Result.GetResult<Prisma.$CrmSyncLogPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more CrmSyncLogs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CrmSyncLogFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all CrmSyncLogs
+     * const crmSyncLogs = await prisma.crmSyncLog.findMany()
+     * 
+     * // Get first 10 CrmSyncLogs
+     * const crmSyncLogs = await prisma.crmSyncLog.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const crmSyncLogWithIdOnly = await prisma.crmSyncLog.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends CrmSyncLogFindManyArgs>(args?: SelectSubset<T, CrmSyncLogFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CrmSyncLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a CrmSyncLog.
+     * @param {CrmSyncLogCreateArgs} args - Arguments to create a CrmSyncLog.
+     * @example
+     * // Create one CrmSyncLog
+     * const CrmSyncLog = await prisma.crmSyncLog.create({
+     *   data: {
+     *     // ... data to create a CrmSyncLog
+     *   }
+     * })
+     * 
+     */
+    create<T extends CrmSyncLogCreateArgs>(args: SelectSubset<T, CrmSyncLogCreateArgs<ExtArgs>>): Prisma__CrmSyncLogClient<$Result.GetResult<Prisma.$CrmSyncLogPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many CrmSyncLogs.
+     * @param {CrmSyncLogCreateManyArgs} args - Arguments to create many CrmSyncLogs.
+     * @example
+     * // Create many CrmSyncLogs
+     * const crmSyncLog = await prisma.crmSyncLog.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends CrmSyncLogCreateManyArgs>(args?: SelectSubset<T, CrmSyncLogCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many CrmSyncLogs and returns the data saved in the database.
+     * @param {CrmSyncLogCreateManyAndReturnArgs} args - Arguments to create many CrmSyncLogs.
+     * @example
+     * // Create many CrmSyncLogs
+     * const crmSyncLog = await prisma.crmSyncLog.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many CrmSyncLogs and only return the `id`
+     * const crmSyncLogWithIdOnly = await prisma.crmSyncLog.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends CrmSyncLogCreateManyAndReturnArgs>(args?: SelectSubset<T, CrmSyncLogCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CrmSyncLogPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a CrmSyncLog.
+     * @param {CrmSyncLogDeleteArgs} args - Arguments to delete one CrmSyncLog.
+     * @example
+     * // Delete one CrmSyncLog
+     * const CrmSyncLog = await prisma.crmSyncLog.delete({
+     *   where: {
+     *     // ... filter to delete one CrmSyncLog
+     *   }
+     * })
+     * 
+     */
+    delete<T extends CrmSyncLogDeleteArgs>(args: SelectSubset<T, CrmSyncLogDeleteArgs<ExtArgs>>): Prisma__CrmSyncLogClient<$Result.GetResult<Prisma.$CrmSyncLogPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one CrmSyncLog.
+     * @param {CrmSyncLogUpdateArgs} args - Arguments to update one CrmSyncLog.
+     * @example
+     * // Update one CrmSyncLog
+     * const crmSyncLog = await prisma.crmSyncLog.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends CrmSyncLogUpdateArgs>(args: SelectSubset<T, CrmSyncLogUpdateArgs<ExtArgs>>): Prisma__CrmSyncLogClient<$Result.GetResult<Prisma.$CrmSyncLogPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more CrmSyncLogs.
+     * @param {CrmSyncLogDeleteManyArgs} args - Arguments to filter CrmSyncLogs to delete.
+     * @example
+     * // Delete a few CrmSyncLogs
+     * const { count } = await prisma.crmSyncLog.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends CrmSyncLogDeleteManyArgs>(args?: SelectSubset<T, CrmSyncLogDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CrmSyncLogs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CrmSyncLogUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many CrmSyncLogs
+     * const crmSyncLog = await prisma.crmSyncLog.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends CrmSyncLogUpdateManyArgs>(args: SelectSubset<T, CrmSyncLogUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CrmSyncLogs and returns the data updated in the database.
+     * @param {CrmSyncLogUpdateManyAndReturnArgs} args - Arguments to update many CrmSyncLogs.
+     * @example
+     * // Update many CrmSyncLogs
+     * const crmSyncLog = await prisma.crmSyncLog.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more CrmSyncLogs and only return the `id`
+     * const crmSyncLogWithIdOnly = await prisma.crmSyncLog.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends CrmSyncLogUpdateManyAndReturnArgs>(args: SelectSubset<T, CrmSyncLogUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CrmSyncLogPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one CrmSyncLog.
+     * @param {CrmSyncLogUpsertArgs} args - Arguments to update or create a CrmSyncLog.
+     * @example
+     * // Update or create a CrmSyncLog
+     * const crmSyncLog = await prisma.crmSyncLog.upsert({
+     *   create: {
+     *     // ... data to create a CrmSyncLog
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the CrmSyncLog we want to update
+     *   }
+     * })
+     */
+    upsert<T extends CrmSyncLogUpsertArgs>(args: SelectSubset<T, CrmSyncLogUpsertArgs<ExtArgs>>): Prisma__CrmSyncLogClient<$Result.GetResult<Prisma.$CrmSyncLogPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of CrmSyncLogs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CrmSyncLogCountArgs} args - Arguments to filter CrmSyncLogs to count.
+     * @example
+     * // Count the number of CrmSyncLogs
+     * const count = await prisma.crmSyncLog.count({
+     *   where: {
+     *     // ... the filter for the CrmSyncLogs we want to count
+     *   }
+     * })
+    **/
+    count<T extends CrmSyncLogCountArgs>(
+      args?: Subset<T, CrmSyncLogCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], CrmSyncLogCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a CrmSyncLog.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CrmSyncLogAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends CrmSyncLogAggregateArgs>(args: Subset<T, CrmSyncLogAggregateArgs>): Prisma.PrismaPromise<GetCrmSyncLogAggregateType<T>>
+
+    /**
+     * Group by CrmSyncLog.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CrmSyncLogGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends CrmSyncLogGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: CrmSyncLogGroupByArgs['orderBy'] }
+        : { orderBy?: CrmSyncLogGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, CrmSyncLogGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCrmSyncLogGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the CrmSyncLog model
+   */
+  readonly fields: CrmSyncLogFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for CrmSyncLog.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__CrmSyncLogClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    lead<T extends LeadDefaultArgs<ExtArgs> = {}>(args?: Subset<T, LeadDefaultArgs<ExtArgs>>): Prisma__LeadClient<$Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the CrmSyncLog model
+   */
+  interface CrmSyncLogFieldRefs {
+    readonly id: FieldRef<"CrmSyncLog", 'String'>
+    readonly clientId: FieldRef<"CrmSyncLog", 'String'>
+    readonly leadId: FieldRef<"CrmSyncLog", 'String'>
+    readonly crmSyncId: FieldRef<"CrmSyncLog", 'String'>
+    readonly idempotencyKey: FieldRef<"CrmSyncLog", 'String'>
+    readonly status: FieldRef<"CrmSyncLog", 'CrmSyncStatus'>
+    readonly provider: FieldRef<"CrmSyncLog", 'CrmType'>
+    readonly externalId: FieldRef<"CrmSyncLog", 'String'>
+    readonly error: FieldRef<"CrmSyncLog", 'String'>
+    readonly metadata: FieldRef<"CrmSyncLog", 'Json'>
+    readonly createdAt: FieldRef<"CrmSyncLog", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * CrmSyncLog findUnique
+   */
+  export type CrmSyncLogFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CrmSyncLog
+     */
+    select?: CrmSyncLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CrmSyncLog
+     */
+    omit?: CrmSyncLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CrmSyncLogInclude<ExtArgs> | null
+    /**
+     * Filter, which CrmSyncLog to fetch.
+     */
+    where: CrmSyncLogWhereUniqueInput
+  }
+
+  /**
+   * CrmSyncLog findUniqueOrThrow
+   */
+  export type CrmSyncLogFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CrmSyncLog
+     */
+    select?: CrmSyncLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CrmSyncLog
+     */
+    omit?: CrmSyncLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CrmSyncLogInclude<ExtArgs> | null
+    /**
+     * Filter, which CrmSyncLog to fetch.
+     */
+    where: CrmSyncLogWhereUniqueInput
+  }
+
+  /**
+   * CrmSyncLog findFirst
+   */
+  export type CrmSyncLogFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CrmSyncLog
+     */
+    select?: CrmSyncLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CrmSyncLog
+     */
+    omit?: CrmSyncLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CrmSyncLogInclude<ExtArgs> | null
+    /**
+     * Filter, which CrmSyncLog to fetch.
+     */
+    where?: CrmSyncLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CrmSyncLogs to fetch.
+     */
+    orderBy?: CrmSyncLogOrderByWithRelationInput | CrmSyncLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CrmSyncLogs.
+     */
+    cursor?: CrmSyncLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CrmSyncLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CrmSyncLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CrmSyncLogs.
+     */
+    distinct?: CrmSyncLogScalarFieldEnum | CrmSyncLogScalarFieldEnum[]
+  }
+
+  /**
+   * CrmSyncLog findFirstOrThrow
+   */
+  export type CrmSyncLogFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CrmSyncLog
+     */
+    select?: CrmSyncLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CrmSyncLog
+     */
+    omit?: CrmSyncLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CrmSyncLogInclude<ExtArgs> | null
+    /**
+     * Filter, which CrmSyncLog to fetch.
+     */
+    where?: CrmSyncLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CrmSyncLogs to fetch.
+     */
+    orderBy?: CrmSyncLogOrderByWithRelationInput | CrmSyncLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CrmSyncLogs.
+     */
+    cursor?: CrmSyncLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CrmSyncLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CrmSyncLogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CrmSyncLogs.
+     */
+    distinct?: CrmSyncLogScalarFieldEnum | CrmSyncLogScalarFieldEnum[]
+  }
+
+  /**
+   * CrmSyncLog findMany
+   */
+  export type CrmSyncLogFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CrmSyncLog
+     */
+    select?: CrmSyncLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CrmSyncLog
+     */
+    omit?: CrmSyncLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CrmSyncLogInclude<ExtArgs> | null
+    /**
+     * Filter, which CrmSyncLogs to fetch.
+     */
+    where?: CrmSyncLogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CrmSyncLogs to fetch.
+     */
+    orderBy?: CrmSyncLogOrderByWithRelationInput | CrmSyncLogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing CrmSyncLogs.
+     */
+    cursor?: CrmSyncLogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CrmSyncLogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CrmSyncLogs.
+     */
+    skip?: number
+    distinct?: CrmSyncLogScalarFieldEnum | CrmSyncLogScalarFieldEnum[]
+  }
+
+  /**
+   * CrmSyncLog create
+   */
+  export type CrmSyncLogCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CrmSyncLog
+     */
+    select?: CrmSyncLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CrmSyncLog
+     */
+    omit?: CrmSyncLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CrmSyncLogInclude<ExtArgs> | null
+    /**
+     * The data needed to create a CrmSyncLog.
+     */
+    data: XOR<CrmSyncLogCreateInput, CrmSyncLogUncheckedCreateInput>
+  }
+
+  /**
+   * CrmSyncLog createMany
+   */
+  export type CrmSyncLogCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many CrmSyncLogs.
+     */
+    data: CrmSyncLogCreateManyInput | CrmSyncLogCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CrmSyncLog createManyAndReturn
+   */
+  export type CrmSyncLogCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CrmSyncLog
+     */
+    select?: CrmSyncLogSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CrmSyncLog
+     */
+    omit?: CrmSyncLogOmit<ExtArgs> | null
+    /**
+     * The data used to create many CrmSyncLogs.
+     */
+    data: CrmSyncLogCreateManyInput | CrmSyncLogCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CrmSyncLogIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CrmSyncLog update
+   */
+  export type CrmSyncLogUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CrmSyncLog
+     */
+    select?: CrmSyncLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CrmSyncLog
+     */
+    omit?: CrmSyncLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CrmSyncLogInclude<ExtArgs> | null
+    /**
+     * The data needed to update a CrmSyncLog.
+     */
+    data: XOR<CrmSyncLogUpdateInput, CrmSyncLogUncheckedUpdateInput>
+    /**
+     * Choose, which CrmSyncLog to update.
+     */
+    where: CrmSyncLogWhereUniqueInput
+  }
+
+  /**
+   * CrmSyncLog updateMany
+   */
+  export type CrmSyncLogUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update CrmSyncLogs.
+     */
+    data: XOR<CrmSyncLogUpdateManyMutationInput, CrmSyncLogUncheckedUpdateManyInput>
+    /**
+     * Filter which CrmSyncLogs to update
+     */
+    where?: CrmSyncLogWhereInput
+    /**
+     * Limit how many CrmSyncLogs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * CrmSyncLog updateManyAndReturn
+   */
+  export type CrmSyncLogUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CrmSyncLog
+     */
+    select?: CrmSyncLogSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CrmSyncLog
+     */
+    omit?: CrmSyncLogOmit<ExtArgs> | null
+    /**
+     * The data used to update CrmSyncLogs.
+     */
+    data: XOR<CrmSyncLogUpdateManyMutationInput, CrmSyncLogUncheckedUpdateManyInput>
+    /**
+     * Filter which CrmSyncLogs to update
+     */
+    where?: CrmSyncLogWhereInput
+    /**
+     * Limit how many CrmSyncLogs to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CrmSyncLogIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CrmSyncLog upsert
+   */
+  export type CrmSyncLogUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CrmSyncLog
+     */
+    select?: CrmSyncLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CrmSyncLog
+     */
+    omit?: CrmSyncLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CrmSyncLogInclude<ExtArgs> | null
+    /**
+     * The filter to search for the CrmSyncLog to update in case it exists.
+     */
+    where: CrmSyncLogWhereUniqueInput
+    /**
+     * In case the CrmSyncLog found by the `where` argument doesn't exist, create a new CrmSyncLog with this data.
+     */
+    create: XOR<CrmSyncLogCreateInput, CrmSyncLogUncheckedCreateInput>
+    /**
+     * In case the CrmSyncLog was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<CrmSyncLogUpdateInput, CrmSyncLogUncheckedUpdateInput>
+  }
+
+  /**
+   * CrmSyncLog delete
+   */
+  export type CrmSyncLogDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CrmSyncLog
+     */
+    select?: CrmSyncLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CrmSyncLog
+     */
+    omit?: CrmSyncLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CrmSyncLogInclude<ExtArgs> | null
+    /**
+     * Filter which CrmSyncLog to delete.
+     */
+    where: CrmSyncLogWhereUniqueInput
+  }
+
+  /**
+   * CrmSyncLog deleteMany
+   */
+  export type CrmSyncLogDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CrmSyncLogs to delete
+     */
+    where?: CrmSyncLogWhereInput
+    /**
+     * Limit how many CrmSyncLogs to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * CrmSyncLog without action
+   */
+  export type CrmSyncLogDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CrmSyncLog
+     */
+    select?: CrmSyncLogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CrmSyncLog
+     */
+    omit?: CrmSyncLogOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CrmSyncLogInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model FollowUp
+   */
+
+  export type AggregateFollowUp = {
+    _count: FollowUpCountAggregateOutputType | null
+    _min: FollowUpMinAggregateOutputType | null
+    _max: FollowUpMaxAggregateOutputType | null
+  }
+
+  export type FollowUpMinAggregateOutputType = {
+    id: string | null
+    clientId: string | null
+    leadId: string | null
+    conversationId: string | null
+    trigger: $Enums.FollowUpTrigger | null
+    status: $Enums.FollowUpStatus | null
+    dedupeKey: string | null
+    scheduledAt: Date | null
+    sentAt: Date | null
+    cancelledAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type FollowUpMaxAggregateOutputType = {
+    id: string | null
+    clientId: string | null
+    leadId: string | null
+    conversationId: string | null
+    trigger: $Enums.FollowUpTrigger | null
+    status: $Enums.FollowUpStatus | null
+    dedupeKey: string | null
+    scheduledAt: Date | null
+    sentAt: Date | null
+    cancelledAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type FollowUpCountAggregateOutputType = {
+    id: number
+    clientId: number
+    leadId: number
+    conversationId: number
+    trigger: number
+    status: number
+    dedupeKey: number
+    scheduledAt: number
+    sentAt: number
+    cancelledAt: number
+    metadata: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type FollowUpMinAggregateInputType = {
+    id?: true
+    clientId?: true
+    leadId?: true
+    conversationId?: true
+    trigger?: true
+    status?: true
+    dedupeKey?: true
+    scheduledAt?: true
+    sentAt?: true
+    cancelledAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type FollowUpMaxAggregateInputType = {
+    id?: true
+    clientId?: true
+    leadId?: true
+    conversationId?: true
+    trigger?: true
+    status?: true
+    dedupeKey?: true
+    scheduledAt?: true
+    sentAt?: true
+    cancelledAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type FollowUpCountAggregateInputType = {
+    id?: true
+    clientId?: true
+    leadId?: true
+    conversationId?: true
+    trigger?: true
+    status?: true
+    dedupeKey?: true
+    scheduledAt?: true
+    sentAt?: true
+    cancelledAt?: true
+    metadata?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type FollowUpAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which FollowUp to aggregate.
+     */
+    where?: FollowUpWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FollowUps to fetch.
+     */
+    orderBy?: FollowUpOrderByWithRelationInput | FollowUpOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: FollowUpWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FollowUps from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FollowUps.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned FollowUps
+    **/
+    _count?: true | FollowUpCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: FollowUpMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: FollowUpMaxAggregateInputType
+  }
+
+  export type GetFollowUpAggregateType<T extends FollowUpAggregateArgs> = {
+        [P in keyof T & keyof AggregateFollowUp]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateFollowUp[P]>
+      : GetScalarType<T[P], AggregateFollowUp[P]>
+  }
+
+
+
+
+  export type FollowUpGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: FollowUpWhereInput
+    orderBy?: FollowUpOrderByWithAggregationInput | FollowUpOrderByWithAggregationInput[]
+    by: FollowUpScalarFieldEnum[] | FollowUpScalarFieldEnum
+    having?: FollowUpScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: FollowUpCountAggregateInputType | true
+    _min?: FollowUpMinAggregateInputType
+    _max?: FollowUpMaxAggregateInputType
+  }
+
+  export type FollowUpGroupByOutputType = {
+    id: string
+    clientId: string
+    leadId: string
+    conversationId: string
+    trigger: $Enums.FollowUpTrigger
+    status: $Enums.FollowUpStatus
+    dedupeKey: string
+    scheduledAt: Date
+    sentAt: Date | null
+    cancelledAt: Date | null
+    metadata: JsonValue | null
+    createdAt: Date
+    updatedAt: Date
+    _count: FollowUpCountAggregateOutputType | null
+    _min: FollowUpMinAggregateOutputType | null
+    _max: FollowUpMaxAggregateOutputType | null
+  }
+
+  type GetFollowUpGroupByPayload<T extends FollowUpGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<FollowUpGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof FollowUpGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], FollowUpGroupByOutputType[P]>
+            : GetScalarType<T[P], FollowUpGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type FollowUpSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    clientId?: boolean
+    leadId?: boolean
+    conversationId?: boolean
+    trigger?: boolean
+    status?: boolean
+    dedupeKey?: boolean
+    scheduledAt?: boolean
+    sentAt?: boolean
+    cancelledAt?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    lead?: boolean | LeadDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["followUp"]>
+
+  export type FollowUpSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    clientId?: boolean
+    leadId?: boolean
+    conversationId?: boolean
+    trigger?: boolean
+    status?: boolean
+    dedupeKey?: boolean
+    scheduledAt?: boolean
+    sentAt?: boolean
+    cancelledAt?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    lead?: boolean | LeadDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["followUp"]>
+
+  export type FollowUpSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    clientId?: boolean
+    leadId?: boolean
+    conversationId?: boolean
+    trigger?: boolean
+    status?: boolean
+    dedupeKey?: boolean
+    scheduledAt?: boolean
+    sentAt?: boolean
+    cancelledAt?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    lead?: boolean | LeadDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["followUp"]>
+
+  export type FollowUpSelectScalar = {
+    id?: boolean
+    clientId?: boolean
+    leadId?: boolean
+    conversationId?: boolean
+    trigger?: boolean
+    status?: boolean
+    dedupeKey?: boolean
+    scheduledAt?: boolean
+    sentAt?: boolean
+    cancelledAt?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type FollowUpOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "clientId" | "leadId" | "conversationId" | "trigger" | "status" | "dedupeKey" | "scheduledAt" | "sentAt" | "cancelledAt" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["followUp"]>
+  export type FollowUpInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    lead?: boolean | LeadDefaultArgs<ExtArgs>
+  }
+  export type FollowUpIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    lead?: boolean | LeadDefaultArgs<ExtArgs>
+  }
+  export type FollowUpIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    lead?: boolean | LeadDefaultArgs<ExtArgs>
+  }
+
+  export type $FollowUpPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "FollowUp"
+    objects: {
+      lead: Prisma.$LeadPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      clientId: string
+      leadId: string
+      conversationId: string
+      trigger: $Enums.FollowUpTrigger
+      status: $Enums.FollowUpStatus
+      dedupeKey: string
+      scheduledAt: Date
+      sentAt: Date | null
+      cancelledAt: Date | null
+      metadata: Prisma.JsonValue | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["followUp"]>
+    composites: {}
+  }
+
+  type FollowUpGetPayload<S extends boolean | null | undefined | FollowUpDefaultArgs> = $Result.GetResult<Prisma.$FollowUpPayload, S>
+
+  type FollowUpCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<FollowUpFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: FollowUpCountAggregateInputType | true
+    }
+
+  export interface FollowUpDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['FollowUp'], meta: { name: 'FollowUp' } }
+    /**
+     * Find zero or one FollowUp that matches the filter.
+     * @param {FollowUpFindUniqueArgs} args - Arguments to find a FollowUp
+     * @example
+     * // Get one FollowUp
+     * const followUp = await prisma.followUp.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends FollowUpFindUniqueArgs>(args: SelectSubset<T, FollowUpFindUniqueArgs<ExtArgs>>): Prisma__FollowUpClient<$Result.GetResult<Prisma.$FollowUpPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one FollowUp that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {FollowUpFindUniqueOrThrowArgs} args - Arguments to find a FollowUp
+     * @example
+     * // Get one FollowUp
+     * const followUp = await prisma.followUp.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends FollowUpFindUniqueOrThrowArgs>(args: SelectSubset<T, FollowUpFindUniqueOrThrowArgs<ExtArgs>>): Prisma__FollowUpClient<$Result.GetResult<Prisma.$FollowUpPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first FollowUp that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FollowUpFindFirstArgs} args - Arguments to find a FollowUp
+     * @example
+     * // Get one FollowUp
+     * const followUp = await prisma.followUp.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends FollowUpFindFirstArgs>(args?: SelectSubset<T, FollowUpFindFirstArgs<ExtArgs>>): Prisma__FollowUpClient<$Result.GetResult<Prisma.$FollowUpPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first FollowUp that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FollowUpFindFirstOrThrowArgs} args - Arguments to find a FollowUp
+     * @example
+     * // Get one FollowUp
+     * const followUp = await prisma.followUp.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends FollowUpFindFirstOrThrowArgs>(args?: SelectSubset<T, FollowUpFindFirstOrThrowArgs<ExtArgs>>): Prisma__FollowUpClient<$Result.GetResult<Prisma.$FollowUpPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more FollowUps that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FollowUpFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all FollowUps
+     * const followUps = await prisma.followUp.findMany()
+     * 
+     * // Get first 10 FollowUps
+     * const followUps = await prisma.followUp.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const followUpWithIdOnly = await prisma.followUp.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends FollowUpFindManyArgs>(args?: SelectSubset<T, FollowUpFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FollowUpPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a FollowUp.
+     * @param {FollowUpCreateArgs} args - Arguments to create a FollowUp.
+     * @example
+     * // Create one FollowUp
+     * const FollowUp = await prisma.followUp.create({
+     *   data: {
+     *     // ... data to create a FollowUp
+     *   }
+     * })
+     * 
+     */
+    create<T extends FollowUpCreateArgs>(args: SelectSubset<T, FollowUpCreateArgs<ExtArgs>>): Prisma__FollowUpClient<$Result.GetResult<Prisma.$FollowUpPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many FollowUps.
+     * @param {FollowUpCreateManyArgs} args - Arguments to create many FollowUps.
+     * @example
+     * // Create many FollowUps
+     * const followUp = await prisma.followUp.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends FollowUpCreateManyArgs>(args?: SelectSubset<T, FollowUpCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many FollowUps and returns the data saved in the database.
+     * @param {FollowUpCreateManyAndReturnArgs} args - Arguments to create many FollowUps.
+     * @example
+     * // Create many FollowUps
+     * const followUp = await prisma.followUp.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many FollowUps and only return the `id`
+     * const followUpWithIdOnly = await prisma.followUp.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends FollowUpCreateManyAndReturnArgs>(args?: SelectSubset<T, FollowUpCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FollowUpPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a FollowUp.
+     * @param {FollowUpDeleteArgs} args - Arguments to delete one FollowUp.
+     * @example
+     * // Delete one FollowUp
+     * const FollowUp = await prisma.followUp.delete({
+     *   where: {
+     *     // ... filter to delete one FollowUp
+     *   }
+     * })
+     * 
+     */
+    delete<T extends FollowUpDeleteArgs>(args: SelectSubset<T, FollowUpDeleteArgs<ExtArgs>>): Prisma__FollowUpClient<$Result.GetResult<Prisma.$FollowUpPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one FollowUp.
+     * @param {FollowUpUpdateArgs} args - Arguments to update one FollowUp.
+     * @example
+     * // Update one FollowUp
+     * const followUp = await prisma.followUp.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends FollowUpUpdateArgs>(args: SelectSubset<T, FollowUpUpdateArgs<ExtArgs>>): Prisma__FollowUpClient<$Result.GetResult<Prisma.$FollowUpPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more FollowUps.
+     * @param {FollowUpDeleteManyArgs} args - Arguments to filter FollowUps to delete.
+     * @example
+     * // Delete a few FollowUps
+     * const { count } = await prisma.followUp.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends FollowUpDeleteManyArgs>(args?: SelectSubset<T, FollowUpDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more FollowUps.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FollowUpUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many FollowUps
+     * const followUp = await prisma.followUp.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends FollowUpUpdateManyArgs>(args: SelectSubset<T, FollowUpUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more FollowUps and returns the data updated in the database.
+     * @param {FollowUpUpdateManyAndReturnArgs} args - Arguments to update many FollowUps.
+     * @example
+     * // Update many FollowUps
+     * const followUp = await prisma.followUp.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more FollowUps and only return the `id`
+     * const followUpWithIdOnly = await prisma.followUp.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends FollowUpUpdateManyAndReturnArgs>(args: SelectSubset<T, FollowUpUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FollowUpPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one FollowUp.
+     * @param {FollowUpUpsertArgs} args - Arguments to update or create a FollowUp.
+     * @example
+     * // Update or create a FollowUp
+     * const followUp = await prisma.followUp.upsert({
+     *   create: {
+     *     // ... data to create a FollowUp
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the FollowUp we want to update
+     *   }
+     * })
+     */
+    upsert<T extends FollowUpUpsertArgs>(args: SelectSubset<T, FollowUpUpsertArgs<ExtArgs>>): Prisma__FollowUpClient<$Result.GetResult<Prisma.$FollowUpPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of FollowUps.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FollowUpCountArgs} args - Arguments to filter FollowUps to count.
+     * @example
+     * // Count the number of FollowUps
+     * const count = await prisma.followUp.count({
+     *   where: {
+     *     // ... the filter for the FollowUps we want to count
+     *   }
+     * })
+    **/
+    count<T extends FollowUpCountArgs>(
+      args?: Subset<T, FollowUpCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], FollowUpCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a FollowUp.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FollowUpAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends FollowUpAggregateArgs>(args: Subset<T, FollowUpAggregateArgs>): Prisma.PrismaPromise<GetFollowUpAggregateType<T>>
+
+    /**
+     * Group by FollowUp.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FollowUpGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends FollowUpGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: FollowUpGroupByArgs['orderBy'] }
+        : { orderBy?: FollowUpGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, FollowUpGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetFollowUpGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the FollowUp model
+   */
+  readonly fields: FollowUpFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for FollowUp.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__FollowUpClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    lead<T extends LeadDefaultArgs<ExtArgs> = {}>(args?: Subset<T, LeadDefaultArgs<ExtArgs>>): Prisma__LeadClient<$Result.GetResult<Prisma.$LeadPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the FollowUp model
+   */
+  interface FollowUpFieldRefs {
+    readonly id: FieldRef<"FollowUp", 'String'>
+    readonly clientId: FieldRef<"FollowUp", 'String'>
+    readonly leadId: FieldRef<"FollowUp", 'String'>
+    readonly conversationId: FieldRef<"FollowUp", 'String'>
+    readonly trigger: FieldRef<"FollowUp", 'FollowUpTrigger'>
+    readonly status: FieldRef<"FollowUp", 'FollowUpStatus'>
+    readonly dedupeKey: FieldRef<"FollowUp", 'String'>
+    readonly scheduledAt: FieldRef<"FollowUp", 'DateTime'>
+    readonly sentAt: FieldRef<"FollowUp", 'DateTime'>
+    readonly cancelledAt: FieldRef<"FollowUp", 'DateTime'>
+    readonly metadata: FieldRef<"FollowUp", 'Json'>
+    readonly createdAt: FieldRef<"FollowUp", 'DateTime'>
+    readonly updatedAt: FieldRef<"FollowUp", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * FollowUp findUnique
+   */
+  export type FollowUpFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FollowUp
+     */
+    select?: FollowUpSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FollowUp
+     */
+    omit?: FollowUpOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FollowUpInclude<ExtArgs> | null
+    /**
+     * Filter, which FollowUp to fetch.
+     */
+    where: FollowUpWhereUniqueInput
+  }
+
+  /**
+   * FollowUp findUniqueOrThrow
+   */
+  export type FollowUpFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FollowUp
+     */
+    select?: FollowUpSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FollowUp
+     */
+    omit?: FollowUpOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FollowUpInclude<ExtArgs> | null
+    /**
+     * Filter, which FollowUp to fetch.
+     */
+    where: FollowUpWhereUniqueInput
+  }
+
+  /**
+   * FollowUp findFirst
+   */
+  export type FollowUpFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FollowUp
+     */
+    select?: FollowUpSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FollowUp
+     */
+    omit?: FollowUpOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FollowUpInclude<ExtArgs> | null
+    /**
+     * Filter, which FollowUp to fetch.
+     */
+    where?: FollowUpWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FollowUps to fetch.
+     */
+    orderBy?: FollowUpOrderByWithRelationInput | FollowUpOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for FollowUps.
+     */
+    cursor?: FollowUpWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FollowUps from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FollowUps.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FollowUps.
+     */
+    distinct?: FollowUpScalarFieldEnum | FollowUpScalarFieldEnum[]
+  }
+
+  /**
+   * FollowUp findFirstOrThrow
+   */
+  export type FollowUpFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FollowUp
+     */
+    select?: FollowUpSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FollowUp
+     */
+    omit?: FollowUpOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FollowUpInclude<ExtArgs> | null
+    /**
+     * Filter, which FollowUp to fetch.
+     */
+    where?: FollowUpWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FollowUps to fetch.
+     */
+    orderBy?: FollowUpOrderByWithRelationInput | FollowUpOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for FollowUps.
+     */
+    cursor?: FollowUpWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FollowUps from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FollowUps.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FollowUps.
+     */
+    distinct?: FollowUpScalarFieldEnum | FollowUpScalarFieldEnum[]
+  }
+
+  /**
+   * FollowUp findMany
+   */
+  export type FollowUpFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FollowUp
+     */
+    select?: FollowUpSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FollowUp
+     */
+    omit?: FollowUpOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FollowUpInclude<ExtArgs> | null
+    /**
+     * Filter, which FollowUps to fetch.
+     */
+    where?: FollowUpWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FollowUps to fetch.
+     */
+    orderBy?: FollowUpOrderByWithRelationInput | FollowUpOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing FollowUps.
+     */
+    cursor?: FollowUpWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FollowUps from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FollowUps.
+     */
+    skip?: number
+    distinct?: FollowUpScalarFieldEnum | FollowUpScalarFieldEnum[]
+  }
+
+  /**
+   * FollowUp create
+   */
+  export type FollowUpCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FollowUp
+     */
+    select?: FollowUpSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FollowUp
+     */
+    omit?: FollowUpOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FollowUpInclude<ExtArgs> | null
+    /**
+     * The data needed to create a FollowUp.
+     */
+    data: XOR<FollowUpCreateInput, FollowUpUncheckedCreateInput>
+  }
+
+  /**
+   * FollowUp createMany
+   */
+  export type FollowUpCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many FollowUps.
+     */
+    data: FollowUpCreateManyInput | FollowUpCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * FollowUp createManyAndReturn
+   */
+  export type FollowUpCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FollowUp
+     */
+    select?: FollowUpSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the FollowUp
+     */
+    omit?: FollowUpOmit<ExtArgs> | null
+    /**
+     * The data used to create many FollowUps.
+     */
+    data: FollowUpCreateManyInput | FollowUpCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FollowUpIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * FollowUp update
+   */
+  export type FollowUpUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FollowUp
+     */
+    select?: FollowUpSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FollowUp
+     */
+    omit?: FollowUpOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FollowUpInclude<ExtArgs> | null
+    /**
+     * The data needed to update a FollowUp.
+     */
+    data: XOR<FollowUpUpdateInput, FollowUpUncheckedUpdateInput>
+    /**
+     * Choose, which FollowUp to update.
+     */
+    where: FollowUpWhereUniqueInput
+  }
+
+  /**
+   * FollowUp updateMany
+   */
+  export type FollowUpUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update FollowUps.
+     */
+    data: XOR<FollowUpUpdateManyMutationInput, FollowUpUncheckedUpdateManyInput>
+    /**
+     * Filter which FollowUps to update
+     */
+    where?: FollowUpWhereInput
+    /**
+     * Limit how many FollowUps to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * FollowUp updateManyAndReturn
+   */
+  export type FollowUpUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FollowUp
+     */
+    select?: FollowUpSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the FollowUp
+     */
+    omit?: FollowUpOmit<ExtArgs> | null
+    /**
+     * The data used to update FollowUps.
+     */
+    data: XOR<FollowUpUpdateManyMutationInput, FollowUpUncheckedUpdateManyInput>
+    /**
+     * Filter which FollowUps to update
+     */
+    where?: FollowUpWhereInput
+    /**
+     * Limit how many FollowUps to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FollowUpIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * FollowUp upsert
+   */
+  export type FollowUpUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FollowUp
+     */
+    select?: FollowUpSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FollowUp
+     */
+    omit?: FollowUpOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FollowUpInclude<ExtArgs> | null
+    /**
+     * The filter to search for the FollowUp to update in case it exists.
+     */
+    where: FollowUpWhereUniqueInput
+    /**
+     * In case the FollowUp found by the `where` argument doesn't exist, create a new FollowUp with this data.
+     */
+    create: XOR<FollowUpCreateInput, FollowUpUncheckedCreateInput>
+    /**
+     * In case the FollowUp was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<FollowUpUpdateInput, FollowUpUncheckedUpdateInput>
+  }
+
+  /**
+   * FollowUp delete
+   */
+  export type FollowUpDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FollowUp
+     */
+    select?: FollowUpSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FollowUp
+     */
+    omit?: FollowUpOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FollowUpInclude<ExtArgs> | null
+    /**
+     * Filter which FollowUp to delete.
+     */
+    where: FollowUpWhereUniqueInput
+  }
+
+  /**
+   * FollowUp deleteMany
+   */
+  export type FollowUpDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which FollowUps to delete
+     */
+    where?: FollowUpWhereInput
+    /**
+     * Limit how many FollowUps to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * FollowUp without action
+   */
+  export type FollowUpDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FollowUp
+     */
+    select?: FollowUpSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FollowUp
+     */
+    omit?: FollowUpOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FollowUpInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -12462,6 +16484,13 @@ export namespace Prisma {
     source: 'source',
     status: 'status',
     score: 'score',
+    priority: 'priority',
+    qualificationCompleteness: 'qualificationCompleteness',
+    intentConfidence: 'intentConfidence',
+    crmSyncStatus: 'crmSyncStatus',
+    crmExternalId: 'crmExternalId',
+    crmLastSyncAt: 'crmLastSyncAt',
+    crmErrorLogs: 'crmErrorLogs',
     idempotencyKey: 'idempotencyKey',
     metadata: 'metadata',
     createdAt: 'createdAt',
@@ -12476,11 +16505,29 @@ export namespace Prisma {
     leadId: 'leadId',
     key: 'key',
     value: 'value',
+    rawValue: 'rawValue',
+    confidence: 'confidence',
+    source: 'source',
+    metadata: 'metadata',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
 
   export type LeadAttributeScalarFieldEnum = (typeof LeadAttributeScalarFieldEnum)[keyof typeof LeadAttributeScalarFieldEnum]
+
+
+  export const LeadScoreScalarFieldEnum: {
+    id: 'id',
+    leadId: 'leadId',
+    clientId: 'clientId',
+    total: 'total',
+    priority: 'priority',
+    breakdown: 'breakdown',
+    version: 'version',
+    createdAt: 'createdAt'
+  };
+
+  export type LeadScoreScalarFieldEnum = (typeof LeadScoreScalarFieldEnum)[keyof typeof LeadScoreScalarFieldEnum]
 
 
   export const ConversationScalarFieldEnum: {
@@ -12567,6 +16614,42 @@ export namespace Prisma {
   };
 
   export type CrmSyncScalarFieldEnum = (typeof CrmSyncScalarFieldEnum)[keyof typeof CrmSyncScalarFieldEnum]
+
+
+  export const CrmSyncLogScalarFieldEnum: {
+    id: 'id',
+    clientId: 'clientId',
+    leadId: 'leadId',
+    crmSyncId: 'crmSyncId',
+    idempotencyKey: 'idempotencyKey',
+    status: 'status',
+    provider: 'provider',
+    externalId: 'externalId',
+    error: 'error',
+    metadata: 'metadata',
+    createdAt: 'createdAt'
+  };
+
+  export type CrmSyncLogScalarFieldEnum = (typeof CrmSyncLogScalarFieldEnum)[keyof typeof CrmSyncLogScalarFieldEnum]
+
+
+  export const FollowUpScalarFieldEnum: {
+    id: 'id',
+    clientId: 'clientId',
+    leadId: 'leadId',
+    conversationId: 'conversationId',
+    trigger: 'trigger',
+    status: 'status',
+    dedupeKey: 'dedupeKey',
+    scheduledAt: 'scheduledAt',
+    sentAt: 'sentAt',
+    cancelledAt: 'cancelledAt',
+    metadata: 'metadata',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type FollowUpScalarFieldEnum = (typeof FollowUpScalarFieldEnum)[keyof typeof FollowUpScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -12749,6 +16832,48 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'LeadPriority'
+   */
+  export type EnumLeadPriorityFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LeadPriority'>
+    
+
+
+  /**
+   * Reference to a field of type 'LeadPriority[]'
+   */
+  export type ListEnumLeadPriorityFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LeadPriority[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Float'
+   */
+  export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+  /**
+   * Reference to a field of type 'Float[]'
+   */
+  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'CrmSyncStatus'
+   */
+  export type EnumCrmSyncStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CrmSyncStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'CrmSyncStatus[]'
+   */
+  export type ListEnumCrmSyncStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CrmSyncStatus[]'>
+    
+
+
+  /**
    * Reference to a field of type 'LeadAttributeKey'
    */
   export type EnumLeadAttributeKeyFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LeadAttributeKey'>
@@ -12833,30 +16958,30 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'CrmSyncStatus'
+   * Reference to a field of type 'FollowUpTrigger'
    */
-  export type EnumCrmSyncStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CrmSyncStatus'>
+  export type EnumFollowUpTriggerFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FollowUpTrigger'>
     
 
 
   /**
-   * Reference to a field of type 'CrmSyncStatus[]'
+   * Reference to a field of type 'FollowUpTrigger[]'
    */
-  export type ListEnumCrmSyncStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CrmSyncStatus[]'>
+  export type ListEnumFollowUpTriggerFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FollowUpTrigger[]'>
     
 
 
   /**
-   * Reference to a field of type 'Float'
+   * Reference to a field of type 'FollowUpStatus'
    */
-  export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+  export type EnumFollowUpStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FollowUpStatus'>
     
 
 
   /**
-   * Reference to a field of type 'Float[]'
+   * Reference to a field of type 'FollowUpStatus[]'
    */
-  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+  export type ListEnumFollowUpStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FollowUpStatus[]'>
     
   /**
    * Deep Input Types
@@ -13037,6 +17162,13 @@ export namespace Prisma {
     source?: StringFilter<"Lead"> | string
     status?: EnumLeadStatusFilter<"Lead"> | $Enums.LeadStatus
     score?: IntFilter<"Lead"> | number
+    priority?: EnumLeadPriorityFilter<"Lead"> | $Enums.LeadPriority
+    qualificationCompleteness?: IntFilter<"Lead"> | number
+    intentConfidence?: FloatFilter<"Lead"> | number
+    crmSyncStatus?: EnumCrmSyncStatusNullableFilter<"Lead"> | $Enums.CrmSyncStatus | null
+    crmExternalId?: StringNullableFilter<"Lead"> | string | null
+    crmLastSyncAt?: DateTimeNullableFilter<"Lead"> | Date | string | null
+    crmErrorLogs?: JsonNullableFilter<"Lead">
     idempotencyKey?: StringFilter<"Lead"> | string
     metadata?: JsonNullableFilter<"Lead">
     createdAt?: DateTimeFilter<"Lead"> | Date | string
@@ -13046,6 +17178,9 @@ export namespace Prisma {
     conversation?: XOR<ConversationNullableScalarRelationFilter, ConversationWhereInput> | null
     jobs?: JobListRelationFilter
     crmSyncs?: CrmSyncListRelationFilter
+    scores?: LeadScoreListRelationFilter
+    followUps?: FollowUpListRelationFilter
+    crmSyncLogs?: CrmSyncLogListRelationFilter
   }
 
   export type LeadOrderByWithRelationInput = {
@@ -13057,6 +17192,13 @@ export namespace Prisma {
     source?: SortOrder
     status?: SortOrder
     score?: SortOrder
+    priority?: SortOrder
+    qualificationCompleteness?: SortOrder
+    intentConfidence?: SortOrder
+    crmSyncStatus?: SortOrderInput | SortOrder
+    crmExternalId?: SortOrderInput | SortOrder
+    crmLastSyncAt?: SortOrderInput | SortOrder
+    crmErrorLogs?: SortOrderInput | SortOrder
     idempotencyKey?: SortOrder
     metadata?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -13066,6 +17208,9 @@ export namespace Prisma {
     conversation?: ConversationOrderByWithRelationInput
     jobs?: JobOrderByRelationAggregateInput
     crmSyncs?: CrmSyncOrderByRelationAggregateInput
+    scores?: LeadScoreOrderByRelationAggregateInput
+    followUps?: FollowUpOrderByRelationAggregateInput
+    crmSyncLogs?: CrmSyncLogOrderByRelationAggregateInput
   }
 
   export type LeadWhereUniqueInput = Prisma.AtLeast<{
@@ -13081,6 +17226,13 @@ export namespace Prisma {
     source?: StringFilter<"Lead"> | string
     status?: EnumLeadStatusFilter<"Lead"> | $Enums.LeadStatus
     score?: IntFilter<"Lead"> | number
+    priority?: EnumLeadPriorityFilter<"Lead"> | $Enums.LeadPriority
+    qualificationCompleteness?: IntFilter<"Lead"> | number
+    intentConfidence?: FloatFilter<"Lead"> | number
+    crmSyncStatus?: EnumCrmSyncStatusNullableFilter<"Lead"> | $Enums.CrmSyncStatus | null
+    crmExternalId?: StringNullableFilter<"Lead"> | string | null
+    crmLastSyncAt?: DateTimeNullableFilter<"Lead"> | Date | string | null
+    crmErrorLogs?: JsonNullableFilter<"Lead">
     metadata?: JsonNullableFilter<"Lead">
     createdAt?: DateTimeFilter<"Lead"> | Date | string
     updatedAt?: DateTimeFilter<"Lead"> | Date | string
@@ -13089,6 +17241,9 @@ export namespace Prisma {
     conversation?: XOR<ConversationNullableScalarRelationFilter, ConversationWhereInput> | null
     jobs?: JobListRelationFilter
     crmSyncs?: CrmSyncListRelationFilter
+    scores?: LeadScoreListRelationFilter
+    followUps?: FollowUpListRelationFilter
+    crmSyncLogs?: CrmSyncLogListRelationFilter
   }, "id" | "idempotencyKey">
 
   export type LeadOrderByWithAggregationInput = {
@@ -13100,6 +17255,13 @@ export namespace Prisma {
     source?: SortOrder
     status?: SortOrder
     score?: SortOrder
+    priority?: SortOrder
+    qualificationCompleteness?: SortOrder
+    intentConfidence?: SortOrder
+    crmSyncStatus?: SortOrderInput | SortOrder
+    crmExternalId?: SortOrderInput | SortOrder
+    crmLastSyncAt?: SortOrderInput | SortOrder
+    crmErrorLogs?: SortOrderInput | SortOrder
     idempotencyKey?: SortOrder
     metadata?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -13123,6 +17285,13 @@ export namespace Prisma {
     source?: StringWithAggregatesFilter<"Lead"> | string
     status?: EnumLeadStatusWithAggregatesFilter<"Lead"> | $Enums.LeadStatus
     score?: IntWithAggregatesFilter<"Lead"> | number
+    priority?: EnumLeadPriorityWithAggregatesFilter<"Lead"> | $Enums.LeadPriority
+    qualificationCompleteness?: IntWithAggregatesFilter<"Lead"> | number
+    intentConfidence?: FloatWithAggregatesFilter<"Lead"> | number
+    crmSyncStatus?: EnumCrmSyncStatusNullableWithAggregatesFilter<"Lead"> | $Enums.CrmSyncStatus | null
+    crmExternalId?: StringNullableWithAggregatesFilter<"Lead"> | string | null
+    crmLastSyncAt?: DateTimeNullableWithAggregatesFilter<"Lead"> | Date | string | null
+    crmErrorLogs?: JsonNullableWithAggregatesFilter<"Lead">
     idempotencyKey?: StringWithAggregatesFilter<"Lead"> | string
     metadata?: JsonNullableWithAggregatesFilter<"Lead">
     createdAt?: DateTimeWithAggregatesFilter<"Lead"> | Date | string
@@ -13137,6 +17306,10 @@ export namespace Prisma {
     leadId?: UuidFilter<"LeadAttribute"> | string
     key?: EnumLeadAttributeKeyFilter<"LeadAttribute"> | $Enums.LeadAttributeKey
     value?: JsonFilter<"LeadAttribute">
+    rawValue?: StringNullableFilter<"LeadAttribute"> | string | null
+    confidence?: FloatFilter<"LeadAttribute"> | number
+    source?: StringFilter<"LeadAttribute"> | string
+    metadata?: JsonNullableFilter<"LeadAttribute">
     createdAt?: DateTimeFilter<"LeadAttribute"> | Date | string
     updatedAt?: DateTimeFilter<"LeadAttribute"> | Date | string
     lead?: XOR<LeadScalarRelationFilter, LeadWhereInput>
@@ -13147,6 +17320,10 @@ export namespace Prisma {
     leadId?: SortOrder
     key?: SortOrder
     value?: SortOrder
+    rawValue?: SortOrderInput | SortOrder
+    confidence?: SortOrder
+    source?: SortOrder
+    metadata?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     lead?: LeadOrderByWithRelationInput
@@ -13161,6 +17338,10 @@ export namespace Prisma {
     leadId?: UuidFilter<"LeadAttribute"> | string
     key?: EnumLeadAttributeKeyFilter<"LeadAttribute"> | $Enums.LeadAttributeKey
     value?: JsonFilter<"LeadAttribute">
+    rawValue?: StringNullableFilter<"LeadAttribute"> | string | null
+    confidence?: FloatFilter<"LeadAttribute"> | number
+    source?: StringFilter<"LeadAttribute"> | string
+    metadata?: JsonNullableFilter<"LeadAttribute">
     createdAt?: DateTimeFilter<"LeadAttribute"> | Date | string
     updatedAt?: DateTimeFilter<"LeadAttribute"> | Date | string
     lead?: XOR<LeadScalarRelationFilter, LeadWhereInput>
@@ -13171,11 +17352,17 @@ export namespace Prisma {
     leadId?: SortOrder
     key?: SortOrder
     value?: SortOrder
+    rawValue?: SortOrderInput | SortOrder
+    confidence?: SortOrder
+    source?: SortOrder
+    metadata?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: LeadAttributeCountOrderByAggregateInput
+    _avg?: LeadAttributeAvgOrderByAggregateInput
     _max?: LeadAttributeMaxOrderByAggregateInput
     _min?: LeadAttributeMinOrderByAggregateInput
+    _sum?: LeadAttributeSumOrderByAggregateInput
   }
 
   export type LeadAttributeScalarWhereWithAggregatesInput = {
@@ -13186,8 +17373,84 @@ export namespace Prisma {
     leadId?: UuidWithAggregatesFilter<"LeadAttribute"> | string
     key?: EnumLeadAttributeKeyWithAggregatesFilter<"LeadAttribute"> | $Enums.LeadAttributeKey
     value?: JsonWithAggregatesFilter<"LeadAttribute">
+    rawValue?: StringNullableWithAggregatesFilter<"LeadAttribute"> | string | null
+    confidence?: FloatWithAggregatesFilter<"LeadAttribute"> | number
+    source?: StringWithAggregatesFilter<"LeadAttribute"> | string
+    metadata?: JsonNullableWithAggregatesFilter<"LeadAttribute">
     createdAt?: DateTimeWithAggregatesFilter<"LeadAttribute"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"LeadAttribute"> | Date | string
+  }
+
+  export type LeadScoreWhereInput = {
+    AND?: LeadScoreWhereInput | LeadScoreWhereInput[]
+    OR?: LeadScoreWhereInput[]
+    NOT?: LeadScoreWhereInput | LeadScoreWhereInput[]
+    id?: UuidFilter<"LeadScore"> | string
+    leadId?: UuidFilter<"LeadScore"> | string
+    clientId?: UuidFilter<"LeadScore"> | string
+    total?: IntFilter<"LeadScore"> | number
+    priority?: EnumLeadPriorityFilter<"LeadScore"> | $Enums.LeadPriority
+    breakdown?: JsonFilter<"LeadScore">
+    version?: StringFilter<"LeadScore"> | string
+    createdAt?: DateTimeFilter<"LeadScore"> | Date | string
+    lead?: XOR<LeadScalarRelationFilter, LeadWhereInput>
+  }
+
+  export type LeadScoreOrderByWithRelationInput = {
+    id?: SortOrder
+    leadId?: SortOrder
+    clientId?: SortOrder
+    total?: SortOrder
+    priority?: SortOrder
+    breakdown?: SortOrder
+    version?: SortOrder
+    createdAt?: SortOrder
+    lead?: LeadOrderByWithRelationInput
+  }
+
+  export type LeadScoreWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: LeadScoreWhereInput | LeadScoreWhereInput[]
+    OR?: LeadScoreWhereInput[]
+    NOT?: LeadScoreWhereInput | LeadScoreWhereInput[]
+    leadId?: UuidFilter<"LeadScore"> | string
+    clientId?: UuidFilter<"LeadScore"> | string
+    total?: IntFilter<"LeadScore"> | number
+    priority?: EnumLeadPriorityFilter<"LeadScore"> | $Enums.LeadPriority
+    breakdown?: JsonFilter<"LeadScore">
+    version?: StringFilter<"LeadScore"> | string
+    createdAt?: DateTimeFilter<"LeadScore"> | Date | string
+    lead?: XOR<LeadScalarRelationFilter, LeadWhereInput>
+  }, "id">
+
+  export type LeadScoreOrderByWithAggregationInput = {
+    id?: SortOrder
+    leadId?: SortOrder
+    clientId?: SortOrder
+    total?: SortOrder
+    priority?: SortOrder
+    breakdown?: SortOrder
+    version?: SortOrder
+    createdAt?: SortOrder
+    _count?: LeadScoreCountOrderByAggregateInput
+    _avg?: LeadScoreAvgOrderByAggregateInput
+    _max?: LeadScoreMaxOrderByAggregateInput
+    _min?: LeadScoreMinOrderByAggregateInput
+    _sum?: LeadScoreSumOrderByAggregateInput
+  }
+
+  export type LeadScoreScalarWhereWithAggregatesInput = {
+    AND?: LeadScoreScalarWhereWithAggregatesInput | LeadScoreScalarWhereWithAggregatesInput[]
+    OR?: LeadScoreScalarWhereWithAggregatesInput[]
+    NOT?: LeadScoreScalarWhereWithAggregatesInput | LeadScoreScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"LeadScore"> | string
+    leadId?: UuidWithAggregatesFilter<"LeadScore"> | string
+    clientId?: UuidWithAggregatesFilter<"LeadScore"> | string
+    total?: IntWithAggregatesFilter<"LeadScore"> | number
+    priority?: EnumLeadPriorityWithAggregatesFilter<"LeadScore"> | $Enums.LeadPriority
+    breakdown?: JsonWithAggregatesFilter<"LeadScore">
+    version?: StringWithAggregatesFilter<"LeadScore"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"LeadScore"> | Date | string
   }
 
   export type ConversationWhereInput = {
@@ -13633,6 +17896,186 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"CrmSync"> | Date | string
   }
 
+  export type CrmSyncLogWhereInput = {
+    AND?: CrmSyncLogWhereInput | CrmSyncLogWhereInput[]
+    OR?: CrmSyncLogWhereInput[]
+    NOT?: CrmSyncLogWhereInput | CrmSyncLogWhereInput[]
+    id?: UuidFilter<"CrmSyncLog"> | string
+    clientId?: UuidFilter<"CrmSyncLog"> | string
+    leadId?: UuidFilter<"CrmSyncLog"> | string
+    crmSyncId?: UuidNullableFilter<"CrmSyncLog"> | string | null
+    idempotencyKey?: StringFilter<"CrmSyncLog"> | string
+    status?: EnumCrmSyncStatusFilter<"CrmSyncLog"> | $Enums.CrmSyncStatus
+    provider?: EnumCrmTypeFilter<"CrmSyncLog"> | $Enums.CrmType
+    externalId?: StringNullableFilter<"CrmSyncLog"> | string | null
+    error?: StringNullableFilter<"CrmSyncLog"> | string | null
+    metadata?: JsonNullableFilter<"CrmSyncLog">
+    createdAt?: DateTimeFilter<"CrmSyncLog"> | Date | string
+    lead?: XOR<LeadScalarRelationFilter, LeadWhereInput>
+  }
+
+  export type CrmSyncLogOrderByWithRelationInput = {
+    id?: SortOrder
+    clientId?: SortOrder
+    leadId?: SortOrder
+    crmSyncId?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrder
+    status?: SortOrder
+    provider?: SortOrder
+    externalId?: SortOrderInput | SortOrder
+    error?: SortOrderInput | SortOrder
+    metadata?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    lead?: LeadOrderByWithRelationInput
+  }
+
+  export type CrmSyncLogWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: CrmSyncLogWhereInput | CrmSyncLogWhereInput[]
+    OR?: CrmSyncLogWhereInput[]
+    NOT?: CrmSyncLogWhereInput | CrmSyncLogWhereInput[]
+    clientId?: UuidFilter<"CrmSyncLog"> | string
+    leadId?: UuidFilter<"CrmSyncLog"> | string
+    crmSyncId?: UuidNullableFilter<"CrmSyncLog"> | string | null
+    idempotencyKey?: StringFilter<"CrmSyncLog"> | string
+    status?: EnumCrmSyncStatusFilter<"CrmSyncLog"> | $Enums.CrmSyncStatus
+    provider?: EnumCrmTypeFilter<"CrmSyncLog"> | $Enums.CrmType
+    externalId?: StringNullableFilter<"CrmSyncLog"> | string | null
+    error?: StringNullableFilter<"CrmSyncLog"> | string | null
+    metadata?: JsonNullableFilter<"CrmSyncLog">
+    createdAt?: DateTimeFilter<"CrmSyncLog"> | Date | string
+    lead?: XOR<LeadScalarRelationFilter, LeadWhereInput>
+  }, "id">
+
+  export type CrmSyncLogOrderByWithAggregationInput = {
+    id?: SortOrder
+    clientId?: SortOrder
+    leadId?: SortOrder
+    crmSyncId?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrder
+    status?: SortOrder
+    provider?: SortOrder
+    externalId?: SortOrderInput | SortOrder
+    error?: SortOrderInput | SortOrder
+    metadata?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: CrmSyncLogCountOrderByAggregateInput
+    _max?: CrmSyncLogMaxOrderByAggregateInput
+    _min?: CrmSyncLogMinOrderByAggregateInput
+  }
+
+  export type CrmSyncLogScalarWhereWithAggregatesInput = {
+    AND?: CrmSyncLogScalarWhereWithAggregatesInput | CrmSyncLogScalarWhereWithAggregatesInput[]
+    OR?: CrmSyncLogScalarWhereWithAggregatesInput[]
+    NOT?: CrmSyncLogScalarWhereWithAggregatesInput | CrmSyncLogScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"CrmSyncLog"> | string
+    clientId?: UuidWithAggregatesFilter<"CrmSyncLog"> | string
+    leadId?: UuidWithAggregatesFilter<"CrmSyncLog"> | string
+    crmSyncId?: UuidNullableWithAggregatesFilter<"CrmSyncLog"> | string | null
+    idempotencyKey?: StringWithAggregatesFilter<"CrmSyncLog"> | string
+    status?: EnumCrmSyncStatusWithAggregatesFilter<"CrmSyncLog"> | $Enums.CrmSyncStatus
+    provider?: EnumCrmTypeWithAggregatesFilter<"CrmSyncLog"> | $Enums.CrmType
+    externalId?: StringNullableWithAggregatesFilter<"CrmSyncLog"> | string | null
+    error?: StringNullableWithAggregatesFilter<"CrmSyncLog"> | string | null
+    metadata?: JsonNullableWithAggregatesFilter<"CrmSyncLog">
+    createdAt?: DateTimeWithAggregatesFilter<"CrmSyncLog"> | Date | string
+  }
+
+  export type FollowUpWhereInput = {
+    AND?: FollowUpWhereInput | FollowUpWhereInput[]
+    OR?: FollowUpWhereInput[]
+    NOT?: FollowUpWhereInput | FollowUpWhereInput[]
+    id?: UuidFilter<"FollowUp"> | string
+    clientId?: UuidFilter<"FollowUp"> | string
+    leadId?: UuidFilter<"FollowUp"> | string
+    conversationId?: UuidFilter<"FollowUp"> | string
+    trigger?: EnumFollowUpTriggerFilter<"FollowUp"> | $Enums.FollowUpTrigger
+    status?: EnumFollowUpStatusFilter<"FollowUp"> | $Enums.FollowUpStatus
+    dedupeKey?: StringFilter<"FollowUp"> | string
+    scheduledAt?: DateTimeFilter<"FollowUp"> | Date | string
+    sentAt?: DateTimeNullableFilter<"FollowUp"> | Date | string | null
+    cancelledAt?: DateTimeNullableFilter<"FollowUp"> | Date | string | null
+    metadata?: JsonNullableFilter<"FollowUp">
+    createdAt?: DateTimeFilter<"FollowUp"> | Date | string
+    updatedAt?: DateTimeFilter<"FollowUp"> | Date | string
+    lead?: XOR<LeadScalarRelationFilter, LeadWhereInput>
+  }
+
+  export type FollowUpOrderByWithRelationInput = {
+    id?: SortOrder
+    clientId?: SortOrder
+    leadId?: SortOrder
+    conversationId?: SortOrder
+    trigger?: SortOrder
+    status?: SortOrder
+    dedupeKey?: SortOrder
+    scheduledAt?: SortOrder
+    sentAt?: SortOrderInput | SortOrder
+    cancelledAt?: SortOrderInput | SortOrder
+    metadata?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    lead?: LeadOrderByWithRelationInput
+  }
+
+  export type FollowUpWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    dedupeKey?: string
+    AND?: FollowUpWhereInput | FollowUpWhereInput[]
+    OR?: FollowUpWhereInput[]
+    NOT?: FollowUpWhereInput | FollowUpWhereInput[]
+    clientId?: UuidFilter<"FollowUp"> | string
+    leadId?: UuidFilter<"FollowUp"> | string
+    conversationId?: UuidFilter<"FollowUp"> | string
+    trigger?: EnumFollowUpTriggerFilter<"FollowUp"> | $Enums.FollowUpTrigger
+    status?: EnumFollowUpStatusFilter<"FollowUp"> | $Enums.FollowUpStatus
+    scheduledAt?: DateTimeFilter<"FollowUp"> | Date | string
+    sentAt?: DateTimeNullableFilter<"FollowUp"> | Date | string | null
+    cancelledAt?: DateTimeNullableFilter<"FollowUp"> | Date | string | null
+    metadata?: JsonNullableFilter<"FollowUp">
+    createdAt?: DateTimeFilter<"FollowUp"> | Date | string
+    updatedAt?: DateTimeFilter<"FollowUp"> | Date | string
+    lead?: XOR<LeadScalarRelationFilter, LeadWhereInput>
+  }, "id" | "dedupeKey">
+
+  export type FollowUpOrderByWithAggregationInput = {
+    id?: SortOrder
+    clientId?: SortOrder
+    leadId?: SortOrder
+    conversationId?: SortOrder
+    trigger?: SortOrder
+    status?: SortOrder
+    dedupeKey?: SortOrder
+    scheduledAt?: SortOrder
+    sentAt?: SortOrderInput | SortOrder
+    cancelledAt?: SortOrderInput | SortOrder
+    metadata?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: FollowUpCountOrderByAggregateInput
+    _max?: FollowUpMaxOrderByAggregateInput
+    _min?: FollowUpMinOrderByAggregateInput
+  }
+
+  export type FollowUpScalarWhereWithAggregatesInput = {
+    AND?: FollowUpScalarWhereWithAggregatesInput | FollowUpScalarWhereWithAggregatesInput[]
+    OR?: FollowUpScalarWhereWithAggregatesInput[]
+    NOT?: FollowUpScalarWhereWithAggregatesInput | FollowUpScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"FollowUp"> | string
+    clientId?: UuidWithAggregatesFilter<"FollowUp"> | string
+    leadId?: UuidWithAggregatesFilter<"FollowUp"> | string
+    conversationId?: UuidWithAggregatesFilter<"FollowUp"> | string
+    trigger?: EnumFollowUpTriggerWithAggregatesFilter<"FollowUp"> | $Enums.FollowUpTrigger
+    status?: EnumFollowUpStatusWithAggregatesFilter<"FollowUp"> | $Enums.FollowUpStatus
+    dedupeKey?: StringWithAggregatesFilter<"FollowUp"> | string
+    scheduledAt?: DateTimeWithAggregatesFilter<"FollowUp"> | Date | string
+    sentAt?: DateTimeNullableWithAggregatesFilter<"FollowUp"> | Date | string | null
+    cancelledAt?: DateTimeNullableWithAggregatesFilter<"FollowUp"> | Date | string | null
+    metadata?: JsonNullableWithAggregatesFilter<"FollowUp">
+    createdAt?: DateTimeWithAggregatesFilter<"FollowUp"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"FollowUp"> | Date | string
+  }
+
   export type ClientCreateInput = {
     id?: string
     name: string
@@ -13828,6 +18271,13 @@ export namespace Prisma {
     source: string
     status?: $Enums.LeadStatus
     score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey: string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -13837,6 +18287,9 @@ export namespace Prisma {
     conversation?: ConversationCreateNestedOneWithoutLeadInput
     jobs?: JobCreateNestedManyWithoutLeadInput
     crmSyncs?: CrmSyncCreateNestedManyWithoutLeadInput
+    scores?: LeadScoreCreateNestedManyWithoutLeadInput
+    followUps?: FollowUpCreateNestedManyWithoutLeadInput
+    crmSyncLogs?: CrmSyncLogCreateNestedManyWithoutLeadInput
   }
 
   export type LeadUncheckedCreateInput = {
@@ -13848,6 +18301,13 @@ export namespace Prisma {
     source: string
     status?: $Enums.LeadStatus
     score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey: string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -13856,6 +18316,9 @@ export namespace Prisma {
     conversation?: ConversationUncheckedCreateNestedOneWithoutLeadInput
     jobs?: JobUncheckedCreateNestedManyWithoutLeadInput
     crmSyncs?: CrmSyncUncheckedCreateNestedManyWithoutLeadInput
+    scores?: LeadScoreUncheckedCreateNestedManyWithoutLeadInput
+    followUps?: FollowUpUncheckedCreateNestedManyWithoutLeadInput
+    crmSyncLogs?: CrmSyncLogUncheckedCreateNestedManyWithoutLeadInput
   }
 
   export type LeadUpdateInput = {
@@ -13866,6 +18329,13 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
     status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
     score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13875,6 +18345,9 @@ export namespace Prisma {
     conversation?: ConversationUpdateOneWithoutLeadNestedInput
     jobs?: JobUpdateManyWithoutLeadNestedInput
     crmSyncs?: CrmSyncUpdateManyWithoutLeadNestedInput
+    scores?: LeadScoreUpdateManyWithoutLeadNestedInput
+    followUps?: FollowUpUpdateManyWithoutLeadNestedInput
+    crmSyncLogs?: CrmSyncLogUpdateManyWithoutLeadNestedInput
   }
 
   export type LeadUncheckedUpdateInput = {
@@ -13886,6 +18359,13 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
     status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
     score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13894,6 +18374,9 @@ export namespace Prisma {
     conversation?: ConversationUncheckedUpdateOneWithoutLeadNestedInput
     jobs?: JobUncheckedUpdateManyWithoutLeadNestedInput
     crmSyncs?: CrmSyncUncheckedUpdateManyWithoutLeadNestedInput
+    scores?: LeadScoreUncheckedUpdateManyWithoutLeadNestedInput
+    followUps?: FollowUpUncheckedUpdateManyWithoutLeadNestedInput
+    crmSyncLogs?: CrmSyncLogUncheckedUpdateManyWithoutLeadNestedInput
   }
 
   export type LeadCreateManyInput = {
@@ -13905,6 +18388,13 @@ export namespace Prisma {
     source: string
     status?: $Enums.LeadStatus
     score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey: string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -13919,6 +18409,13 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
     status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
     score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13934,6 +18431,13 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
     status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
     score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13944,6 +18448,10 @@ export namespace Prisma {
     id?: string
     key: $Enums.LeadAttributeKey
     value: JsonNullValueInput | InputJsonValue
+    rawValue?: string | null
+    confidence?: number
+    source?: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     lead: LeadCreateNestedOneWithoutAttributesInput
@@ -13954,6 +18462,10 @@ export namespace Prisma {
     leadId: string
     key: $Enums.LeadAttributeKey
     value: JsonNullValueInput | InputJsonValue
+    rawValue?: string | null
+    confidence?: number
+    source?: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -13962,6 +18474,10 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     key?: EnumLeadAttributeKeyFieldUpdateOperationsInput | $Enums.LeadAttributeKey
     value?: JsonNullValueInput | InputJsonValue
+    rawValue?: NullableStringFieldUpdateOperationsInput | string | null
+    confidence?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lead?: LeadUpdateOneRequiredWithoutAttributesNestedInput
@@ -13972,6 +18488,10 @@ export namespace Prisma {
     leadId?: StringFieldUpdateOperationsInput | string
     key?: EnumLeadAttributeKeyFieldUpdateOperationsInput | $Enums.LeadAttributeKey
     value?: JsonNullValueInput | InputJsonValue
+    rawValue?: NullableStringFieldUpdateOperationsInput | string | null
+    confidence?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -13981,6 +18501,10 @@ export namespace Prisma {
     leadId: string
     key: $Enums.LeadAttributeKey
     value: JsonNullValueInput | InputJsonValue
+    rawValue?: string | null
+    confidence?: number
+    source?: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -13989,6 +18513,10 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     key?: EnumLeadAttributeKeyFieldUpdateOperationsInput | $Enums.LeadAttributeKey
     value?: JsonNullValueInput | InputJsonValue
+    rawValue?: NullableStringFieldUpdateOperationsInput | string | null
+    confidence?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -13998,8 +18526,88 @@ export namespace Prisma {
     leadId?: StringFieldUpdateOperationsInput | string
     key?: EnumLeadAttributeKeyFieldUpdateOperationsInput | $Enums.LeadAttributeKey
     value?: JsonNullValueInput | InputJsonValue
+    rawValue?: NullableStringFieldUpdateOperationsInput | string | null
+    confidence?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LeadScoreCreateInput = {
+    id?: string
+    clientId: string
+    total: number
+    priority: $Enums.LeadPriority
+    breakdown: JsonNullValueInput | InputJsonValue
+    version: string
+    createdAt?: Date | string
+    lead: LeadCreateNestedOneWithoutScoresInput
+  }
+
+  export type LeadScoreUncheckedCreateInput = {
+    id?: string
+    leadId: string
+    clientId: string
+    total: number
+    priority: $Enums.LeadPriority
+    breakdown: JsonNullValueInput | InputJsonValue
+    version: string
+    createdAt?: Date | string
+  }
+
+  export type LeadScoreUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    total?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    breakdown?: JsonNullValueInput | InputJsonValue
+    version?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lead?: LeadUpdateOneRequiredWithoutScoresNestedInput
+  }
+
+  export type LeadScoreUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    leadId?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    total?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    breakdown?: JsonNullValueInput | InputJsonValue
+    version?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LeadScoreCreateManyInput = {
+    id?: string
+    leadId: string
+    clientId: string
+    total: number
+    priority: $Enums.LeadPriority
+    breakdown: JsonNullValueInput | InputJsonValue
+    version: string
+    createdAt?: Date | string
+  }
+
+  export type LeadScoreUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    total?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    breakdown?: JsonNullValueInput | InputJsonValue
+    version?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LeadScoreUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    leadId?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    total?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    breakdown?: JsonNullValueInput | InputJsonValue
+    version?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ConversationCreateInput = {
@@ -14496,6 +19104,214 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type CrmSyncLogCreateInput = {
+    id?: string
+    clientId: string
+    crmSyncId?: string | null
+    idempotencyKey: string
+    status: $Enums.CrmSyncStatus
+    provider: $Enums.CrmType
+    externalId?: string | null
+    error?: string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    lead: LeadCreateNestedOneWithoutCrmSyncLogsInput
+  }
+
+  export type CrmSyncLogUncheckedCreateInput = {
+    id?: string
+    clientId: string
+    leadId: string
+    crmSyncId?: string | null
+    idempotencyKey: string
+    status: $Enums.CrmSyncStatus
+    provider: $Enums.CrmType
+    externalId?: string | null
+    error?: string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type CrmSyncLogUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    crmSyncId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus
+    provider?: EnumCrmTypeFieldUpdateOperationsInput | $Enums.CrmType
+    externalId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lead?: LeadUpdateOneRequiredWithoutCrmSyncLogsNestedInput
+  }
+
+  export type CrmSyncLogUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    leadId?: StringFieldUpdateOperationsInput | string
+    crmSyncId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus
+    provider?: EnumCrmTypeFieldUpdateOperationsInput | $Enums.CrmType
+    externalId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CrmSyncLogCreateManyInput = {
+    id?: string
+    clientId: string
+    leadId: string
+    crmSyncId?: string | null
+    idempotencyKey: string
+    status: $Enums.CrmSyncStatus
+    provider: $Enums.CrmType
+    externalId?: string | null
+    error?: string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type CrmSyncLogUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    crmSyncId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus
+    provider?: EnumCrmTypeFieldUpdateOperationsInput | $Enums.CrmType
+    externalId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CrmSyncLogUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    leadId?: StringFieldUpdateOperationsInput | string
+    crmSyncId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus
+    provider?: EnumCrmTypeFieldUpdateOperationsInput | $Enums.CrmType
+    externalId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FollowUpCreateInput = {
+    id?: string
+    clientId: string
+    conversationId: string
+    trigger: $Enums.FollowUpTrigger
+    status?: $Enums.FollowUpStatus
+    dedupeKey: string
+    scheduledAt: Date | string
+    sentAt?: Date | string | null
+    cancelledAt?: Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    lead: LeadCreateNestedOneWithoutFollowUpsInput
+  }
+
+  export type FollowUpUncheckedCreateInput = {
+    id?: string
+    clientId: string
+    leadId: string
+    conversationId: string
+    trigger: $Enums.FollowUpTrigger
+    status?: $Enums.FollowUpStatus
+    dedupeKey: string
+    scheduledAt: Date | string
+    sentAt?: Date | string | null
+    cancelledAt?: Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type FollowUpUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    conversationId?: StringFieldUpdateOperationsInput | string
+    trigger?: EnumFollowUpTriggerFieldUpdateOperationsInput | $Enums.FollowUpTrigger
+    status?: EnumFollowUpStatusFieldUpdateOperationsInput | $Enums.FollowUpStatus
+    dedupeKey?: StringFieldUpdateOperationsInput | string
+    scheduledAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lead?: LeadUpdateOneRequiredWithoutFollowUpsNestedInput
+  }
+
+  export type FollowUpUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    leadId?: StringFieldUpdateOperationsInput | string
+    conversationId?: StringFieldUpdateOperationsInput | string
+    trigger?: EnumFollowUpTriggerFieldUpdateOperationsInput | $Enums.FollowUpTrigger
+    status?: EnumFollowUpStatusFieldUpdateOperationsInput | $Enums.FollowUpStatus
+    dedupeKey?: StringFieldUpdateOperationsInput | string
+    scheduledAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FollowUpCreateManyInput = {
+    id?: string
+    clientId: string
+    leadId: string
+    conversationId: string
+    trigger: $Enums.FollowUpTrigger
+    status?: $Enums.FollowUpStatus
+    dedupeKey: string
+    scheduledAt: Date | string
+    sentAt?: Date | string | null
+    cancelledAt?: Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type FollowUpUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    conversationId?: StringFieldUpdateOperationsInput | string
+    trigger?: EnumFollowUpTriggerFieldUpdateOperationsInput | $Enums.FollowUpTrigger
+    status?: EnumFollowUpStatusFieldUpdateOperationsInput | $Enums.FollowUpStatus
+    dedupeKey?: StringFieldUpdateOperationsInput | string
+    scheduledAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FollowUpUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    leadId?: StringFieldUpdateOperationsInput | string
+    conversationId?: StringFieldUpdateOperationsInput | string
+    trigger?: EnumFollowUpTriggerFieldUpdateOperationsInput | $Enums.FollowUpTrigger
+    status?: EnumFollowUpStatusFieldUpdateOperationsInput | $Enums.FollowUpStatus
+    dedupeKey?: StringFieldUpdateOperationsInput | string
+    scheduledAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type UuidFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -14883,6 +19699,31 @@ export namespace Prisma {
     gte?: number | IntFieldRefInput<$PrismaModel>
     not?: NestedIntFilter<$PrismaModel> | number
   }
+
+  export type EnumLeadPriorityFilter<$PrismaModel = never> = {
+    equals?: $Enums.LeadPriority | EnumLeadPriorityFieldRefInput<$PrismaModel>
+    in?: $Enums.LeadPriority[] | ListEnumLeadPriorityFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LeadPriority[] | ListEnumLeadPriorityFieldRefInput<$PrismaModel>
+    not?: NestedEnumLeadPriorityFilter<$PrismaModel> | $Enums.LeadPriority
+  }
+
+  export type FloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type EnumCrmSyncStatusNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.CrmSyncStatus | EnumCrmSyncStatusFieldRefInput<$PrismaModel> | null
+    in?: $Enums.CrmSyncStatus[] | ListEnumCrmSyncStatusFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.CrmSyncStatus[] | ListEnumCrmSyncStatusFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumCrmSyncStatusNullableFilter<$PrismaModel> | $Enums.CrmSyncStatus | null
+  }
   export type JsonNullableFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
@@ -14918,7 +19759,37 @@ export namespace Prisma {
     isNot?: ConversationWhereInput | null
   }
 
+  export type LeadScoreListRelationFilter = {
+    every?: LeadScoreWhereInput
+    some?: LeadScoreWhereInput
+    none?: LeadScoreWhereInput
+  }
+
+  export type FollowUpListRelationFilter = {
+    every?: FollowUpWhereInput
+    some?: FollowUpWhereInput
+    none?: FollowUpWhereInput
+  }
+
+  export type CrmSyncLogListRelationFilter = {
+    every?: CrmSyncLogWhereInput
+    some?: CrmSyncLogWhereInput
+    none?: CrmSyncLogWhereInput
+  }
+
   export type LeadAttributeOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type LeadScoreOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type FollowUpOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type CrmSyncLogOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -14931,6 +19802,13 @@ export namespace Prisma {
     source?: SortOrder
     status?: SortOrder
     score?: SortOrder
+    priority?: SortOrder
+    qualificationCompleteness?: SortOrder
+    intentConfidence?: SortOrder
+    crmSyncStatus?: SortOrder
+    crmExternalId?: SortOrder
+    crmLastSyncAt?: SortOrder
+    crmErrorLogs?: SortOrder
     idempotencyKey?: SortOrder
     metadata?: SortOrder
     createdAt?: SortOrder
@@ -14939,6 +19817,8 @@ export namespace Prisma {
 
   export type LeadAvgOrderByAggregateInput = {
     score?: SortOrder
+    qualificationCompleteness?: SortOrder
+    intentConfidence?: SortOrder
   }
 
   export type LeadMaxOrderByAggregateInput = {
@@ -14950,6 +19830,12 @@ export namespace Prisma {
     source?: SortOrder
     status?: SortOrder
     score?: SortOrder
+    priority?: SortOrder
+    qualificationCompleteness?: SortOrder
+    intentConfidence?: SortOrder
+    crmSyncStatus?: SortOrder
+    crmExternalId?: SortOrder
+    crmLastSyncAt?: SortOrder
     idempotencyKey?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -14964,6 +19850,12 @@ export namespace Prisma {
     source?: SortOrder
     status?: SortOrder
     score?: SortOrder
+    priority?: SortOrder
+    qualificationCompleteness?: SortOrder
+    intentConfidence?: SortOrder
+    crmSyncStatus?: SortOrder
+    crmExternalId?: SortOrder
+    crmLastSyncAt?: SortOrder
     idempotencyKey?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -14971,6 +19863,8 @@ export namespace Prisma {
 
   export type LeadSumOrderByAggregateInput = {
     score?: SortOrder
+    qualificationCompleteness?: SortOrder
+    intentConfidence?: SortOrder
   }
 
   export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -15015,6 +19909,42 @@ export namespace Prisma {
     _sum?: NestedIntFilter<$PrismaModel>
     _min?: NestedIntFilter<$PrismaModel>
     _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type EnumLeadPriorityWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.LeadPriority | EnumLeadPriorityFieldRefInput<$PrismaModel>
+    in?: $Enums.LeadPriority[] | ListEnumLeadPriorityFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LeadPriority[] | ListEnumLeadPriorityFieldRefInput<$PrismaModel>
+    not?: NestedEnumLeadPriorityWithAggregatesFilter<$PrismaModel> | $Enums.LeadPriority
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumLeadPriorityFilter<$PrismaModel>
+    _max?: NestedEnumLeadPriorityFilter<$PrismaModel>
+  }
+
+  export type FloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
+  }
+
+  export type EnumCrmSyncStatusNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CrmSyncStatus | EnumCrmSyncStatusFieldRefInput<$PrismaModel> | null
+    in?: $Enums.CrmSyncStatus[] | ListEnumCrmSyncStatusFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.CrmSyncStatus[] | ListEnumCrmSyncStatusFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumCrmSyncStatusNullableWithAggregatesFilter<$PrismaModel> | $Enums.CrmSyncStatus | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumCrmSyncStatusNullableFilter<$PrismaModel>
+    _max?: NestedEnumCrmSyncStatusNullableFilter<$PrismaModel>
   }
   export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -15065,14 +19995,25 @@ export namespace Prisma {
     leadId?: SortOrder
     key?: SortOrder
     value?: SortOrder
+    rawValue?: SortOrder
+    confidence?: SortOrder
+    source?: SortOrder
+    metadata?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type LeadAttributeAvgOrderByAggregateInput = {
+    confidence?: SortOrder
   }
 
   export type LeadAttributeMaxOrderByAggregateInput = {
     id?: SortOrder
     leadId?: SortOrder
     key?: SortOrder
+    rawValue?: SortOrder
+    confidence?: SortOrder
+    source?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -15081,8 +20022,15 @@ export namespace Prisma {
     id?: SortOrder
     leadId?: SortOrder
     key?: SortOrder
+    rawValue?: SortOrder
+    confidence?: SortOrder
+    source?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type LeadAttributeSumOrderByAggregateInput = {
+    confidence?: SortOrder
   }
 
   export type EnumLeadAttributeKeyWithAggregatesFilter<$PrismaModel = never> = {
@@ -15093,6 +20041,45 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumLeadAttributeKeyFilter<$PrismaModel>
     _max?: NestedEnumLeadAttributeKeyFilter<$PrismaModel>
+  }
+
+  export type LeadScoreCountOrderByAggregateInput = {
+    id?: SortOrder
+    leadId?: SortOrder
+    clientId?: SortOrder
+    total?: SortOrder
+    priority?: SortOrder
+    breakdown?: SortOrder
+    version?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type LeadScoreAvgOrderByAggregateInput = {
+    total?: SortOrder
+  }
+
+  export type LeadScoreMaxOrderByAggregateInput = {
+    id?: SortOrder
+    leadId?: SortOrder
+    clientId?: SortOrder
+    total?: SortOrder
+    priority?: SortOrder
+    version?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type LeadScoreMinOrderByAggregateInput = {
+    id?: SortOrder
+    leadId?: SortOrder
+    clientId?: SortOrder
+    total?: SortOrder
+    priority?: SortOrder
+    version?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type LeadScoreSumOrderByAggregateInput = {
+    total?: SortOrder
   }
 
   export type EnumConversationChannelFilter<$PrismaModel = never> = {
@@ -15464,6 +20451,126 @@ export namespace Prisma {
     _max?: NestedEnumCrmSyncStatusFilter<$PrismaModel>
   }
 
+  export type CrmSyncLogCountOrderByAggregateInput = {
+    id?: SortOrder
+    clientId?: SortOrder
+    leadId?: SortOrder
+    crmSyncId?: SortOrder
+    idempotencyKey?: SortOrder
+    status?: SortOrder
+    provider?: SortOrder
+    externalId?: SortOrder
+    error?: SortOrder
+    metadata?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type CrmSyncLogMaxOrderByAggregateInput = {
+    id?: SortOrder
+    clientId?: SortOrder
+    leadId?: SortOrder
+    crmSyncId?: SortOrder
+    idempotencyKey?: SortOrder
+    status?: SortOrder
+    provider?: SortOrder
+    externalId?: SortOrder
+    error?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type CrmSyncLogMinOrderByAggregateInput = {
+    id?: SortOrder
+    clientId?: SortOrder
+    leadId?: SortOrder
+    crmSyncId?: SortOrder
+    idempotencyKey?: SortOrder
+    status?: SortOrder
+    provider?: SortOrder
+    externalId?: SortOrder
+    error?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type EnumFollowUpTriggerFilter<$PrismaModel = never> = {
+    equals?: $Enums.FollowUpTrigger | EnumFollowUpTriggerFieldRefInput<$PrismaModel>
+    in?: $Enums.FollowUpTrigger[] | ListEnumFollowUpTriggerFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FollowUpTrigger[] | ListEnumFollowUpTriggerFieldRefInput<$PrismaModel>
+    not?: NestedEnumFollowUpTriggerFilter<$PrismaModel> | $Enums.FollowUpTrigger
+  }
+
+  export type EnumFollowUpStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.FollowUpStatus | EnumFollowUpStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.FollowUpStatus[] | ListEnumFollowUpStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FollowUpStatus[] | ListEnumFollowUpStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumFollowUpStatusFilter<$PrismaModel> | $Enums.FollowUpStatus
+  }
+
+  export type FollowUpCountOrderByAggregateInput = {
+    id?: SortOrder
+    clientId?: SortOrder
+    leadId?: SortOrder
+    conversationId?: SortOrder
+    trigger?: SortOrder
+    status?: SortOrder
+    dedupeKey?: SortOrder
+    scheduledAt?: SortOrder
+    sentAt?: SortOrder
+    cancelledAt?: SortOrder
+    metadata?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type FollowUpMaxOrderByAggregateInput = {
+    id?: SortOrder
+    clientId?: SortOrder
+    leadId?: SortOrder
+    conversationId?: SortOrder
+    trigger?: SortOrder
+    status?: SortOrder
+    dedupeKey?: SortOrder
+    scheduledAt?: SortOrder
+    sentAt?: SortOrder
+    cancelledAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type FollowUpMinOrderByAggregateInput = {
+    id?: SortOrder
+    clientId?: SortOrder
+    leadId?: SortOrder
+    conversationId?: SortOrder
+    trigger?: SortOrder
+    status?: SortOrder
+    dedupeKey?: SortOrder
+    scheduledAt?: SortOrder
+    sentAt?: SortOrder
+    cancelledAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EnumFollowUpTriggerWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.FollowUpTrigger | EnumFollowUpTriggerFieldRefInput<$PrismaModel>
+    in?: $Enums.FollowUpTrigger[] | ListEnumFollowUpTriggerFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FollowUpTrigger[] | ListEnumFollowUpTriggerFieldRefInput<$PrismaModel>
+    not?: NestedEnumFollowUpTriggerWithAggregatesFilter<$PrismaModel> | $Enums.FollowUpTrigger
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumFollowUpTriggerFilter<$PrismaModel>
+    _max?: NestedEnumFollowUpTriggerFilter<$PrismaModel>
+  }
+
+  export type EnumFollowUpStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.FollowUpStatus | EnumFollowUpStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.FollowUpStatus[] | ListEnumFollowUpStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FollowUpStatus[] | ListEnumFollowUpStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumFollowUpStatusWithAggregatesFilter<$PrismaModel> | $Enums.FollowUpStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumFollowUpStatusFilter<$PrismaModel>
+    _max?: NestedEnumFollowUpStatusFilter<$PrismaModel>
+  }
+
   export type ApiKeyCreateNestedManyWithoutClientInput = {
     create?: XOR<ApiKeyCreateWithoutClientInput, ApiKeyUncheckedCreateWithoutClientInput> | ApiKeyCreateWithoutClientInput[] | ApiKeyUncheckedCreateWithoutClientInput[]
     connectOrCreate?: ApiKeyCreateOrConnectWithoutClientInput | ApiKeyCreateOrConnectWithoutClientInput[]
@@ -15749,6 +20856,27 @@ export namespace Prisma {
     connect?: CrmSyncWhereUniqueInput | CrmSyncWhereUniqueInput[]
   }
 
+  export type LeadScoreCreateNestedManyWithoutLeadInput = {
+    create?: XOR<LeadScoreCreateWithoutLeadInput, LeadScoreUncheckedCreateWithoutLeadInput> | LeadScoreCreateWithoutLeadInput[] | LeadScoreUncheckedCreateWithoutLeadInput[]
+    connectOrCreate?: LeadScoreCreateOrConnectWithoutLeadInput | LeadScoreCreateOrConnectWithoutLeadInput[]
+    createMany?: LeadScoreCreateManyLeadInputEnvelope
+    connect?: LeadScoreWhereUniqueInput | LeadScoreWhereUniqueInput[]
+  }
+
+  export type FollowUpCreateNestedManyWithoutLeadInput = {
+    create?: XOR<FollowUpCreateWithoutLeadInput, FollowUpUncheckedCreateWithoutLeadInput> | FollowUpCreateWithoutLeadInput[] | FollowUpUncheckedCreateWithoutLeadInput[]
+    connectOrCreate?: FollowUpCreateOrConnectWithoutLeadInput | FollowUpCreateOrConnectWithoutLeadInput[]
+    createMany?: FollowUpCreateManyLeadInputEnvelope
+    connect?: FollowUpWhereUniqueInput | FollowUpWhereUniqueInput[]
+  }
+
+  export type CrmSyncLogCreateNestedManyWithoutLeadInput = {
+    create?: XOR<CrmSyncLogCreateWithoutLeadInput, CrmSyncLogUncheckedCreateWithoutLeadInput> | CrmSyncLogCreateWithoutLeadInput[] | CrmSyncLogUncheckedCreateWithoutLeadInput[]
+    connectOrCreate?: CrmSyncLogCreateOrConnectWithoutLeadInput | CrmSyncLogCreateOrConnectWithoutLeadInput[]
+    createMany?: CrmSyncLogCreateManyLeadInputEnvelope
+    connect?: CrmSyncLogWhereUniqueInput | CrmSyncLogWhereUniqueInput[]
+  }
+
   export type LeadAttributeUncheckedCreateNestedManyWithoutLeadInput = {
     create?: XOR<LeadAttributeCreateWithoutLeadInput, LeadAttributeUncheckedCreateWithoutLeadInput> | LeadAttributeCreateWithoutLeadInput[] | LeadAttributeUncheckedCreateWithoutLeadInput[]
     connectOrCreate?: LeadAttributeCreateOrConnectWithoutLeadInput | LeadAttributeCreateOrConnectWithoutLeadInput[]
@@ -15776,6 +20904,27 @@ export namespace Prisma {
     connect?: CrmSyncWhereUniqueInput | CrmSyncWhereUniqueInput[]
   }
 
+  export type LeadScoreUncheckedCreateNestedManyWithoutLeadInput = {
+    create?: XOR<LeadScoreCreateWithoutLeadInput, LeadScoreUncheckedCreateWithoutLeadInput> | LeadScoreCreateWithoutLeadInput[] | LeadScoreUncheckedCreateWithoutLeadInput[]
+    connectOrCreate?: LeadScoreCreateOrConnectWithoutLeadInput | LeadScoreCreateOrConnectWithoutLeadInput[]
+    createMany?: LeadScoreCreateManyLeadInputEnvelope
+    connect?: LeadScoreWhereUniqueInput | LeadScoreWhereUniqueInput[]
+  }
+
+  export type FollowUpUncheckedCreateNestedManyWithoutLeadInput = {
+    create?: XOR<FollowUpCreateWithoutLeadInput, FollowUpUncheckedCreateWithoutLeadInput> | FollowUpCreateWithoutLeadInput[] | FollowUpUncheckedCreateWithoutLeadInput[]
+    connectOrCreate?: FollowUpCreateOrConnectWithoutLeadInput | FollowUpCreateOrConnectWithoutLeadInput[]
+    createMany?: FollowUpCreateManyLeadInputEnvelope
+    connect?: FollowUpWhereUniqueInput | FollowUpWhereUniqueInput[]
+  }
+
+  export type CrmSyncLogUncheckedCreateNestedManyWithoutLeadInput = {
+    create?: XOR<CrmSyncLogCreateWithoutLeadInput, CrmSyncLogUncheckedCreateWithoutLeadInput> | CrmSyncLogCreateWithoutLeadInput[] | CrmSyncLogUncheckedCreateWithoutLeadInput[]
+    connectOrCreate?: CrmSyncLogCreateOrConnectWithoutLeadInput | CrmSyncLogCreateOrConnectWithoutLeadInput[]
+    createMany?: CrmSyncLogCreateManyLeadInputEnvelope
+    connect?: CrmSyncLogWhereUniqueInput | CrmSyncLogWhereUniqueInput[]
+  }
+
   export type NullableStringFieldUpdateOperationsInput = {
     set?: string | null
   }
@@ -15790,6 +20939,22 @@ export namespace Prisma {
     decrement?: number
     multiply?: number
     divide?: number
+  }
+
+  export type EnumLeadPriorityFieldUpdateOperationsInput = {
+    set?: $Enums.LeadPriority
+  }
+
+  export type FloatFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type NullableEnumCrmSyncStatusFieldUpdateOperationsInput = {
+    set?: $Enums.CrmSyncStatus | null
   }
 
   export type ClientUpdateOneRequiredWithoutLeadsNestedInput = {
@@ -15852,6 +21017,48 @@ export namespace Prisma {
     deleteMany?: CrmSyncScalarWhereInput | CrmSyncScalarWhereInput[]
   }
 
+  export type LeadScoreUpdateManyWithoutLeadNestedInput = {
+    create?: XOR<LeadScoreCreateWithoutLeadInput, LeadScoreUncheckedCreateWithoutLeadInput> | LeadScoreCreateWithoutLeadInput[] | LeadScoreUncheckedCreateWithoutLeadInput[]
+    connectOrCreate?: LeadScoreCreateOrConnectWithoutLeadInput | LeadScoreCreateOrConnectWithoutLeadInput[]
+    upsert?: LeadScoreUpsertWithWhereUniqueWithoutLeadInput | LeadScoreUpsertWithWhereUniqueWithoutLeadInput[]
+    createMany?: LeadScoreCreateManyLeadInputEnvelope
+    set?: LeadScoreWhereUniqueInput | LeadScoreWhereUniqueInput[]
+    disconnect?: LeadScoreWhereUniqueInput | LeadScoreWhereUniqueInput[]
+    delete?: LeadScoreWhereUniqueInput | LeadScoreWhereUniqueInput[]
+    connect?: LeadScoreWhereUniqueInput | LeadScoreWhereUniqueInput[]
+    update?: LeadScoreUpdateWithWhereUniqueWithoutLeadInput | LeadScoreUpdateWithWhereUniqueWithoutLeadInput[]
+    updateMany?: LeadScoreUpdateManyWithWhereWithoutLeadInput | LeadScoreUpdateManyWithWhereWithoutLeadInput[]
+    deleteMany?: LeadScoreScalarWhereInput | LeadScoreScalarWhereInput[]
+  }
+
+  export type FollowUpUpdateManyWithoutLeadNestedInput = {
+    create?: XOR<FollowUpCreateWithoutLeadInput, FollowUpUncheckedCreateWithoutLeadInput> | FollowUpCreateWithoutLeadInput[] | FollowUpUncheckedCreateWithoutLeadInput[]
+    connectOrCreate?: FollowUpCreateOrConnectWithoutLeadInput | FollowUpCreateOrConnectWithoutLeadInput[]
+    upsert?: FollowUpUpsertWithWhereUniqueWithoutLeadInput | FollowUpUpsertWithWhereUniqueWithoutLeadInput[]
+    createMany?: FollowUpCreateManyLeadInputEnvelope
+    set?: FollowUpWhereUniqueInput | FollowUpWhereUniqueInput[]
+    disconnect?: FollowUpWhereUniqueInput | FollowUpWhereUniqueInput[]
+    delete?: FollowUpWhereUniqueInput | FollowUpWhereUniqueInput[]
+    connect?: FollowUpWhereUniqueInput | FollowUpWhereUniqueInput[]
+    update?: FollowUpUpdateWithWhereUniqueWithoutLeadInput | FollowUpUpdateWithWhereUniqueWithoutLeadInput[]
+    updateMany?: FollowUpUpdateManyWithWhereWithoutLeadInput | FollowUpUpdateManyWithWhereWithoutLeadInput[]
+    deleteMany?: FollowUpScalarWhereInput | FollowUpScalarWhereInput[]
+  }
+
+  export type CrmSyncLogUpdateManyWithoutLeadNestedInput = {
+    create?: XOR<CrmSyncLogCreateWithoutLeadInput, CrmSyncLogUncheckedCreateWithoutLeadInput> | CrmSyncLogCreateWithoutLeadInput[] | CrmSyncLogUncheckedCreateWithoutLeadInput[]
+    connectOrCreate?: CrmSyncLogCreateOrConnectWithoutLeadInput | CrmSyncLogCreateOrConnectWithoutLeadInput[]
+    upsert?: CrmSyncLogUpsertWithWhereUniqueWithoutLeadInput | CrmSyncLogUpsertWithWhereUniqueWithoutLeadInput[]
+    createMany?: CrmSyncLogCreateManyLeadInputEnvelope
+    set?: CrmSyncLogWhereUniqueInput | CrmSyncLogWhereUniqueInput[]
+    disconnect?: CrmSyncLogWhereUniqueInput | CrmSyncLogWhereUniqueInput[]
+    delete?: CrmSyncLogWhereUniqueInput | CrmSyncLogWhereUniqueInput[]
+    connect?: CrmSyncLogWhereUniqueInput | CrmSyncLogWhereUniqueInput[]
+    update?: CrmSyncLogUpdateWithWhereUniqueWithoutLeadInput | CrmSyncLogUpdateWithWhereUniqueWithoutLeadInput[]
+    updateMany?: CrmSyncLogUpdateManyWithWhereWithoutLeadInput | CrmSyncLogUpdateManyWithWhereWithoutLeadInput[]
+    deleteMany?: CrmSyncLogScalarWhereInput | CrmSyncLogScalarWhereInput[]
+  }
+
   export type LeadAttributeUncheckedUpdateManyWithoutLeadNestedInput = {
     create?: XOR<LeadAttributeCreateWithoutLeadInput, LeadAttributeUncheckedCreateWithoutLeadInput> | LeadAttributeCreateWithoutLeadInput[] | LeadAttributeUncheckedCreateWithoutLeadInput[]
     connectOrCreate?: LeadAttributeCreateOrConnectWithoutLeadInput | LeadAttributeCreateOrConnectWithoutLeadInput[]
@@ -15904,6 +21111,48 @@ export namespace Prisma {
     deleteMany?: CrmSyncScalarWhereInput | CrmSyncScalarWhereInput[]
   }
 
+  export type LeadScoreUncheckedUpdateManyWithoutLeadNestedInput = {
+    create?: XOR<LeadScoreCreateWithoutLeadInput, LeadScoreUncheckedCreateWithoutLeadInput> | LeadScoreCreateWithoutLeadInput[] | LeadScoreUncheckedCreateWithoutLeadInput[]
+    connectOrCreate?: LeadScoreCreateOrConnectWithoutLeadInput | LeadScoreCreateOrConnectWithoutLeadInput[]
+    upsert?: LeadScoreUpsertWithWhereUniqueWithoutLeadInput | LeadScoreUpsertWithWhereUniqueWithoutLeadInput[]
+    createMany?: LeadScoreCreateManyLeadInputEnvelope
+    set?: LeadScoreWhereUniqueInput | LeadScoreWhereUniqueInput[]
+    disconnect?: LeadScoreWhereUniqueInput | LeadScoreWhereUniqueInput[]
+    delete?: LeadScoreWhereUniqueInput | LeadScoreWhereUniqueInput[]
+    connect?: LeadScoreWhereUniqueInput | LeadScoreWhereUniqueInput[]
+    update?: LeadScoreUpdateWithWhereUniqueWithoutLeadInput | LeadScoreUpdateWithWhereUniqueWithoutLeadInput[]
+    updateMany?: LeadScoreUpdateManyWithWhereWithoutLeadInput | LeadScoreUpdateManyWithWhereWithoutLeadInput[]
+    deleteMany?: LeadScoreScalarWhereInput | LeadScoreScalarWhereInput[]
+  }
+
+  export type FollowUpUncheckedUpdateManyWithoutLeadNestedInput = {
+    create?: XOR<FollowUpCreateWithoutLeadInput, FollowUpUncheckedCreateWithoutLeadInput> | FollowUpCreateWithoutLeadInput[] | FollowUpUncheckedCreateWithoutLeadInput[]
+    connectOrCreate?: FollowUpCreateOrConnectWithoutLeadInput | FollowUpCreateOrConnectWithoutLeadInput[]
+    upsert?: FollowUpUpsertWithWhereUniqueWithoutLeadInput | FollowUpUpsertWithWhereUniqueWithoutLeadInput[]
+    createMany?: FollowUpCreateManyLeadInputEnvelope
+    set?: FollowUpWhereUniqueInput | FollowUpWhereUniqueInput[]
+    disconnect?: FollowUpWhereUniqueInput | FollowUpWhereUniqueInput[]
+    delete?: FollowUpWhereUniqueInput | FollowUpWhereUniqueInput[]
+    connect?: FollowUpWhereUniqueInput | FollowUpWhereUniqueInput[]
+    update?: FollowUpUpdateWithWhereUniqueWithoutLeadInput | FollowUpUpdateWithWhereUniqueWithoutLeadInput[]
+    updateMany?: FollowUpUpdateManyWithWhereWithoutLeadInput | FollowUpUpdateManyWithWhereWithoutLeadInput[]
+    deleteMany?: FollowUpScalarWhereInput | FollowUpScalarWhereInput[]
+  }
+
+  export type CrmSyncLogUncheckedUpdateManyWithoutLeadNestedInput = {
+    create?: XOR<CrmSyncLogCreateWithoutLeadInput, CrmSyncLogUncheckedCreateWithoutLeadInput> | CrmSyncLogCreateWithoutLeadInput[] | CrmSyncLogUncheckedCreateWithoutLeadInput[]
+    connectOrCreate?: CrmSyncLogCreateOrConnectWithoutLeadInput | CrmSyncLogCreateOrConnectWithoutLeadInput[]
+    upsert?: CrmSyncLogUpsertWithWhereUniqueWithoutLeadInput | CrmSyncLogUpsertWithWhereUniqueWithoutLeadInput[]
+    createMany?: CrmSyncLogCreateManyLeadInputEnvelope
+    set?: CrmSyncLogWhereUniqueInput | CrmSyncLogWhereUniqueInput[]
+    disconnect?: CrmSyncLogWhereUniqueInput | CrmSyncLogWhereUniqueInput[]
+    delete?: CrmSyncLogWhereUniqueInput | CrmSyncLogWhereUniqueInput[]
+    connect?: CrmSyncLogWhereUniqueInput | CrmSyncLogWhereUniqueInput[]
+    update?: CrmSyncLogUpdateWithWhereUniqueWithoutLeadInput | CrmSyncLogUpdateWithWhereUniqueWithoutLeadInput[]
+    updateMany?: CrmSyncLogUpdateManyWithWhereWithoutLeadInput | CrmSyncLogUpdateManyWithWhereWithoutLeadInput[]
+    deleteMany?: CrmSyncLogScalarWhereInput | CrmSyncLogScalarWhereInput[]
+  }
+
   export type LeadCreateNestedOneWithoutAttributesInput = {
     create?: XOR<LeadCreateWithoutAttributesInput, LeadUncheckedCreateWithoutAttributesInput>
     connectOrCreate?: LeadCreateOrConnectWithoutAttributesInput
@@ -15920,6 +21169,20 @@ export namespace Prisma {
     upsert?: LeadUpsertWithoutAttributesInput
     connect?: LeadWhereUniqueInput
     update?: XOR<XOR<LeadUpdateToOneWithWhereWithoutAttributesInput, LeadUpdateWithoutAttributesInput>, LeadUncheckedUpdateWithoutAttributesInput>
+  }
+
+  export type LeadCreateNestedOneWithoutScoresInput = {
+    create?: XOR<LeadCreateWithoutScoresInput, LeadUncheckedCreateWithoutScoresInput>
+    connectOrCreate?: LeadCreateOrConnectWithoutScoresInput
+    connect?: LeadWhereUniqueInput
+  }
+
+  export type LeadUpdateOneRequiredWithoutScoresNestedInput = {
+    create?: XOR<LeadCreateWithoutScoresInput, LeadUncheckedCreateWithoutScoresInput>
+    connectOrCreate?: LeadCreateOrConnectWithoutScoresInput
+    upsert?: LeadUpsertWithoutScoresInput
+    connect?: LeadWhereUniqueInput
+    update?: XOR<XOR<LeadUpdateToOneWithWhereWithoutScoresInput, LeadUpdateWithoutScoresInput>, LeadUncheckedUpdateWithoutScoresInput>
   }
 
   export type LeadCreateNestedOneWithoutConversationInput = {
@@ -16088,6 +21351,42 @@ export namespace Prisma {
     upsert?: LeadUpsertWithoutCrmSyncsInput
     connect?: LeadWhereUniqueInput
     update?: XOR<XOR<LeadUpdateToOneWithWhereWithoutCrmSyncsInput, LeadUpdateWithoutCrmSyncsInput>, LeadUncheckedUpdateWithoutCrmSyncsInput>
+  }
+
+  export type LeadCreateNestedOneWithoutCrmSyncLogsInput = {
+    create?: XOR<LeadCreateWithoutCrmSyncLogsInput, LeadUncheckedCreateWithoutCrmSyncLogsInput>
+    connectOrCreate?: LeadCreateOrConnectWithoutCrmSyncLogsInput
+    connect?: LeadWhereUniqueInput
+  }
+
+  export type LeadUpdateOneRequiredWithoutCrmSyncLogsNestedInput = {
+    create?: XOR<LeadCreateWithoutCrmSyncLogsInput, LeadUncheckedCreateWithoutCrmSyncLogsInput>
+    connectOrCreate?: LeadCreateOrConnectWithoutCrmSyncLogsInput
+    upsert?: LeadUpsertWithoutCrmSyncLogsInput
+    connect?: LeadWhereUniqueInput
+    update?: XOR<XOR<LeadUpdateToOneWithWhereWithoutCrmSyncLogsInput, LeadUpdateWithoutCrmSyncLogsInput>, LeadUncheckedUpdateWithoutCrmSyncLogsInput>
+  }
+
+  export type LeadCreateNestedOneWithoutFollowUpsInput = {
+    create?: XOR<LeadCreateWithoutFollowUpsInput, LeadUncheckedCreateWithoutFollowUpsInput>
+    connectOrCreate?: LeadCreateOrConnectWithoutFollowUpsInput
+    connect?: LeadWhereUniqueInput
+  }
+
+  export type EnumFollowUpTriggerFieldUpdateOperationsInput = {
+    set?: $Enums.FollowUpTrigger
+  }
+
+  export type EnumFollowUpStatusFieldUpdateOperationsInput = {
+    set?: $Enums.FollowUpStatus
+  }
+
+  export type LeadUpdateOneRequiredWithoutFollowUpsNestedInput = {
+    create?: XOR<LeadCreateWithoutFollowUpsInput, LeadUncheckedCreateWithoutFollowUpsInput>
+    connectOrCreate?: LeadCreateOrConnectWithoutFollowUpsInput
+    upsert?: LeadUpsertWithoutFollowUpsInput
+    connect?: LeadWhereUniqueInput
+    update?: XOR<XOR<LeadUpdateToOneWithWhereWithoutFollowUpsInput, LeadUpdateWithoutFollowUpsInput>, LeadUncheckedUpdateWithoutFollowUpsInput>
   }
 
   export type NestedUuidFilter<$PrismaModel = never> = {
@@ -16330,6 +21629,31 @@ export namespace Prisma {
     not?: NestedEnumLeadStatusFilter<$PrismaModel> | $Enums.LeadStatus
   }
 
+  export type NestedEnumLeadPriorityFilter<$PrismaModel = never> = {
+    equals?: $Enums.LeadPriority | EnumLeadPriorityFieldRefInput<$PrismaModel>
+    in?: $Enums.LeadPriority[] | ListEnumLeadPriorityFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LeadPriority[] | ListEnumLeadPriorityFieldRefInput<$PrismaModel>
+    not?: NestedEnumLeadPriorityFilter<$PrismaModel> | $Enums.LeadPriority
+  }
+
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type NestedEnumCrmSyncStatusNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.CrmSyncStatus | EnumCrmSyncStatusFieldRefInput<$PrismaModel> | null
+    in?: $Enums.CrmSyncStatus[] | ListEnumCrmSyncStatusFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.CrmSyncStatus[] | ListEnumCrmSyncStatusFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumCrmSyncStatusNullableFilter<$PrismaModel> | $Enums.CrmSyncStatus | null
+  }
+
   export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -16373,7 +21697,17 @@ export namespace Prisma {
     _max?: NestedIntFilter<$PrismaModel>
   }
 
-  export type NestedFloatFilter<$PrismaModel = never> = {
+  export type NestedEnumLeadPriorityWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.LeadPriority | EnumLeadPriorityFieldRefInput<$PrismaModel>
+    in?: $Enums.LeadPriority[] | ListEnumLeadPriorityFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LeadPriority[] | ListEnumLeadPriorityFieldRefInput<$PrismaModel>
+    not?: NestedEnumLeadPriorityWithAggregatesFilter<$PrismaModel> | $Enums.LeadPriority
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumLeadPriorityFilter<$PrismaModel>
+    _max?: NestedEnumLeadPriorityFilter<$PrismaModel>
+  }
+
+  export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel>
     in?: number[] | ListFloatFieldRefInput<$PrismaModel>
     notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
@@ -16381,7 +21715,22 @@ export namespace Prisma {
     lte?: number | FloatFieldRefInput<$PrismaModel>
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
+  }
+
+  export type NestedEnumCrmSyncStatusNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CrmSyncStatus | EnumCrmSyncStatusFieldRefInput<$PrismaModel> | null
+    in?: $Enums.CrmSyncStatus[] | ListEnumCrmSyncStatusFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.CrmSyncStatus[] | ListEnumCrmSyncStatusFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumCrmSyncStatusNullableWithAggregatesFilter<$PrismaModel> | $Enums.CrmSyncStatus | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumCrmSyncStatusNullableFilter<$PrismaModel>
+    _max?: NestedEnumCrmSyncStatusNullableFilter<$PrismaModel>
   }
   export type NestedJsonNullableFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -16551,6 +21900,40 @@ export namespace Prisma {
     _max?: NestedEnumCrmSyncStatusFilter<$PrismaModel>
   }
 
+  export type NestedEnumFollowUpTriggerFilter<$PrismaModel = never> = {
+    equals?: $Enums.FollowUpTrigger | EnumFollowUpTriggerFieldRefInput<$PrismaModel>
+    in?: $Enums.FollowUpTrigger[] | ListEnumFollowUpTriggerFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FollowUpTrigger[] | ListEnumFollowUpTriggerFieldRefInput<$PrismaModel>
+    not?: NestedEnumFollowUpTriggerFilter<$PrismaModel> | $Enums.FollowUpTrigger
+  }
+
+  export type NestedEnumFollowUpStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.FollowUpStatus | EnumFollowUpStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.FollowUpStatus[] | ListEnumFollowUpStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FollowUpStatus[] | ListEnumFollowUpStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumFollowUpStatusFilter<$PrismaModel> | $Enums.FollowUpStatus
+  }
+
+  export type NestedEnumFollowUpTriggerWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.FollowUpTrigger | EnumFollowUpTriggerFieldRefInput<$PrismaModel>
+    in?: $Enums.FollowUpTrigger[] | ListEnumFollowUpTriggerFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FollowUpTrigger[] | ListEnumFollowUpTriggerFieldRefInput<$PrismaModel>
+    not?: NestedEnumFollowUpTriggerWithAggregatesFilter<$PrismaModel> | $Enums.FollowUpTrigger
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumFollowUpTriggerFilter<$PrismaModel>
+    _max?: NestedEnumFollowUpTriggerFilter<$PrismaModel>
+  }
+
+  export type NestedEnumFollowUpStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.FollowUpStatus | EnumFollowUpStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.FollowUpStatus[] | ListEnumFollowUpStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FollowUpStatus[] | ListEnumFollowUpStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumFollowUpStatusWithAggregatesFilter<$PrismaModel> | $Enums.FollowUpStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumFollowUpStatusFilter<$PrismaModel>
+    _max?: NestedEnumFollowUpStatusFilter<$PrismaModel>
+  }
+
   export type ApiKeyCreateWithoutClientInput = {
     id?: string
     name: string
@@ -16589,6 +21972,13 @@ export namespace Prisma {
     source: string
     status?: $Enums.LeadStatus
     score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey: string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -16597,6 +21987,9 @@ export namespace Prisma {
     conversation?: ConversationCreateNestedOneWithoutLeadInput
     jobs?: JobCreateNestedManyWithoutLeadInput
     crmSyncs?: CrmSyncCreateNestedManyWithoutLeadInput
+    scores?: LeadScoreCreateNestedManyWithoutLeadInput
+    followUps?: FollowUpCreateNestedManyWithoutLeadInput
+    crmSyncLogs?: CrmSyncLogCreateNestedManyWithoutLeadInput
   }
 
   export type LeadUncheckedCreateWithoutClientInput = {
@@ -16607,6 +22000,13 @@ export namespace Prisma {
     source: string
     status?: $Enums.LeadStatus
     score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey: string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -16615,6 +22015,9 @@ export namespace Prisma {
     conversation?: ConversationUncheckedCreateNestedOneWithoutLeadInput
     jobs?: JobUncheckedCreateNestedManyWithoutLeadInput
     crmSyncs?: CrmSyncUncheckedCreateNestedManyWithoutLeadInput
+    scores?: LeadScoreUncheckedCreateNestedManyWithoutLeadInput
+    followUps?: FollowUpUncheckedCreateNestedManyWithoutLeadInput
+    crmSyncLogs?: CrmSyncLogUncheckedCreateNestedManyWithoutLeadInput
   }
 
   export type LeadCreateOrConnectWithoutClientInput = {
@@ -16805,6 +22208,13 @@ export namespace Prisma {
     source?: StringFilter<"Lead"> | string
     status?: EnumLeadStatusFilter<"Lead"> | $Enums.LeadStatus
     score?: IntFilter<"Lead"> | number
+    priority?: EnumLeadPriorityFilter<"Lead"> | $Enums.LeadPriority
+    qualificationCompleteness?: IntFilter<"Lead"> | number
+    intentConfidence?: FloatFilter<"Lead"> | number
+    crmSyncStatus?: EnumCrmSyncStatusNullableFilter<"Lead"> | $Enums.CrmSyncStatus | null
+    crmExternalId?: StringNullableFilter<"Lead"> | string | null
+    crmLastSyncAt?: DateTimeNullableFilter<"Lead"> | Date | string | null
+    crmErrorLogs?: JsonNullableFilter<"Lead">
     idempotencyKey?: StringFilter<"Lead"> | string
     metadata?: JsonNullableFilter<"Lead">
     createdAt?: DateTimeFilter<"Lead"> | Date | string
@@ -17043,6 +22453,10 @@ export namespace Prisma {
     id?: string
     key: $Enums.LeadAttributeKey
     value: JsonNullValueInput | InputJsonValue
+    rawValue?: string | null
+    confidence?: number
+    source?: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -17051,6 +22465,10 @@ export namespace Prisma {
     id?: string
     key: $Enums.LeadAttributeKey
     value: JsonNullValueInput | InputJsonValue
+    rawValue?: string | null
+    confidence?: number
+    source?: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -17178,6 +22596,112 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type LeadScoreCreateWithoutLeadInput = {
+    id?: string
+    clientId: string
+    total: number
+    priority: $Enums.LeadPriority
+    breakdown: JsonNullValueInput | InputJsonValue
+    version: string
+    createdAt?: Date | string
+  }
+
+  export type LeadScoreUncheckedCreateWithoutLeadInput = {
+    id?: string
+    clientId: string
+    total: number
+    priority: $Enums.LeadPriority
+    breakdown: JsonNullValueInput | InputJsonValue
+    version: string
+    createdAt?: Date | string
+  }
+
+  export type LeadScoreCreateOrConnectWithoutLeadInput = {
+    where: LeadScoreWhereUniqueInput
+    create: XOR<LeadScoreCreateWithoutLeadInput, LeadScoreUncheckedCreateWithoutLeadInput>
+  }
+
+  export type LeadScoreCreateManyLeadInputEnvelope = {
+    data: LeadScoreCreateManyLeadInput | LeadScoreCreateManyLeadInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type FollowUpCreateWithoutLeadInput = {
+    id?: string
+    clientId: string
+    conversationId: string
+    trigger: $Enums.FollowUpTrigger
+    status?: $Enums.FollowUpStatus
+    dedupeKey: string
+    scheduledAt: Date | string
+    sentAt?: Date | string | null
+    cancelledAt?: Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type FollowUpUncheckedCreateWithoutLeadInput = {
+    id?: string
+    clientId: string
+    conversationId: string
+    trigger: $Enums.FollowUpTrigger
+    status?: $Enums.FollowUpStatus
+    dedupeKey: string
+    scheduledAt: Date | string
+    sentAt?: Date | string | null
+    cancelledAt?: Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type FollowUpCreateOrConnectWithoutLeadInput = {
+    where: FollowUpWhereUniqueInput
+    create: XOR<FollowUpCreateWithoutLeadInput, FollowUpUncheckedCreateWithoutLeadInput>
+  }
+
+  export type FollowUpCreateManyLeadInputEnvelope = {
+    data: FollowUpCreateManyLeadInput | FollowUpCreateManyLeadInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type CrmSyncLogCreateWithoutLeadInput = {
+    id?: string
+    clientId: string
+    crmSyncId?: string | null
+    idempotencyKey: string
+    status: $Enums.CrmSyncStatus
+    provider: $Enums.CrmType
+    externalId?: string | null
+    error?: string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type CrmSyncLogUncheckedCreateWithoutLeadInput = {
+    id?: string
+    clientId: string
+    crmSyncId?: string | null
+    idempotencyKey: string
+    status: $Enums.CrmSyncStatus
+    provider: $Enums.CrmType
+    externalId?: string | null
+    error?: string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type CrmSyncLogCreateOrConnectWithoutLeadInput = {
+    where: CrmSyncLogWhereUniqueInput
+    create: XOR<CrmSyncLogCreateWithoutLeadInput, CrmSyncLogUncheckedCreateWithoutLeadInput>
+  }
+
+  export type CrmSyncLogCreateManyLeadInputEnvelope = {
+    data: CrmSyncLogCreateManyLeadInput | CrmSyncLogCreateManyLeadInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ClientUpsertWithoutLeadsInput = {
     update: XOR<ClientUpdateWithoutLeadsInput, ClientUncheckedUpdateWithoutLeadsInput>
     create: XOR<ClientCreateWithoutLeadsInput, ClientUncheckedCreateWithoutLeadsInput>
@@ -17247,6 +22771,10 @@ export namespace Prisma {
     leadId?: UuidFilter<"LeadAttribute"> | string
     key?: EnumLeadAttributeKeyFilter<"LeadAttribute"> | $Enums.LeadAttributeKey
     value?: JsonFilter<"LeadAttribute">
+    rawValue?: StringNullableFilter<"LeadAttribute"> | string | null
+    confidence?: FloatFilter<"LeadAttribute"> | number
+    source?: StringFilter<"LeadAttribute"> | string
+    metadata?: JsonNullableFilter<"LeadAttribute">
     createdAt?: DateTimeFilter<"LeadAttribute"> | Date | string
     updatedAt?: DateTimeFilter<"LeadAttribute"> | Date | string
   }
@@ -17316,6 +22844,104 @@ export namespace Prisma {
     data: XOR<CrmSyncUpdateManyMutationInput, CrmSyncUncheckedUpdateManyWithoutLeadInput>
   }
 
+  export type LeadScoreUpsertWithWhereUniqueWithoutLeadInput = {
+    where: LeadScoreWhereUniqueInput
+    update: XOR<LeadScoreUpdateWithoutLeadInput, LeadScoreUncheckedUpdateWithoutLeadInput>
+    create: XOR<LeadScoreCreateWithoutLeadInput, LeadScoreUncheckedCreateWithoutLeadInput>
+  }
+
+  export type LeadScoreUpdateWithWhereUniqueWithoutLeadInput = {
+    where: LeadScoreWhereUniqueInput
+    data: XOR<LeadScoreUpdateWithoutLeadInput, LeadScoreUncheckedUpdateWithoutLeadInput>
+  }
+
+  export type LeadScoreUpdateManyWithWhereWithoutLeadInput = {
+    where: LeadScoreScalarWhereInput
+    data: XOR<LeadScoreUpdateManyMutationInput, LeadScoreUncheckedUpdateManyWithoutLeadInput>
+  }
+
+  export type LeadScoreScalarWhereInput = {
+    AND?: LeadScoreScalarWhereInput | LeadScoreScalarWhereInput[]
+    OR?: LeadScoreScalarWhereInput[]
+    NOT?: LeadScoreScalarWhereInput | LeadScoreScalarWhereInput[]
+    id?: UuidFilter<"LeadScore"> | string
+    leadId?: UuidFilter<"LeadScore"> | string
+    clientId?: UuidFilter<"LeadScore"> | string
+    total?: IntFilter<"LeadScore"> | number
+    priority?: EnumLeadPriorityFilter<"LeadScore"> | $Enums.LeadPriority
+    breakdown?: JsonFilter<"LeadScore">
+    version?: StringFilter<"LeadScore"> | string
+    createdAt?: DateTimeFilter<"LeadScore"> | Date | string
+  }
+
+  export type FollowUpUpsertWithWhereUniqueWithoutLeadInput = {
+    where: FollowUpWhereUniqueInput
+    update: XOR<FollowUpUpdateWithoutLeadInput, FollowUpUncheckedUpdateWithoutLeadInput>
+    create: XOR<FollowUpCreateWithoutLeadInput, FollowUpUncheckedCreateWithoutLeadInput>
+  }
+
+  export type FollowUpUpdateWithWhereUniqueWithoutLeadInput = {
+    where: FollowUpWhereUniqueInput
+    data: XOR<FollowUpUpdateWithoutLeadInput, FollowUpUncheckedUpdateWithoutLeadInput>
+  }
+
+  export type FollowUpUpdateManyWithWhereWithoutLeadInput = {
+    where: FollowUpScalarWhereInput
+    data: XOR<FollowUpUpdateManyMutationInput, FollowUpUncheckedUpdateManyWithoutLeadInput>
+  }
+
+  export type FollowUpScalarWhereInput = {
+    AND?: FollowUpScalarWhereInput | FollowUpScalarWhereInput[]
+    OR?: FollowUpScalarWhereInput[]
+    NOT?: FollowUpScalarWhereInput | FollowUpScalarWhereInput[]
+    id?: UuidFilter<"FollowUp"> | string
+    clientId?: UuidFilter<"FollowUp"> | string
+    leadId?: UuidFilter<"FollowUp"> | string
+    conversationId?: UuidFilter<"FollowUp"> | string
+    trigger?: EnumFollowUpTriggerFilter<"FollowUp"> | $Enums.FollowUpTrigger
+    status?: EnumFollowUpStatusFilter<"FollowUp"> | $Enums.FollowUpStatus
+    dedupeKey?: StringFilter<"FollowUp"> | string
+    scheduledAt?: DateTimeFilter<"FollowUp"> | Date | string
+    sentAt?: DateTimeNullableFilter<"FollowUp"> | Date | string | null
+    cancelledAt?: DateTimeNullableFilter<"FollowUp"> | Date | string | null
+    metadata?: JsonNullableFilter<"FollowUp">
+    createdAt?: DateTimeFilter<"FollowUp"> | Date | string
+    updatedAt?: DateTimeFilter<"FollowUp"> | Date | string
+  }
+
+  export type CrmSyncLogUpsertWithWhereUniqueWithoutLeadInput = {
+    where: CrmSyncLogWhereUniqueInput
+    update: XOR<CrmSyncLogUpdateWithoutLeadInput, CrmSyncLogUncheckedUpdateWithoutLeadInput>
+    create: XOR<CrmSyncLogCreateWithoutLeadInput, CrmSyncLogUncheckedCreateWithoutLeadInput>
+  }
+
+  export type CrmSyncLogUpdateWithWhereUniqueWithoutLeadInput = {
+    where: CrmSyncLogWhereUniqueInput
+    data: XOR<CrmSyncLogUpdateWithoutLeadInput, CrmSyncLogUncheckedUpdateWithoutLeadInput>
+  }
+
+  export type CrmSyncLogUpdateManyWithWhereWithoutLeadInput = {
+    where: CrmSyncLogScalarWhereInput
+    data: XOR<CrmSyncLogUpdateManyMutationInput, CrmSyncLogUncheckedUpdateManyWithoutLeadInput>
+  }
+
+  export type CrmSyncLogScalarWhereInput = {
+    AND?: CrmSyncLogScalarWhereInput | CrmSyncLogScalarWhereInput[]
+    OR?: CrmSyncLogScalarWhereInput[]
+    NOT?: CrmSyncLogScalarWhereInput | CrmSyncLogScalarWhereInput[]
+    id?: UuidFilter<"CrmSyncLog"> | string
+    clientId?: UuidFilter<"CrmSyncLog"> | string
+    leadId?: UuidFilter<"CrmSyncLog"> | string
+    crmSyncId?: UuidNullableFilter<"CrmSyncLog"> | string | null
+    idempotencyKey?: StringFilter<"CrmSyncLog"> | string
+    status?: EnumCrmSyncStatusFilter<"CrmSyncLog"> | $Enums.CrmSyncStatus
+    provider?: EnumCrmTypeFilter<"CrmSyncLog"> | $Enums.CrmType
+    externalId?: StringNullableFilter<"CrmSyncLog"> | string | null
+    error?: StringNullableFilter<"CrmSyncLog"> | string | null
+    metadata?: JsonNullableFilter<"CrmSyncLog">
+    createdAt?: DateTimeFilter<"CrmSyncLog"> | Date | string
+  }
+
   export type LeadCreateWithoutAttributesInput = {
     id?: string
     name: string
@@ -17324,6 +22950,13 @@ export namespace Prisma {
     source: string
     status?: $Enums.LeadStatus
     score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey: string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -17332,6 +22965,9 @@ export namespace Prisma {
     conversation?: ConversationCreateNestedOneWithoutLeadInput
     jobs?: JobCreateNestedManyWithoutLeadInput
     crmSyncs?: CrmSyncCreateNestedManyWithoutLeadInput
+    scores?: LeadScoreCreateNestedManyWithoutLeadInput
+    followUps?: FollowUpCreateNestedManyWithoutLeadInput
+    crmSyncLogs?: CrmSyncLogCreateNestedManyWithoutLeadInput
   }
 
   export type LeadUncheckedCreateWithoutAttributesInput = {
@@ -17343,6 +22979,13 @@ export namespace Prisma {
     source: string
     status?: $Enums.LeadStatus
     score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey: string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -17350,6 +22993,9 @@ export namespace Prisma {
     conversation?: ConversationUncheckedCreateNestedOneWithoutLeadInput
     jobs?: JobUncheckedCreateNestedManyWithoutLeadInput
     crmSyncs?: CrmSyncUncheckedCreateNestedManyWithoutLeadInput
+    scores?: LeadScoreUncheckedCreateNestedManyWithoutLeadInput
+    followUps?: FollowUpUncheckedCreateNestedManyWithoutLeadInput
+    crmSyncLogs?: CrmSyncLogUncheckedCreateNestedManyWithoutLeadInput
   }
 
   export type LeadCreateOrConnectWithoutAttributesInput = {
@@ -17376,6 +23022,13 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
     status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
     score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17384,6 +23037,9 @@ export namespace Prisma {
     conversation?: ConversationUpdateOneWithoutLeadNestedInput
     jobs?: JobUpdateManyWithoutLeadNestedInput
     crmSyncs?: CrmSyncUpdateManyWithoutLeadNestedInput
+    scores?: LeadScoreUpdateManyWithoutLeadNestedInput
+    followUps?: FollowUpUpdateManyWithoutLeadNestedInput
+    crmSyncLogs?: CrmSyncLogUpdateManyWithoutLeadNestedInput
   }
 
   export type LeadUncheckedUpdateWithoutAttributesInput = {
@@ -17395,6 +23051,13 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
     status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
     score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17402,6 +23065,137 @@ export namespace Prisma {
     conversation?: ConversationUncheckedUpdateOneWithoutLeadNestedInput
     jobs?: JobUncheckedUpdateManyWithoutLeadNestedInput
     crmSyncs?: CrmSyncUncheckedUpdateManyWithoutLeadNestedInput
+    scores?: LeadScoreUncheckedUpdateManyWithoutLeadNestedInput
+    followUps?: FollowUpUncheckedUpdateManyWithoutLeadNestedInput
+    crmSyncLogs?: CrmSyncLogUncheckedUpdateManyWithoutLeadNestedInput
+  }
+
+  export type LeadCreateWithoutScoresInput = {
+    id?: string
+    name: string
+    phone: string
+    email?: string | null
+    source: string
+    status?: $Enums.LeadStatus
+    score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    client: ClientCreateNestedOneWithoutLeadsInput
+    attributes?: LeadAttributeCreateNestedManyWithoutLeadInput
+    conversation?: ConversationCreateNestedOneWithoutLeadInput
+    jobs?: JobCreateNestedManyWithoutLeadInput
+    crmSyncs?: CrmSyncCreateNestedManyWithoutLeadInput
+    followUps?: FollowUpCreateNestedManyWithoutLeadInput
+    crmSyncLogs?: CrmSyncLogCreateNestedManyWithoutLeadInput
+  }
+
+  export type LeadUncheckedCreateWithoutScoresInput = {
+    id?: string
+    clientId: string
+    name: string
+    phone: string
+    email?: string | null
+    source: string
+    status?: $Enums.LeadStatus
+    score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    attributes?: LeadAttributeUncheckedCreateNestedManyWithoutLeadInput
+    conversation?: ConversationUncheckedCreateNestedOneWithoutLeadInput
+    jobs?: JobUncheckedCreateNestedManyWithoutLeadInput
+    crmSyncs?: CrmSyncUncheckedCreateNestedManyWithoutLeadInput
+    followUps?: FollowUpUncheckedCreateNestedManyWithoutLeadInput
+    crmSyncLogs?: CrmSyncLogUncheckedCreateNestedManyWithoutLeadInput
+  }
+
+  export type LeadCreateOrConnectWithoutScoresInput = {
+    where: LeadWhereUniqueInput
+    create: XOR<LeadCreateWithoutScoresInput, LeadUncheckedCreateWithoutScoresInput>
+  }
+
+  export type LeadUpsertWithoutScoresInput = {
+    update: XOR<LeadUpdateWithoutScoresInput, LeadUncheckedUpdateWithoutScoresInput>
+    create: XOR<LeadCreateWithoutScoresInput, LeadUncheckedCreateWithoutScoresInput>
+    where?: LeadWhereInput
+  }
+
+  export type LeadUpdateToOneWithWhereWithoutScoresInput = {
+    where?: LeadWhereInput
+    data: XOR<LeadUpdateWithoutScoresInput, LeadUncheckedUpdateWithoutScoresInput>
+  }
+
+  export type LeadUpdateWithoutScoresInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    phone?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
+    score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    client?: ClientUpdateOneRequiredWithoutLeadsNestedInput
+    attributes?: LeadAttributeUpdateManyWithoutLeadNestedInput
+    conversation?: ConversationUpdateOneWithoutLeadNestedInput
+    jobs?: JobUpdateManyWithoutLeadNestedInput
+    crmSyncs?: CrmSyncUpdateManyWithoutLeadNestedInput
+    followUps?: FollowUpUpdateManyWithoutLeadNestedInput
+    crmSyncLogs?: CrmSyncLogUpdateManyWithoutLeadNestedInput
+  }
+
+  export type LeadUncheckedUpdateWithoutScoresInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    phone?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
+    score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    attributes?: LeadAttributeUncheckedUpdateManyWithoutLeadNestedInput
+    conversation?: ConversationUncheckedUpdateOneWithoutLeadNestedInput
+    jobs?: JobUncheckedUpdateManyWithoutLeadNestedInput
+    crmSyncs?: CrmSyncUncheckedUpdateManyWithoutLeadNestedInput
+    followUps?: FollowUpUncheckedUpdateManyWithoutLeadNestedInput
+    crmSyncLogs?: CrmSyncLogUncheckedUpdateManyWithoutLeadNestedInput
   }
 
   export type LeadCreateWithoutConversationInput = {
@@ -17412,6 +23206,13 @@ export namespace Prisma {
     source: string
     status?: $Enums.LeadStatus
     score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey: string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -17420,6 +23221,9 @@ export namespace Prisma {
     attributes?: LeadAttributeCreateNestedManyWithoutLeadInput
     jobs?: JobCreateNestedManyWithoutLeadInput
     crmSyncs?: CrmSyncCreateNestedManyWithoutLeadInput
+    scores?: LeadScoreCreateNestedManyWithoutLeadInput
+    followUps?: FollowUpCreateNestedManyWithoutLeadInput
+    crmSyncLogs?: CrmSyncLogCreateNestedManyWithoutLeadInput
   }
 
   export type LeadUncheckedCreateWithoutConversationInput = {
@@ -17431,6 +23235,13 @@ export namespace Prisma {
     source: string
     status?: $Enums.LeadStatus
     score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey: string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -17438,6 +23249,9 @@ export namespace Prisma {
     attributes?: LeadAttributeUncheckedCreateNestedManyWithoutLeadInput
     jobs?: JobUncheckedCreateNestedManyWithoutLeadInput
     crmSyncs?: CrmSyncUncheckedCreateNestedManyWithoutLeadInput
+    scores?: LeadScoreUncheckedCreateNestedManyWithoutLeadInput
+    followUps?: FollowUpUncheckedCreateNestedManyWithoutLeadInput
+    crmSyncLogs?: CrmSyncLogUncheckedCreateNestedManyWithoutLeadInput
   }
 
   export type LeadCreateOrConnectWithoutConversationInput = {
@@ -17496,6 +23310,13 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
     status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
     score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17504,6 +23325,9 @@ export namespace Prisma {
     attributes?: LeadAttributeUpdateManyWithoutLeadNestedInput
     jobs?: JobUpdateManyWithoutLeadNestedInput
     crmSyncs?: CrmSyncUpdateManyWithoutLeadNestedInput
+    scores?: LeadScoreUpdateManyWithoutLeadNestedInput
+    followUps?: FollowUpUpdateManyWithoutLeadNestedInput
+    crmSyncLogs?: CrmSyncLogUpdateManyWithoutLeadNestedInput
   }
 
   export type LeadUncheckedUpdateWithoutConversationInput = {
@@ -17515,6 +23339,13 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
     status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
     score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17522,6 +23353,9 @@ export namespace Prisma {
     attributes?: LeadAttributeUncheckedUpdateManyWithoutLeadNestedInput
     jobs?: JobUncheckedUpdateManyWithoutLeadNestedInput
     crmSyncs?: CrmSyncUncheckedUpdateManyWithoutLeadNestedInput
+    scores?: LeadScoreUncheckedUpdateManyWithoutLeadNestedInput
+    followUps?: FollowUpUncheckedUpdateManyWithoutLeadNestedInput
+    crmSyncLogs?: CrmSyncLogUncheckedUpdateManyWithoutLeadNestedInput
   }
 
   export type MessageUpsertWithWhereUniqueWithoutConversationInput = {
@@ -17662,6 +23496,13 @@ export namespace Prisma {
     source: string
     status?: $Enums.LeadStatus
     score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey: string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -17670,6 +23511,9 @@ export namespace Prisma {
     attributes?: LeadAttributeCreateNestedManyWithoutLeadInput
     conversation?: ConversationCreateNestedOneWithoutLeadInput
     crmSyncs?: CrmSyncCreateNestedManyWithoutLeadInput
+    scores?: LeadScoreCreateNestedManyWithoutLeadInput
+    followUps?: FollowUpCreateNestedManyWithoutLeadInput
+    crmSyncLogs?: CrmSyncLogCreateNestedManyWithoutLeadInput
   }
 
   export type LeadUncheckedCreateWithoutJobsInput = {
@@ -17681,6 +23525,13 @@ export namespace Prisma {
     source: string
     status?: $Enums.LeadStatus
     score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey: string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -17688,6 +23539,9 @@ export namespace Prisma {
     attributes?: LeadAttributeUncheckedCreateNestedManyWithoutLeadInput
     conversation?: ConversationUncheckedCreateNestedOneWithoutLeadInput
     crmSyncs?: CrmSyncUncheckedCreateNestedManyWithoutLeadInput
+    scores?: LeadScoreUncheckedCreateNestedManyWithoutLeadInput
+    followUps?: FollowUpUncheckedCreateNestedManyWithoutLeadInput
+    crmSyncLogs?: CrmSyncLogUncheckedCreateNestedManyWithoutLeadInput
   }
 
   export type LeadCreateOrConnectWithoutJobsInput = {
@@ -17759,6 +23613,13 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
     status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
     score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17767,6 +23628,9 @@ export namespace Prisma {
     attributes?: LeadAttributeUpdateManyWithoutLeadNestedInput
     conversation?: ConversationUpdateOneWithoutLeadNestedInput
     crmSyncs?: CrmSyncUpdateManyWithoutLeadNestedInput
+    scores?: LeadScoreUpdateManyWithoutLeadNestedInput
+    followUps?: FollowUpUpdateManyWithoutLeadNestedInput
+    crmSyncLogs?: CrmSyncLogUpdateManyWithoutLeadNestedInput
   }
 
   export type LeadUncheckedUpdateWithoutJobsInput = {
@@ -17778,6 +23642,13 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
     status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
     score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17785,6 +23656,9 @@ export namespace Prisma {
     attributes?: LeadAttributeUncheckedUpdateManyWithoutLeadNestedInput
     conversation?: ConversationUncheckedUpdateOneWithoutLeadNestedInput
     crmSyncs?: CrmSyncUncheckedUpdateManyWithoutLeadNestedInput
+    scores?: LeadScoreUncheckedUpdateManyWithoutLeadNestedInput
+    followUps?: FollowUpUncheckedUpdateManyWithoutLeadNestedInput
+    crmSyncLogs?: CrmSyncLogUncheckedUpdateManyWithoutLeadNestedInput
   }
 
   export type ClientCreateWithoutAuditLogsInput = {
@@ -17918,6 +23792,13 @@ export namespace Prisma {
     source: string
     status?: $Enums.LeadStatus
     score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey: string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -17926,6 +23807,9 @@ export namespace Prisma {
     attributes?: LeadAttributeCreateNestedManyWithoutLeadInput
     conversation?: ConversationCreateNestedOneWithoutLeadInput
     jobs?: JobCreateNestedManyWithoutLeadInput
+    scores?: LeadScoreCreateNestedManyWithoutLeadInput
+    followUps?: FollowUpCreateNestedManyWithoutLeadInput
+    crmSyncLogs?: CrmSyncLogCreateNestedManyWithoutLeadInput
   }
 
   export type LeadUncheckedCreateWithoutCrmSyncsInput = {
@@ -17937,6 +23821,13 @@ export namespace Prisma {
     source: string
     status?: $Enums.LeadStatus
     score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey: string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -17944,6 +23835,9 @@ export namespace Prisma {
     attributes?: LeadAttributeUncheckedCreateNestedManyWithoutLeadInput
     conversation?: ConversationUncheckedCreateNestedOneWithoutLeadInput
     jobs?: JobUncheckedCreateNestedManyWithoutLeadInput
+    scores?: LeadScoreUncheckedCreateNestedManyWithoutLeadInput
+    followUps?: FollowUpUncheckedCreateNestedManyWithoutLeadInput
+    crmSyncLogs?: CrmSyncLogUncheckedCreateNestedManyWithoutLeadInput
   }
 
   export type LeadCreateOrConnectWithoutCrmSyncsInput = {
@@ -18015,6 +23909,13 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
     status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
     score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -18023,6 +23924,9 @@ export namespace Prisma {
     attributes?: LeadAttributeUpdateManyWithoutLeadNestedInput
     conversation?: ConversationUpdateOneWithoutLeadNestedInput
     jobs?: JobUpdateManyWithoutLeadNestedInput
+    scores?: LeadScoreUpdateManyWithoutLeadNestedInput
+    followUps?: FollowUpUpdateManyWithoutLeadNestedInput
+    crmSyncLogs?: CrmSyncLogUpdateManyWithoutLeadNestedInput
   }
 
   export type LeadUncheckedUpdateWithoutCrmSyncsInput = {
@@ -18034,6 +23938,13 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
     status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
     score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -18041,6 +23952,265 @@ export namespace Prisma {
     attributes?: LeadAttributeUncheckedUpdateManyWithoutLeadNestedInput
     conversation?: ConversationUncheckedUpdateOneWithoutLeadNestedInput
     jobs?: JobUncheckedUpdateManyWithoutLeadNestedInput
+    scores?: LeadScoreUncheckedUpdateManyWithoutLeadNestedInput
+    followUps?: FollowUpUncheckedUpdateManyWithoutLeadNestedInput
+    crmSyncLogs?: CrmSyncLogUncheckedUpdateManyWithoutLeadNestedInput
+  }
+
+  export type LeadCreateWithoutCrmSyncLogsInput = {
+    id?: string
+    name: string
+    phone: string
+    email?: string | null
+    source: string
+    status?: $Enums.LeadStatus
+    score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    client: ClientCreateNestedOneWithoutLeadsInput
+    attributes?: LeadAttributeCreateNestedManyWithoutLeadInput
+    conversation?: ConversationCreateNestedOneWithoutLeadInput
+    jobs?: JobCreateNestedManyWithoutLeadInput
+    crmSyncs?: CrmSyncCreateNestedManyWithoutLeadInput
+    scores?: LeadScoreCreateNestedManyWithoutLeadInput
+    followUps?: FollowUpCreateNestedManyWithoutLeadInput
+  }
+
+  export type LeadUncheckedCreateWithoutCrmSyncLogsInput = {
+    id?: string
+    clientId: string
+    name: string
+    phone: string
+    email?: string | null
+    source: string
+    status?: $Enums.LeadStatus
+    score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    attributes?: LeadAttributeUncheckedCreateNestedManyWithoutLeadInput
+    conversation?: ConversationUncheckedCreateNestedOneWithoutLeadInput
+    jobs?: JobUncheckedCreateNestedManyWithoutLeadInput
+    crmSyncs?: CrmSyncUncheckedCreateNestedManyWithoutLeadInput
+    scores?: LeadScoreUncheckedCreateNestedManyWithoutLeadInput
+    followUps?: FollowUpUncheckedCreateNestedManyWithoutLeadInput
+  }
+
+  export type LeadCreateOrConnectWithoutCrmSyncLogsInput = {
+    where: LeadWhereUniqueInput
+    create: XOR<LeadCreateWithoutCrmSyncLogsInput, LeadUncheckedCreateWithoutCrmSyncLogsInput>
+  }
+
+  export type LeadUpsertWithoutCrmSyncLogsInput = {
+    update: XOR<LeadUpdateWithoutCrmSyncLogsInput, LeadUncheckedUpdateWithoutCrmSyncLogsInput>
+    create: XOR<LeadCreateWithoutCrmSyncLogsInput, LeadUncheckedCreateWithoutCrmSyncLogsInput>
+    where?: LeadWhereInput
+  }
+
+  export type LeadUpdateToOneWithWhereWithoutCrmSyncLogsInput = {
+    where?: LeadWhereInput
+    data: XOR<LeadUpdateWithoutCrmSyncLogsInput, LeadUncheckedUpdateWithoutCrmSyncLogsInput>
+  }
+
+  export type LeadUpdateWithoutCrmSyncLogsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    phone?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
+    score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    client?: ClientUpdateOneRequiredWithoutLeadsNestedInput
+    attributes?: LeadAttributeUpdateManyWithoutLeadNestedInput
+    conversation?: ConversationUpdateOneWithoutLeadNestedInput
+    jobs?: JobUpdateManyWithoutLeadNestedInput
+    crmSyncs?: CrmSyncUpdateManyWithoutLeadNestedInput
+    scores?: LeadScoreUpdateManyWithoutLeadNestedInput
+    followUps?: FollowUpUpdateManyWithoutLeadNestedInput
+  }
+
+  export type LeadUncheckedUpdateWithoutCrmSyncLogsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    phone?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
+    score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    attributes?: LeadAttributeUncheckedUpdateManyWithoutLeadNestedInput
+    conversation?: ConversationUncheckedUpdateOneWithoutLeadNestedInput
+    jobs?: JobUncheckedUpdateManyWithoutLeadNestedInput
+    crmSyncs?: CrmSyncUncheckedUpdateManyWithoutLeadNestedInput
+    scores?: LeadScoreUncheckedUpdateManyWithoutLeadNestedInput
+    followUps?: FollowUpUncheckedUpdateManyWithoutLeadNestedInput
+  }
+
+  export type LeadCreateWithoutFollowUpsInput = {
+    id?: string
+    name: string
+    phone: string
+    email?: string | null
+    source: string
+    status?: $Enums.LeadStatus
+    score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    client: ClientCreateNestedOneWithoutLeadsInput
+    attributes?: LeadAttributeCreateNestedManyWithoutLeadInput
+    conversation?: ConversationCreateNestedOneWithoutLeadInput
+    jobs?: JobCreateNestedManyWithoutLeadInput
+    crmSyncs?: CrmSyncCreateNestedManyWithoutLeadInput
+    scores?: LeadScoreCreateNestedManyWithoutLeadInput
+    crmSyncLogs?: CrmSyncLogCreateNestedManyWithoutLeadInput
+  }
+
+  export type LeadUncheckedCreateWithoutFollowUpsInput = {
+    id?: string
+    clientId: string
+    name: string
+    phone: string
+    email?: string | null
+    source: string
+    status?: $Enums.LeadStatus
+    score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    attributes?: LeadAttributeUncheckedCreateNestedManyWithoutLeadInput
+    conversation?: ConversationUncheckedCreateNestedOneWithoutLeadInput
+    jobs?: JobUncheckedCreateNestedManyWithoutLeadInput
+    crmSyncs?: CrmSyncUncheckedCreateNestedManyWithoutLeadInput
+    scores?: LeadScoreUncheckedCreateNestedManyWithoutLeadInput
+    crmSyncLogs?: CrmSyncLogUncheckedCreateNestedManyWithoutLeadInput
+  }
+
+  export type LeadCreateOrConnectWithoutFollowUpsInput = {
+    where: LeadWhereUniqueInput
+    create: XOR<LeadCreateWithoutFollowUpsInput, LeadUncheckedCreateWithoutFollowUpsInput>
+  }
+
+  export type LeadUpsertWithoutFollowUpsInput = {
+    update: XOR<LeadUpdateWithoutFollowUpsInput, LeadUncheckedUpdateWithoutFollowUpsInput>
+    create: XOR<LeadCreateWithoutFollowUpsInput, LeadUncheckedCreateWithoutFollowUpsInput>
+    where?: LeadWhereInput
+  }
+
+  export type LeadUpdateToOneWithWhereWithoutFollowUpsInput = {
+    where?: LeadWhereInput
+    data: XOR<LeadUpdateWithoutFollowUpsInput, LeadUncheckedUpdateWithoutFollowUpsInput>
+  }
+
+  export type LeadUpdateWithoutFollowUpsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    phone?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
+    score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    client?: ClientUpdateOneRequiredWithoutLeadsNestedInput
+    attributes?: LeadAttributeUpdateManyWithoutLeadNestedInput
+    conversation?: ConversationUpdateOneWithoutLeadNestedInput
+    jobs?: JobUpdateManyWithoutLeadNestedInput
+    crmSyncs?: CrmSyncUpdateManyWithoutLeadNestedInput
+    scores?: LeadScoreUpdateManyWithoutLeadNestedInput
+    crmSyncLogs?: CrmSyncLogUpdateManyWithoutLeadNestedInput
+  }
+
+  export type LeadUncheckedUpdateWithoutFollowUpsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    phone?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
+    score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    attributes?: LeadAttributeUncheckedUpdateManyWithoutLeadNestedInput
+    conversation?: ConversationUncheckedUpdateOneWithoutLeadNestedInput
+    jobs?: JobUncheckedUpdateManyWithoutLeadNestedInput
+    crmSyncs?: CrmSyncUncheckedUpdateManyWithoutLeadNestedInput
+    scores?: LeadScoreUncheckedUpdateManyWithoutLeadNestedInput
+    crmSyncLogs?: CrmSyncLogUncheckedUpdateManyWithoutLeadNestedInput
   }
 
   export type ApiKeyCreateManyClientInput = {
@@ -18061,6 +24231,13 @@ export namespace Prisma {
     source: string
     status?: $Enums.LeadStatus
     score?: number
+    priority?: $Enums.LeadPriority
+    qualificationCompleteness?: number
+    intentConfidence?: number
+    crmSyncStatus?: $Enums.CrmSyncStatus | null
+    crmExternalId?: string | null
+    crmLastSyncAt?: Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey: string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
@@ -18150,6 +24327,13 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
     status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
     score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -18158,6 +24342,9 @@ export namespace Prisma {
     conversation?: ConversationUpdateOneWithoutLeadNestedInput
     jobs?: JobUpdateManyWithoutLeadNestedInput
     crmSyncs?: CrmSyncUpdateManyWithoutLeadNestedInput
+    scores?: LeadScoreUpdateManyWithoutLeadNestedInput
+    followUps?: FollowUpUpdateManyWithoutLeadNestedInput
+    crmSyncLogs?: CrmSyncLogUpdateManyWithoutLeadNestedInput
   }
 
   export type LeadUncheckedUpdateWithoutClientInput = {
@@ -18168,6 +24355,13 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
     status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
     score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -18176,6 +24370,9 @@ export namespace Prisma {
     conversation?: ConversationUncheckedUpdateOneWithoutLeadNestedInput
     jobs?: JobUncheckedUpdateManyWithoutLeadNestedInput
     crmSyncs?: CrmSyncUncheckedUpdateManyWithoutLeadNestedInput
+    scores?: LeadScoreUncheckedUpdateManyWithoutLeadNestedInput
+    followUps?: FollowUpUncheckedUpdateManyWithoutLeadNestedInput
+    crmSyncLogs?: CrmSyncLogUncheckedUpdateManyWithoutLeadNestedInput
   }
 
   export type LeadUncheckedUpdateManyWithoutClientInput = {
@@ -18186,6 +24383,13 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
     status?: EnumLeadStatusFieldUpdateOperationsInput | $Enums.LeadStatus
     score?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    qualificationCompleteness?: IntFieldUpdateOperationsInput | number
+    intentConfidence?: FloatFieldUpdateOperationsInput | number
+    crmSyncStatus?: NullableEnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus | null
+    crmExternalId?: NullableStringFieldUpdateOperationsInput | string | null
+    crmLastSyncAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crmErrorLogs?: NullableJsonNullValueInput | InputJsonValue
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -18331,6 +24535,10 @@ export namespace Prisma {
     id?: string
     key: $Enums.LeadAttributeKey
     value: JsonNullValueInput | InputJsonValue
+    rawValue?: string | null
+    confidence?: number
+    source?: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -18368,10 +24576,52 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type LeadScoreCreateManyLeadInput = {
+    id?: string
+    clientId: string
+    total: number
+    priority: $Enums.LeadPriority
+    breakdown: JsonNullValueInput | InputJsonValue
+    version: string
+    createdAt?: Date | string
+  }
+
+  export type FollowUpCreateManyLeadInput = {
+    id?: string
+    clientId: string
+    conversationId: string
+    trigger: $Enums.FollowUpTrigger
+    status?: $Enums.FollowUpStatus
+    dedupeKey: string
+    scheduledAt: Date | string
+    sentAt?: Date | string | null
+    cancelledAt?: Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CrmSyncLogCreateManyLeadInput = {
+    id?: string
+    clientId: string
+    crmSyncId?: string | null
+    idempotencyKey: string
+    status: $Enums.CrmSyncStatus
+    provider: $Enums.CrmType
+    externalId?: string | null
+    error?: string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
   export type LeadAttributeUpdateWithoutLeadInput = {
     id?: StringFieldUpdateOperationsInput | string
     key?: EnumLeadAttributeKeyFieldUpdateOperationsInput | $Enums.LeadAttributeKey
     value?: JsonNullValueInput | InputJsonValue
+    rawValue?: NullableStringFieldUpdateOperationsInput | string | null
+    confidence?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -18380,6 +24630,10 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     key?: EnumLeadAttributeKeyFieldUpdateOperationsInput | $Enums.LeadAttributeKey
     value?: JsonNullValueInput | InputJsonValue
+    rawValue?: NullableStringFieldUpdateOperationsInput | string | null
+    confidence?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -18388,6 +24642,10 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     key?: EnumLeadAttributeKeyFieldUpdateOperationsInput | $Enums.LeadAttributeKey
     value?: JsonNullValueInput | InputJsonValue
+    rawValue?: NullableStringFieldUpdateOperationsInput | string | null
+    confidence?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -18489,6 +24747,120 @@ export namespace Prisma {
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LeadScoreUpdateWithoutLeadInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    total?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    breakdown?: JsonNullValueInput | InputJsonValue
+    version?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LeadScoreUncheckedUpdateWithoutLeadInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    total?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    breakdown?: JsonNullValueInput | InputJsonValue
+    version?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LeadScoreUncheckedUpdateManyWithoutLeadInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    total?: IntFieldUpdateOperationsInput | number
+    priority?: EnumLeadPriorityFieldUpdateOperationsInput | $Enums.LeadPriority
+    breakdown?: JsonNullValueInput | InputJsonValue
+    version?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FollowUpUpdateWithoutLeadInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    conversationId?: StringFieldUpdateOperationsInput | string
+    trigger?: EnumFollowUpTriggerFieldUpdateOperationsInput | $Enums.FollowUpTrigger
+    status?: EnumFollowUpStatusFieldUpdateOperationsInput | $Enums.FollowUpStatus
+    dedupeKey?: StringFieldUpdateOperationsInput | string
+    scheduledAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FollowUpUncheckedUpdateWithoutLeadInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    conversationId?: StringFieldUpdateOperationsInput | string
+    trigger?: EnumFollowUpTriggerFieldUpdateOperationsInput | $Enums.FollowUpTrigger
+    status?: EnumFollowUpStatusFieldUpdateOperationsInput | $Enums.FollowUpStatus
+    dedupeKey?: StringFieldUpdateOperationsInput | string
+    scheduledAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FollowUpUncheckedUpdateManyWithoutLeadInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    conversationId?: StringFieldUpdateOperationsInput | string
+    trigger?: EnumFollowUpTriggerFieldUpdateOperationsInput | $Enums.FollowUpTrigger
+    status?: EnumFollowUpStatusFieldUpdateOperationsInput | $Enums.FollowUpStatus
+    dedupeKey?: StringFieldUpdateOperationsInput | string
+    scheduledAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CrmSyncLogUpdateWithoutLeadInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    crmSyncId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus
+    provider?: EnumCrmTypeFieldUpdateOperationsInput | $Enums.CrmType
+    externalId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CrmSyncLogUncheckedUpdateWithoutLeadInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    crmSyncId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus
+    provider?: EnumCrmTypeFieldUpdateOperationsInput | $Enums.CrmType
+    externalId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CrmSyncLogUncheckedUpdateManyWithoutLeadInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    crmSyncId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    status?: EnumCrmSyncStatusFieldUpdateOperationsInput | $Enums.CrmSyncStatus
+    provider?: EnumCrmTypeFieldUpdateOperationsInput | $Enums.CrmType
+    externalId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type MessageCreateManyConversationInput = {

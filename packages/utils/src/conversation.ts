@@ -3,11 +3,18 @@ import type {
   ConversationSnapshot,
   LeadAttributeUpsert,
   ParsedAnswers,
-  ParsedBudget,
   ParsedTimeline
 } from "@real-estate/types";
 
 import { sanitizeFreeText } from "./sanitization";
+import {
+  computeQualificationCompleteness,
+  extractLeadQualification,
+  parseBudget,
+  parseLocation,
+  parsePurpose,
+  parseTimeline
+} from "./qualification";
 
 const BUDGET_PROMPT =
   "What budget range are you considering? You can reply like 80 lakh to 1 crore.";
@@ -21,268 +28,8 @@ const QUALIFIED_MESSAGE =
 const INTRO_MESSAGE =
   "Hi, thanks for your interest in our properties. I will ask a few quick questions to match the right options. What budget range are you considering?";
 
-const PURPOSE_KEYWORDS = [
-  "investment",
-  "self use",
-  "self-use",
-  "end use",
-  "end-use",
-  "rental",
-  "rental income",
-  "commercial",
-  "residential",
-  "office",
-  "retail"
-];
-
-const fillerWords = new Set([
-  "my",
-  "budget",
-  "is",
-  "around",
-  "about",
-  "looking",
-  "for",
-  "need",
-  "want",
-  "property",
-  "home",
-  "flat",
-  "apartment",
-  "villa",
-  "plot",
-  "purchase",
-  "buy",
-  "to",
-  "the",
-  "a",
-  "an",
-  "in",
-  "at",
-  "near"
-]);
-
-function amountMultiplier(unit?: string): number {
-  const normalized = unit?.toLowerCase();
-  switch (normalized) {
-    case "k":
-      return 1_000;
-    case "l":
-    case "lac":
-    case "lakh":
-    case "lakhs":
-      return 100_000;
-    case "cr":
-    case "crore":
-    case "crores":
-      return 10_000_000;
-    case "m":
-    case "mn":
-    case "million":
-      return 1_000_000;
-    case "b":
-    case "bn":
-    case "billion":
-      return 1_000_000_000;
-    default:
-      return 1;
-  }
-}
-
-function parseAmount(amountText: string, unit?: string): number {
-  const normalized = Number.parseFloat(amountText.replace(/,/g, ""));
-  return Math.round(normalized * amountMultiplier(unit));
-}
-
-export function parseBudget(input: string): ParsedBudget | undefined {
-  const text = sanitizeFreeText(input, 500).toLowerCase();
-  if (!text) {
-    return undefined;
-  }
-
-  const rangeMatch = text.match(
-    /(?:rs\.?|inr|₹)?\s*(\d+(?:[.,]\d+)?)\s*(k|lac|lakh|lakhs|l|cr|crore|crores|m|mn|million|b|bn|billion)?\s*(?:to|-|and)\s*(\d+(?:[.,]\d+)?)\s*(k|lac|lakh|lakhs|l|cr|crore|crores|m|mn|million|b|bn|billion)?/i
-  );
-  if (rangeMatch) {
-    const currency = /₹|rs|inr/i.test(rangeMatch[0]) ? "INR" : undefined;
-    return {
-      raw: rangeMatch[0],
-      min: parseAmount(rangeMatch[1], rangeMatch[2]),
-      max: parseAmount(rangeMatch[3], rangeMatch[4]),
-      ...(currency ? { currency } : {})
-    };
-  }
-
-  const underMatch = text.match(
-    /(?:under|below|less than|up to|max(?:imum)?)\s*(?:rs\.?|inr|₹)?\s*(\d+(?:[.,]\d+)?)\s*(k|lac|lakh|lakhs|l|cr|crore|crores|m|mn|million|b|bn|billion)?/i
-  );
-  if (underMatch) {
-    const currency = /₹|rs|inr/i.test(underMatch[0]) ? "INR" : undefined;
-    return {
-      raw: underMatch[0],
-      max: parseAmount(underMatch[1], underMatch[2]),
-      ...(currency ? { currency } : {})
-    };
-  }
-
-  const aboveMatch = text.match(
-    /(?:above|over|more than|minimum|from)\s*(?:rs\.?|inr|₹)?\s*(\d+(?:[.,]\d+)?)\s*(k|lac|lakh|lakhs|l|cr|crore|crores|m|mn|million|b|bn|billion)?/i
-  );
-  if (aboveMatch) {
-    const currency = /₹|rs|inr/i.test(aboveMatch[0]) ? "INR" : undefined;
-    return {
-      raw: aboveMatch[0],
-      min: parseAmount(aboveMatch[1], aboveMatch[2]),
-      ...(currency ? { currency } : {})
-    };
-  }
-
-  const singleAmount = text.match(
-    /(?:budget|around|about|approx(?:imately)?)?\s*(?:rs\.?|inr|₹)?\s*(\d+(?:[.,]\d+)?)\s*(k|lac|lakh|lakhs|l|cr|crore|crores|m|mn|million|b|bn|billion)\b/i
-  );
-  if (singleAmount) {
-    const value = parseAmount(singleAmount[1], singleAmount[2]);
-    const currency = /₹|rs|inr/i.test(singleAmount[0]) ? "INR" : undefined;
-    return {
-      raw: singleAmount[0],
-      min: value,
-      max: value,
-      ...(currency ? { currency } : {})
-    };
-  }
-
-  return undefined;
-}
-
-export function parseTimeline(input: string): ParsedTimeline | undefined {
-  const text = sanitizeFreeText(input, 500).toLowerCase();
-  if (!text) {
-    return undefined;
-  }
-
-  if (/(immediate|asap|urgent|right away|today|this week)/i.test(text)) {
-    return { raw: "immediate", days: 7, unit: "day" };
-  }
-
-  if (/this month/i.test(text)) {
-    return { raw: "this month", days: 30, unit: "month" };
-  }
-
-  const rangeMatch = text.match(/(\d+)\s*(?:to|-)\s*(\d+)\s*(day|days|week|weeks|month|months|year|years)/i);
-  if (rangeMatch) {
-    const upper = Number.parseInt(rangeMatch[2], 10);
-    return convertTimeline(rangeMatch[0], upper, rangeMatch[3]);
-  }
-
-  const exactMatch = text.match(/(\d+)\s*(day|days|week|weeks|month|months|year|years)/i);
-  if (exactMatch) {
-    return convertTimeline(exactMatch[0], Number.parseInt(exactMatch[1], 10), exactMatch[2]);
-  }
-
-  if (/next quarter/i.test(text)) {
-    return { raw: "next quarter", days: 90, unit: "month" };
-  }
-
-  return undefined;
-}
-
-function convertTimeline(raw: string, amount: number, unit: string): ParsedTimeline {
-  const normalizedUnit = unit.toLowerCase();
-  switch (normalizedUnit) {
-    case "day":
-    case "days":
-      return { raw, days: amount, unit: "day" };
-    case "week":
-    case "weeks":
-      return { raw, days: amount * 7, unit: "week" };
-    case "month":
-    case "months":
-      return { raw, days: amount * 30, unit: "month" };
-    case "year":
-    case "years":
-      return { raw, days: amount * 365, unit: "year" };
-    default:
-      return { raw };
-  }
-}
-
-export function parsePurpose(input: string): string | undefined {
-  const text = sanitizeFreeText(input, 500).toLowerCase();
-  if (!text) {
-    return undefined;
-  }
-
-  const keyword = PURPOSE_KEYWORDS.find((value) => text.includes(value));
-  if (keyword) {
-    return keyword.replace(/-/g, " ");
-  }
-
-  const forMatch = text.match(/for\s+([a-z\s-]{3,40})/i);
-  if (forMatch) {
-    return sanitizeFreeText(forMatch[1], 40).toLowerCase();
-  }
-
-  return undefined;
-}
-
-export function parseLocation(input: string): string | undefined {
-  const original = sanitizeFreeText(input, 500);
-  const text = original.toLowerCase();
-  if (!text) {
-    return undefined;
-  }
-
-  const hinted = text.match(/(?:in|at|around|near)\s+([a-z0-9 ,.'-]{2,80})/i);
-  if (hinted) {
-    return cleanLocationCandidate(hinted[1]);
-  }
-
-  const withoutBudget = text
-    .replace(
-      /(?:rs\.?|inr|₹)?\s*\d+(?:[.,]\d+)?\s*(?:k|lac|lakh|lakhs|l|cr|crore|crores|m|mn|million|b|bn|billion)?(?:\s*(?:to|-|and)\s*\d+(?:[.,]\d+)?\s*(?:k|lac|lakh|lakhs|l|cr|crore|crores|m|mn|million|b|bn|billion)?)?/gi,
-      " "
-    )
-    .replace(/(\d+)\s*(day|days|week|weeks|month|months|year|years)/gi, " ")
-    .replace(/(immediate|asap|urgent|investment|self use|rental income|commercial|residential)/gi, " ");
-
-  const words = withoutBudget
-    .split(/[\s,]+/)
-    .map((part) => part.trim())
-    .filter((part) => part && !fillerWords.has(part));
-
-  if (words.length === 0) {
-    return undefined;
-  }
-
-  return cleanLocationCandidate(words.join(" "));
-}
-
-function cleanLocationCandidate(value: string): string | undefined {
-  const cleaned = sanitizeFreeText(value, 80)
-    .replace(/\b(immediate|asap|investment|self use|rental income|commercial|residential)\b/gi, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/[.,-]+$/, "");
-
-  if (!cleaned || /\d{4,}/.test(cleaned)) {
-    return undefined;
-  }
-
-  return cleaned;
-}
-
 export function extractAnswers(input: string): ParsedAnswers {
-  const budget = parseBudget(input);
-  const location = parseLocation(input);
-  const timeline = parseTimeline(input);
-  const purpose = parsePurpose(input);
-
-  return {
-    ...(budget ? { budget } : {}),
-    ...(location ? { location } : {}),
-    ...(timeline ? { timeline } : {}),
-    ...(purpose ? { purpose } : {})
-  };
+  return extractLeadQualification(input).parsedAnswers;
 }
 
 export function promptForState(state: ConversationSnapshot["state"]): string {
@@ -313,7 +60,9 @@ export function advanceState(
       nextState: "ASK_BUDGET",
       attributesToUpsert: [],
       outboundMessage: INTRO_MESSAGE,
-      parsedAnswers: {}
+      parsedAnswers: {},
+      completenessPercentage: 0,
+      intentConfidence: 0
     };
   }
 
@@ -322,21 +71,32 @@ export function advanceState(
       nextState: "QUALIFIED",
       attributesToUpsert: [],
       outboundMessage: null,
-      parsedAnswers: {}
+      parsedAnswers: {},
+      completenessPercentage: 100,
+      intentConfidence: Number(conversation.context?.intentConfidence ?? 1)
     };
   }
 
   const text = sanitizeFreeText(inboundText ?? "", 500);
-  const parsedAnswers = extractAnswers(text);
+  const extraction = extractLeadQualification(text);
+  const parsedAnswers = extraction.parsedAnswers;
   const attributesToUpsert: LeadAttributeUpsert[] = [];
   let state: ConversationSnapshot["state"] = conversation.state;
 
   const capture = (key: LeadAttributeUpsert["key"], value: LeadAttributeUpsert["value"] | undefined): boolean => {
-    if (value === undefined) {
+    const extracted = extraction.fields.find((field) => field.key === key);
+    if (value === undefined || !extracted) {
       return false;
     }
 
-    attributesToUpsert.push({ key, value });
+    attributesToUpsert.push({
+      key,
+      value,
+      rawValue: extracted.rawValue,
+      confidence: extracted.confidence,
+      source: extracted.source,
+      metadata: extracted.metadata
+    });
     return true;
   };
 
@@ -346,7 +106,9 @@ export function advanceState(
         nextState: "ASK_BUDGET",
         attributesToUpsert,
         outboundMessage: promptForState(state),
-        parsedAnswers
+        parsedAnswers,
+        completenessPercentage: extraction.completenessPercentage,
+        intentConfidence: extraction.intentConfidence
       };
     }
 
@@ -359,7 +121,9 @@ export function advanceState(
         nextState: "ASK_LOCATION",
         attributesToUpsert,
         outboundMessage: promptForState(state),
-        parsedAnswers
+        parsedAnswers,
+        completenessPercentage: extraction.completenessPercentage,
+        intentConfidence: extraction.intentConfidence
       };
     }
 
@@ -372,7 +136,9 @@ export function advanceState(
         nextState: "ASK_TIMELINE",
         attributesToUpsert,
         outboundMessage: promptForState(state),
-        parsedAnswers
+        parsedAnswers,
+        completenessPercentage: extraction.completenessPercentage,
+        intentConfidence: extraction.intentConfidence
       };
     }
 
@@ -385,18 +151,39 @@ export function advanceState(
         nextState: "ASK_PURPOSE",
         attributesToUpsert,
         outboundMessage: promptForState(state),
-        parsedAnswers
+        parsedAnswers,
+        completenessPercentage: extraction.completenessPercentage,
+        intentConfidence: extraction.intentConfidence
       };
     }
 
     state = "QUALIFIED";
   }
 
+  for (const extracted of extraction.fields) {
+    if (!attributesToUpsert.some((attribute) => attribute.key === extracted.key)) {
+      attributesToUpsert.push({
+        key: extracted.key,
+        value: extracted.value,
+        rawValue: extracted.rawValue,
+        confidence: extracted.confidence,
+        source: extracted.source,
+        metadata: extracted.metadata
+      });
+    }
+  }
+
+  const uniqueAttributesToUpsert = Array.from(
+    new Map(attributesToUpsert.map((attribute) => [attribute.key, attribute])).values()
+  );
+
   return {
     nextState: state,
-    attributesToUpsert,
+    attributesToUpsert: uniqueAttributesToUpsert,
     outboundMessage: state === "QUALIFIED" ? QUALIFIED_MESSAGE : promptForState(state),
-    parsedAnswers
+    parsedAnswers,
+    completenessPercentage: extraction.completenessPercentage,
+    intentConfidence: extraction.intentConfidence
   };
 }
 

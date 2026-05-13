@@ -154,6 +154,13 @@ exports.Prisma.LeadScalarFieldEnum = {
   source: 'source',
   status: 'status',
   score: 'score',
+  priority: 'priority',
+  qualificationCompleteness: 'qualificationCompleteness',
+  intentConfidence: 'intentConfidence',
+  crmSyncStatus: 'crmSyncStatus',
+  crmExternalId: 'crmExternalId',
+  crmLastSyncAt: 'crmLastSyncAt',
+  crmErrorLogs: 'crmErrorLogs',
   idempotencyKey: 'idempotencyKey',
   metadata: 'metadata',
   createdAt: 'createdAt',
@@ -165,8 +172,23 @@ exports.Prisma.LeadAttributeScalarFieldEnum = {
   leadId: 'leadId',
   key: 'key',
   value: 'value',
+  rawValue: 'rawValue',
+  confidence: 'confidence',
+  source: 'source',
+  metadata: 'metadata',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.LeadScoreScalarFieldEnum = {
+  id: 'id',
+  leadId: 'leadId',
+  clientId: 'clientId',
+  total: 'total',
+  priority: 'priority',
+  breakdown: 'breakdown',
+  version: 'version',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.ConversationScalarFieldEnum = {
@@ -240,6 +262,36 @@ exports.Prisma.CrmSyncScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.CrmSyncLogScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  crmSyncId: 'crmSyncId',
+  idempotencyKey: 'idempotencyKey',
+  status: 'status',
+  provider: 'provider',
+  externalId: 'externalId',
+  error: 'error',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FollowUpScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  conversationId: 'conversationId',
+  trigger: 'trigger',
+  status: 'status',
+  dedupeKey: 'dedupeKey',
+  scheduledAt: 'scheduledAt',
+  sentAt: 'sentAt',
+  cancelledAt: 'cancelledAt',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -299,11 +351,26 @@ exports.LeadStatus = exports.$Enums.LeadStatus = {
   lost: 'lost'
 };
 
+exports.LeadPriority = exports.$Enums.LeadPriority = {
+  HOT: 'HOT',
+  WARM: 'WARM',
+  COLD: 'COLD'
+};
+
+exports.CrmSyncStatus = exports.$Enums.CrmSyncStatus = {
+  pending: 'pending',
+  processing: 'processing',
+  success: 'success',
+  failed: 'failed'
+};
+
 exports.LeadAttributeKey = exports.$Enums.LeadAttributeKey = {
   budget: 'budget',
   location: 'location',
   timeline: 'timeline',
-  purpose: 'purpose'
+  property_type: 'property_type',
+  purpose: 'purpose',
+  financing_needed: 'financing_needed'
 };
 
 exports.ConversationChannel = exports.$Enums.ConversationChannel = {
@@ -339,10 +406,18 @@ exports.JobStatus = exports.$Enums.JobStatus = {
   dead_letter: 'dead_letter'
 };
 
-exports.CrmSyncStatus = exports.$Enums.CrmSyncStatus = {
-  pending: 'pending',
-  processing: 'processing',
-  success: 'success',
+exports.FollowUpTrigger = exports.$Enums.FollowUpTrigger = {
+  no_reply: 'no_reply',
+  incomplete_qualification: 'incomplete_qualification',
+  warm_lead_reengagement: 'warm_lead_reengagement',
+  revisit_reminder: 'revisit_reminder'
+};
+
+exports.FollowUpStatus = exports.$Enums.FollowUpStatus = {
+  scheduled: 'scheduled',
+  sent: 'sent',
+  cancelled: 'cancelled',
+  skipped: 'skipped',
   failed: 'failed'
 };
 
@@ -351,11 +426,14 @@ exports.Prisma.ModelName = {
   ApiKey: 'ApiKey',
   Lead: 'Lead',
   LeadAttribute: 'LeadAttribute',
+  LeadScore: 'LeadScore',
   Conversation: 'Conversation',
   Message: 'Message',
   Job: 'Job',
   AuditLog: 'AuditLog',
-  CrmSync: 'CrmSync'
+  CrmSync: 'CrmSync',
+  CrmSyncLog: 'CrmSyncLog',
+  FollowUp: 'FollowUp'
 };
 
 /**

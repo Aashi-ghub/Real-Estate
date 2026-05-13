@@ -9,6 +9,16 @@ import { buildJobDedupeKey, buildJobTrace, computeRetryMetadata, promptForState 
 import { WorkerQueues } from "../services/queue-runtime";
 import { markJobComplete, markJobFailure, markJobProcessing } from "../services/runtime-helpers";
 
+type OptionalFollowUpDelegate = {
+  followUp?: {
+    updateMany(args: unknown): Promise<unknown>;
+  };
+};
+
+async function updateFollowUp(db: PrismaClient, args: unknown): Promise<void> {
+  await (db as unknown as OptionalFollowUpDelegate).followUp?.updateMany(args);
+}
+
 export async function processFollowup(
   job: Job<FollowupNoReplyJobData>,
   deps: {
@@ -63,6 +73,10 @@ export async function processFollowup(
     }
 
     if (conversation.state !== job.data.expectedState) {
+      await updateFollowUp(db, {
+        where: { dedupeKey: job.data.dedupeKey, status: "scheduled" },
+        data: { status: "skipped" }
+      });
       await markJobComplete(db, {
         clientId: job.data.clientId,
         leadId: job.data.leadId,
@@ -90,6 +104,10 @@ export async function processFollowup(
       }
     });
     if (lastInbound) {
+      await updateFollowUp(db, {
+        where: { dedupeKey: job.data.dedupeKey, status: "scheduled" },
+        data: { status: "cancelled", cancelledAt: new Date() }
+      });
       await markJobComplete(db, {
         clientId: job.data.clientId,
         leadId: job.data.leadId,
@@ -139,6 +157,13 @@ export async function processFollowup(
       trace: deps.trace
     });
     await deps.queues.enqueueSendMessage(sendJob);
+    await updateFollowUp(db, {
+      where: { dedupeKey: job.data.dedupeKey },
+      data: {
+        status: "sent",
+        sentAt: new Date()
+      }
+    });
 
     await markJobComplete(db, {
       clientId: job.data.clientId,
@@ -155,6 +180,10 @@ export async function processFollowup(
       trace: deps.trace
     });
   } catch (error) {
+    await updateFollowUp(db, {
+      where: { dedupeKey: job.data.dedupeKey },
+      data: { status: "failed" }
+    });
     await markJobFailure(
       db,
       deps.logger,

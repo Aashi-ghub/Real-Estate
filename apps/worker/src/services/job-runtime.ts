@@ -106,72 +106,100 @@ export function attachWorkerLifecycle<TData extends { clientId?: string; leadId?
   }
 ): void {
   worker.on("failed", async (job, error) => {
-    if (!job) {
-      return;
-    }
+    try {
+      if (!job) {
+        return;
+      }
 
-    const maxAttempts = job.opts.attempts ?? 1;
-    const retryMetadata = computeRetryMetadata({
-      attemptsMade: job.attemptsMade,
-      maxAttempts,
-      baseDelayMs: options.retryBackoffMs,
-      maxDelayMs: options.retryBackoffMaxMs
-    });
-    const trace = resolveJobTrace(job as Job<{ trace?: Partial<JobTrace> }>, options.identity);
+      const maxAttempts = job.opts.attempts ?? 1;
+      const retryMetadata = computeRetryMetadata({
+        attemptsMade: job.attemptsMade,
+        maxAttempts,
+        baseDelayMs: options.retryBackoffMs,
+        maxDelayMs: options.retryBackoffMaxMs
+      });
+      const trace = resolveJobTrace(job as Job<{ trace?: Partial<JobTrace> }>, options.identity);
 
-    incrementQueueFailure(options.identity.queueName, options.identity.workerName, !retryMetadata.willRetry);
-    if (retryMetadata.willRetry) {
-      incrementQueueRetry(options.identity.queueName, options.identity.workerName);
-      return;
-    }
+      incrementQueueFailure(options.identity.queueName, options.identity.workerName, !retryMetadata.willRetry);
+      options.logger.warn(
+        {
+          err: error,
+          queue: options.identity.queueName,
+          worker_name: options.identity.workerName,
+          job_id: String(job.id),
+          job_name: job.name,
+          attempts_made: retryMetadata.attemptsMade,
+          max_attempts: retryMetadata.maxAttempts,
+          will_retry: retryMetadata.willRetry,
+          next_retry_delay_ms: retryMetadata.nextRetryDelayMs
+        },
+        "worker.job.failed.lifecycle"
+      );
+      if (retryMetadata.willRetry) {
+        incrementQueueRetry(options.identity.queueName, options.identity.workerName);
+        return;
+      }
 
-    const deadLetterPayload: DeadLetterJobData = {
-      queue: options.identity.queueName,
-      workerName: options.identity.workerName,
-      jobId: String(job.id),
-      jobName: job.name,
-      clientId: job.data.clientId,
-      leadId: job.data.leadId,
-      dedupeKey: job.data.dedupeKey,
-      payload: sanitizeJsonValue(job.data),
-      error: {
-        message: error.message,
-        failedAt: new Date().toISOString(),
-        attemptsMade: retryMetadata.attemptsMade,
-        maxAttempts: retryMetadata.maxAttempts,
-        willRetry: false,
-        nextRetryDelayMs: 0
-      },
-      trace
-    };
-
-    incrementDeadLetter(options.identity.queueName, options.identity.workerName);
-    await options.deadLetterQueue.add("dead_letter", deadLetterPayload, {
-      jobId: String(job.id),
-      removeOnComplete: 1_000,
-      removeOnFail: false
-    });
-    await markJobFailure(
-      options.db,
-      options.logger,
-      {
-        clientId: String(job.data.clientId ?? ""),
-        leadId: job.data.leadId,
+      const deadLetterPayload: DeadLetterJobData = {
         queue: options.identity.queueName,
-        name: job.name,
-        dedupeKey: String(job.data.dedupeKey ?? job.id),
-        payload: job.data,
-        attempts: retryMetadata.attemptsMade,
-        metadata: {
-          retry: retryMetadata,
-          workerName: options.identity.workerName,
-          finalFailureAt: deadLetterPayload.error.failedAt
+        workerName: options.identity.workerName,
+        jobId: String(job.id),
+        jobName: job.name,
+        clientId: job.data.clientId,
+        leadId: job.data.leadId,
+        dedupeKey: job.data.dedupeKey,
+        payload: sanitizeJsonValue(job.data),
+        error: {
+          message: error.message,
+          failedAt: new Date().toISOString(),
+          attemptsMade: retryMetadata.attemptsMade,
+          maxAttempts: retryMetadata.maxAttempts,
+          willRetry: false,
+          nextRetryDelayMs: 0
         },
         trace
-      },
-      error,
-      "dead_letter"
-    );
+      };
+
+      incrementDeadLetter(options.identity.queueName, options.identity.workerName);
+      await options.deadLetterQueue.add("dead_letter", deadLetterPayload, {
+        jobId: String(job.id),
+        removeOnComplete: 1_000,
+        removeOnFail: false
+      });
+      await markJobFailure(
+        options.db,
+        options.logger,
+        {
+          clientId: String(job.data.clientId ?? ""),
+          leadId: job.data.leadId,
+          queue: options.identity.queueName,
+          name: job.name,
+          dedupeKey: String(job.data.dedupeKey ?? job.id),
+          payload: job.data,
+          attempts: retryMetadata.attemptsMade,
+          metadata: {
+            retry: retryMetadata,
+            workerName: options.identity.workerName,
+            finalFailureAt: deadLetterPayload.error.failedAt
+          },
+          trace
+        },
+        error,
+        "dead_letter"
+      );
+    } catch (lifecycleError) {
+      options.logger.error(
+        {
+          err: lifecycleError,
+          original_error: error,
+          queue: options.identity.queueName,
+          worker_name: options.identity.workerName,
+          job_id: job ? String(job.id) : undefined
+        },
+        "worker.failed_lifecycle.error"
+      );
+      return;
+    }
   });
 
   worker.on("error", (error) => {

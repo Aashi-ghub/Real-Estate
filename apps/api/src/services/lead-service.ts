@@ -32,7 +32,8 @@ import {
   buildJobTrace,
   buildJobDedupeKey,
   buildTenantIdempotencyKey,
-  computeQualificationScore,
+  computeLeadScore,
+  computeQualificationCompleteness,
   hashApiKey,
   incrementWebhookFailure,
   leadCreatedTotal,
@@ -60,10 +61,40 @@ const createLeadBodySchema = z.object({
 });
 
 const inboundBodySchema = z.record(z.string(), z.unknown());
+const dashboardListSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  page_size: z.coerce.number().int().min(1).max(100).default(25),
+  status: z.string().optional(),
+  priority: z.enum(["HOT", "WARM", "COLD"]).optional(),
+  source: z.string().max(100).optional(),
+  search: z.string().max(100).optional(),
+  sort: z.enum(["created_at", "updated_at", "score", "qualification"]).default("created_at"),
+  order: z.enum(["asc", "desc"]).default("desc")
+});
+const dashboardFollowupSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  page_size: z.coerce.number().int().min(1).max(100).default(25),
+  status: z.enum(["scheduled", "sent", "cancelled", "skipped", "failed"]).optional()
+});
 const interactiveTransactionOptions = {
   isolationLevel: "Serializable" as const,
   maxWait: 10_000,
   timeout: 15_000
+};
+
+function observeBackgroundTask(logger: Logger, name: string, task: Promise<unknown>, metadata: Record<string, unknown>): void {
+  void task.catch((error) => {
+    logger.error({ err: error, ...metadata }, name);
+  });
+}
+
+type OptionalPhase2Delegates = {
+  leadScore?: {
+    create(args: unknown): Promise<unknown>;
+  };
+  followUp?: {
+    updateMany(args: unknown): Promise<unknown>;
+  };
 };
 
 function asConversationContext(value: unknown): ConversationContext {
@@ -99,14 +130,14 @@ export class LeadService {
 
   async authenticateApiKey(apiKey: string): Promise<AuthenticatedApiKey | null> {
     const hashed = hashApiKey(apiKey, this.config.APP_ENCRYPTION_KEY);
-    const record = await this.db.apiKey.findFirst({
+    const record = await this.db.apiKey.findUnique({
       where: {
-        hashedKey: hashed,
-        status: "active"
+        hashedKey: hashed
       },
       select: {
         id: true,
         clientId: true,
+        status: true,
         client: {
           select: {
             status: true
@@ -115,14 +146,19 @@ export class LeadService {
       }
     });
 
-    if (!record) {
+    if (!record || record.status !== "active") {
       return null;
     }
 
-    await this.db.apiKey.update({
-      where: { id: record.id },
-      data: { lastUsedAt: new Date() }
-    });
+    observeBackgroundTask(
+      this.logger,
+      "api_key.last_used.update_failed",
+      this.db.apiKey.update({
+        where: { id: record.id },
+        data: { lastUsedAt: new Date() }
+      }),
+      { apiKeyId: record.id, clientId: record.clientId }
+    );
 
     return {
       id: record.id,
@@ -182,49 +218,64 @@ export class LeadService {
         const storedIdempotencyKey = buildTenantIdempotencyKey(body.client_id, input.idempotencyKey);
 
         try {
-          const result = await this.db.$transaction(
-            async (tx) => {
-              const existing = await tx.lead.findUnique({
-                where: {
-                  idempotencyKey: storedIdempotencyKey
-                },
-                include: {
-                  conversation: true
+          const lead = await this.db.lead.create({
+            data: {
+              clientId: body.client_id,
+              name: sanitizeFreeText(body.name, 160),
+              phone: normalizedPhone,
+              email: normalizedEmail,
+              source: sanitizeFreeText(body.source, 100),
+              idempotencyKey: storedIdempotencyKey,
+              ...(body.metadata ? { metadata: toPrismaJson(sanitizeJsonValue(body.metadata)) } : {}),
+              conversation: {
+                create: {
+                  channel: "whatsapp",
+                  state: "INIT",
+                  context: toPrismaJson({ responseCount: 0 } satisfies JsonObject)
                 }
-              });
-
-              if (existing?.conversation) {
-                return {
-                  leadId: existing.id,
-                  conversationId: existing.conversation.id,
-                  created: false,
-                  phone: existing.phone
-                };
               }
-
-              const lead = await tx.lead.create({
-                data: {
-                  clientId: body.client_id,
-                  name: sanitizeFreeText(body.name, 160),
-                  phone: normalizedPhone,
-                  email: normalizedEmail,
-                  source: sanitizeFreeText(body.source, 100),
-                  idempotencyKey: storedIdempotencyKey,
-                  ...(body.metadata ? { metadata: toPrismaJson(sanitizeJsonValue(body.metadata)) } : {}),
-                  conversation: {
-                    create: {
-                      channel: "whatsapp",
-                      state: "INIT",
-                      context: toPrismaJson({ responseCount: 0 } satisfies JsonObject)
-                    }
-                  }
-                },
-                include: {
-                  conversation: true
+            },
+            select: {
+              id: true,
+              phone: true,
+              conversation: {
+                select: {
+                  id: true
                 }
-              });
+              }
+            }
+          });
 
-              await createAuditLog(tx, {
+          const result = {
+            leadId: lead.id,
+            conversationId: lead.conversation!.id,
+            created: true,
+            phone: lead.phone
+          };
+
+          const dedupeKey = buildJobDedupeKey(["intro", result.conversationId]);
+          const job: SendMessageJobData = {
+            clientId: body.client_id,
+            leadId: result.leadId,
+            conversationId: result.conversationId,
+            to: result.phone,
+            text: "Hi, thanks for your interest in our properties. I will ask a few quick questions to match the right options. What budget range are you considering?",
+            dedupeKey,
+            reason: "intro",
+            transitionAfterSend: "ASK_BUDGET",
+            trace: buildJobTrace(undefined, {
+              requestId: input.trace.requestId,
+              correlationId: input.trace.correlationId,
+              source: "api"
+            })
+          };
+
+          await this.queues.enqueueSendMessage(job);
+          observeBackgroundTask(
+            this.logger,
+            "lead.create.bookkeeping_failed",
+            Promise.all([
+              createAuditLog(this.db, {
                 clientId: body.client_id,
                 actor: `api_key:${input.auth.id}`,
                 action: "lead.create",
@@ -236,63 +287,34 @@ export class LeadService {
                   source: body.source
                 },
                 trace: input.trace
-              });
-
-              return {
-                leadId: lead.id,
-                conversationId: lead.conversation!.id,
-                created: true,
-                phone: lead.phone
-              };
-            },
-            interactiveTransactionOptions
-          );
-
-          if (result.created) {
-            const dedupeKey = buildJobDedupeKey(["intro", result.conversationId]);
-            const job: SendMessageJobData = {
-              clientId: body.client_id,
-              leadId: result.leadId,
-              conversationId: result.conversationId,
-              to: result.phone,
-              text: "Hi, thanks for your interest in our properties. I will ask a few quick questions to match the right options. What budget range are you considering?",
-              dedupeKey,
-              reason: "intro",
-              transitionAfterSend: "ASK_BUDGET",
-              trace: buildJobTrace(undefined, {
-                requestId: input.trace.requestId,
-                correlationId: input.trace.correlationId,
-                source: "api"
-              })
-            };
-
-            await upsertJobMirror(this.db, {
-              clientId: body.client_id,
-              leadId: result.leadId,
-              queue: "messages",
-              name: "send_message",
-              idempotencyKey: dedupeKey,
-              payload: job,
-              metadata: {
-                queueName: "messages",
-                source: "api"
-              },
-              status: "queued",
-              trace: input.trace
-            });
-            await this.queues.enqueueSendMessage(job);
-            this.logger.info(
-              {
+              }),
+              upsertJobMirror(this.db, {
                 clientId: body.client_id,
                 leadId: result.leadId,
                 queue: "messages",
-                request_id: input.trace.requestId
-              },
-              "lead.intro.enqueued"
-            );
-            leadCreatedTotal.inc({ client_id: body.client_id });
-            await this.refreshQualificationRate(body.client_id);
-          }
+                name: "send_message",
+                idempotencyKey: dedupeKey,
+                payload: job,
+                metadata: {
+                  queueName: "messages",
+                  source: "api"
+                },
+                status: "queued",
+                trace: input.trace
+              })
+            ]),
+            { clientId: body.client_id, leadId: result.leadId, request_id: input.trace.requestId }
+          );
+          this.logger.info(
+            {
+              clientId: body.client_id,
+              leadId: result.leadId,
+              queue: "messages",
+              request_id: input.trace.requestId
+            },
+            "lead.intro.enqueued"
+          );
+          leadCreatedTotal.inc({ client_id: body.client_id });
 
           return {
             leadId: result.leadId,
@@ -301,7 +323,8 @@ export class LeadService {
         } catch (error) {
           if (isUniqueConstraintError(error)) {
             const existing = await this.db.lead.findUnique({
-              where: { idempotencyKey: storedIdempotencyKey }
+              where: { idempotencyKey: storedIdempotencyKey },
+              select: { id: true }
             });
             if (existing) {
               return {
@@ -470,10 +493,18 @@ export class LeadService {
                   create: {
                     leadId: lead.id,
                     key: attribute.key,
-                    value: toPrismaJson(attribute.value)
+                    value: toPrismaJson(attribute.value),
+                    rawValue: attribute.rawValue ?? null,
+                    confidence: attribute.confidence ?? 1,
+                    source: attribute.source ?? "rule",
+                    ...(attribute.metadata ? { metadata: toPrismaJson(attribute.metadata) } : {})
                   },
                   update: {
-                    value: toPrismaJson(attribute.value)
+                    value: toPrismaJson(attribute.value),
+                    rawValue: attribute.rawValue ?? null,
+                    confidence: attribute.confidence ?? 1,
+                    source: attribute.source ?? "rule",
+                    ...(attribute.metadata ? { metadata: toPrismaJson(attribute.metadata) } : {})
                   }
                 });
               }
@@ -482,6 +513,8 @@ export class LeadService {
                 ...currentContext,
                 lastInboundAt: now.toISOString(),
                 responseCount: (currentContext.responseCount ?? 0) + 1,
+                completionPercentage: advance.completenessPercentage,
+                intentConfidence: advance.intentConfidence,
                 ...(typeof responseLatencyMs === "number" ? { lastResponseLatencyMs: responseLatencyMs } : {}),
                 ...(advance.nextState === "QUALIFIED"
                   ? { qualifiedAt: now.toISOString() }
@@ -491,20 +524,34 @@ export class LeadService {
               };
 
               const score =
-                advance.nextState === "QUALIFIED"
-                  ? computeQualificationScore({
-                      timeline: advance.parsedAnswers.timeline,
-                      responseLatencyMs,
-                      completenessCount: attributeMap.size
-                    })
-                  : lead.score;
+                computeLeadScore({
+                  attributes: Object.fromEntries(attributeMap),
+                  responseLatencyMs,
+                  engagementCount: nextContext.responseCount ?? 0,
+                  qualificationCompleteness: computeQualificationCompleteness(attributeMap.keys()),
+                  config: this.extractScoringConfig(client.crmConfig)
+                });
 
               await tx.lead.update({
                 where: { id: lead.id },
                 data: {
                   status:
                     advance.nextState === "QUALIFIED" ? "qualified" : lead.status === "new" ? "contacted" : lead.status,
-                  score
+                  score: score.total,
+                  priority: score.priority,
+                  qualificationCompleteness: computeQualificationCompleteness(attributeMap.keys()),
+                  intentConfidence: advance.intentConfidence
+                }
+              });
+
+              await (tx as unknown as OptionalPhase2Delegates).leadScore?.create({
+                data: {
+                  leadId: lead.id,
+                  clientId: lead.clientId,
+                  total: score.total,
+                  priority: score.priority,
+                  breakdown: toPrismaJson(score.breakdown),
+                  version: score.version
                 }
               });
 
@@ -514,6 +561,16 @@ export class LeadService {
                   state: advance.nextState,
                   context: toPrismaJson(nextContext),
                   lastMessageAt: now
+                }
+              });
+              await (tx as unknown as OptionalPhase2Delegates).followUp?.updateMany({
+                where: {
+                  leadId: lead.id,
+                  status: "scheduled"
+                },
+                data: {
+                  status: "cancelled",
+                  cancelledAt: now
                 }
               });
 
@@ -527,6 +584,7 @@ export class LeadService {
                   leadId: lead.id,
                   providerMessageId: normalized.providerMessageId,
                   nextState: advance.nextState,
+                  completionPercentage: advance.completenessPercentage,
                   phone: normalized.from
                 },
                 trace: input.trace
@@ -659,6 +717,236 @@ export class LeadService {
     };
   }
 
+  async listDashboardLeads(input: {
+    auth: AuthenticatedApiKey;
+    query: unknown;
+  }) {
+    const query = dashboardListSchema.parse(input.query);
+    const where = {
+      clientId: input.auth.clientId,
+      ...(query.status ? { status: query.status as never } : {}),
+      ...(query.priority ? { priority: query.priority } : {}),
+      ...(query.source ? { source: query.source } : {}),
+      ...(query.search
+        ? {
+            OR: [
+              { name: { contains: query.search, mode: "insensitive" as const } },
+              { phone: { contains: query.search } },
+              { email: { contains: query.search, mode: "insensitive" as const } }
+            ]
+          }
+        : {})
+    };
+    const orderBy =
+      query.sort === "score"
+        ? { score: query.order }
+        : query.sort === "qualification"
+          ? { qualificationCompleteness: query.order }
+          : query.sort === "updated_at"
+            ? { updatedAt: query.order }
+            : { createdAt: query.order };
+    const [total, leads] = await Promise.all([
+      this.db.lead.count({ where }),
+      this.db.lead.findMany({
+        where,
+        orderBy,
+        skip: (query.page - 1) * query.page_size,
+        take: query.page_size,
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          email: true,
+          source: true,
+          status: true,
+          score: true,
+          priority: true,
+          qualificationCompleteness: true,
+          intentConfidence: true,
+          crmSyncStatus: true,
+          crmExternalId: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      })
+    ]);
+
+    return {
+      page: query.page,
+      page_size: query.page_size,
+      total,
+      leads
+    };
+  }
+
+  async getDashboardLead(input: {
+    auth: AuthenticatedApiKey;
+    leadId: string;
+  }) {
+    const lead = await this.db.lead.findFirst({
+      where: {
+        id: input.leadId,
+        clientId: input.auth.clientId
+      },
+      include: {
+        attributes: true,
+        conversation: {
+          include: {
+            messages: {
+              orderBy: { createdAt: "desc" },
+              take: 25
+            }
+          }
+        },
+        scores: {
+          orderBy: { createdAt: "desc" },
+          take: 5
+        },
+        followUps: {
+          orderBy: { scheduledAt: "desc" },
+          take: 20
+        },
+        crmSyncs: {
+          orderBy: { updatedAt: "desc" },
+          take: 5
+        }
+      }
+    });
+
+    if (!lead) {
+      const error = new Error("Lead not found");
+      (error as Error & { statusCode?: number }).statusCode = 404;
+      throw error;
+    }
+
+    return lead;
+  }
+
+  async getDashboardAnalytics(input: { auth: AuthenticatedApiKey }) {
+    const clientId = input.auth.clientId;
+    const [analytics] = await this.db.$queryRaw<{
+      total_leads: bigint;
+      qualified_leads: bigint;
+      status_distribution: Record<string, number> | null;
+      source_distribution: Record<string, number> | null;
+      followup_distribution: Record<string, number> | null;
+    }[]>`
+      WITH lead_counts AS (
+        SELECT
+          COUNT(*)::bigint AS total_leads,
+          COUNT(*) FILTER (WHERE status = 'qualified')::bigint AS qualified_leads
+        FROM "Lead"
+        WHERE "clientId" = ${clientId}::uuid
+      ),
+      status_distribution AS (
+        SELECT COALESCE(jsonb_object_agg(status, row_count), '{}'::jsonb) AS value
+        FROM (
+          SELECT status::text AS status, COUNT(*)::int AS row_count
+          FROM "Lead"
+          WHERE "clientId" = ${clientId}::uuid
+          GROUP BY status
+        ) rows
+      ),
+      source_distribution AS (
+        SELECT COALESCE(jsonb_object_agg(source, row_count), '{}'::jsonb) AS value
+        FROM (
+          SELECT source, COUNT(*)::int AS row_count
+          FROM "Lead"
+          WHERE "clientId" = ${clientId}::uuid
+          GROUP BY source
+        ) rows
+      ),
+      followup_distribution AS (
+        SELECT COALESCE(jsonb_object_agg(status, row_count), '{}'::jsonb) AS value
+        FROM (
+          SELECT status::text AS status, COUNT(*)::int AS row_count
+          FROM "FollowUp"
+          WHERE "clientId" = ${clientId}::uuid
+          GROUP BY status
+        ) rows
+      )
+      SELECT
+        lead_counts.total_leads,
+        lead_counts.qualified_leads,
+        status_distribution.value AS status_distribution,
+        source_distribution.value AS source_distribution,
+        followup_distribution.value AS followup_distribution
+      FROM lead_counts, status_distribution, source_distribution, followup_distribution
+    `;
+    const total = Number(analytics?.total_leads ?? 0);
+    const qualified = Number(analytics?.qualified_leads ?? 0);
+
+    return {
+      total_leads: total,
+      qualification_rate: total === 0 ? 0 : qualified / total,
+      lead_status_distribution: analytics?.status_distribution ?? {},
+      source_conversion: analytics?.source_distribution ?? {},
+      response_times: {
+        average_ms: null
+      },
+      follow_up_effectiveness: analytics?.followup_distribution ?? {}
+    };
+  }
+
+  async getDashboardPipeline(input: { auth: AuthenticatedApiKey }) {
+    const rows = await this.db.lead.groupBy({
+      by: ["status", "priority"],
+      where: {
+        clientId: input.auth.clientId
+      },
+      _count: { _all: true },
+      _avg: { score: true }
+    });
+
+    return {
+      stages: rows.map((row) => ({
+        status: row.status,
+        priority: row.priority,
+        count: row._count._all,
+        average_score: row._avg.score ?? 0
+      }))
+    };
+  }
+
+  async listDashboardFollowups(input: {
+    auth: AuthenticatedApiKey;
+    query: unknown;
+  }) {
+    const query = dashboardFollowupSchema.parse(input.query);
+    const where = {
+      clientId: input.auth.clientId,
+      ...(query.status ? { status: query.status } : {})
+    };
+    const [total, followups] = await Promise.all([
+      this.db.followUp.count({ where }),
+      this.db.followUp.findMany({
+        where,
+        orderBy: { scheduledAt: "asc" },
+        skip: (query.page - 1) * query.page_size,
+        take: query.page_size,
+        include: {
+          lead: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              status: true,
+              priority: true,
+              score: true
+            }
+          }
+        }
+      })
+    ]);
+
+    return {
+      page: query.page,
+      page_size: query.page_size,
+      total,
+      followups
+    };
+  }
+
   private async resolveClientForInbound(
     provider: WhatsAppProvider,
     normalized: NormalizedInboundMessage
@@ -756,6 +1044,17 @@ export class LeadService {
     }
 
     return "processing";
+  }
+
+  private extractScoringConfig(crmConfig: unknown) {
+    if (!crmConfig || typeof crmConfig !== "object" || Array.isArray(crmConfig)) {
+      return null;
+    }
+
+    const config = crmConfig as Record<string, unknown>;
+    return config.scoring && typeof config.scoring === "object" && !Array.isArray(config.scoring)
+      ? config.scoring as Record<string, number>
+      : null;
   }
 
   private async enqueueAgentNotification(

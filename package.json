@@ -12,6 +12,7 @@
     "typecheck": "tsc -b tsconfig.json --pretty false",
     "dev:api": "tsx apps/api/src/index.ts",
     "dev:worker": "tsx apps/worker/src/index.ts",
+    "queues:failed": "tsx apps/worker/src/scripts/inspect-failed-jobs.ts",
     "db:generate": "npm run generate -w @real-estate/db",
     "db:migrate": "npm run migrate -w @real-estate/db",
     "db:deploy": "npm run deploy -w @real-estate/db",

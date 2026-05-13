@@ -1,3 +1,5 @@
+import { performance } from "node:perf_hooks";
+
 import { Job, UnrecoverableError } from "bullmq";
 import type { Logger } from "pino";
 
@@ -30,6 +32,12 @@ import {
   markJobProcessing,
   toClientRuntime
 } from "../services/runtime-helpers";
+
+type OptionalFollowUpUpsertDelegate = {
+  followUp?: {
+    upsert(args: unknown): Promise<unknown>;
+  };
+};
 
 export async function processSendMessage(
   job: Job<SendMessageJobData>,
@@ -132,15 +140,28 @@ export async function processSendMessage(
 
   try {
     const clientRuntime = toClientRuntime(conversation.lead.client);
+    const providerStartedAt = performance.now();
     const sendResult = await sendMessage({
       client: clientRuntime,
       to: normalizePhoneE164(job.data.to),
       text: job.data.text,
       encryptionKey: deps.config.APP_ENCRYPTION_KEY,
+      dryRun: deps.config.whatsappDryRun,
       fallbackTwilioAccountSid: deps.config.TWILIO_ACCOUNT_SID,
       fallbackTwilioAuthToken: deps.config.TWILIO_AUTH_TOKEN,
       fallbackTwilioFrom: deps.config.TWILIO_WHATSAPP_FROM
     });
+    deps.logger.info(
+      {
+        clientId: job.data.clientId,
+        leadId: job.data.leadId,
+        reason: job.data.reason,
+        provider: clientRuntime.whatsappProvider,
+        dry_run: deps.config.whatsappDryRun,
+        duration_ms: Math.round(performance.now() - providerStartedAt)
+      },
+      "message.provider_send.complete"
+    );
 
     const now = new Date();
     await db.$transaction(async (tx) => {
@@ -240,6 +261,13 @@ export async function processSendMessage(
     }
   } catch (error) {
     const outboundError = error as Error;
+    const providerError = error instanceof ExternalServiceError
+      ? {
+          retryable: error.retryable,
+          statusCode: error.statusCode,
+          responseBody: error.responseBody
+        }
+      : undefined;
     messagesFailedTotal.inc({
       client_id: job.data.clientId,
       reason: job.data.reason
@@ -253,6 +281,7 @@ export async function processSendMessage(
         metadata: toPrismaJson({
           reason: job.data.reason,
           error: outboundError.message,
+          ...(providerError ? { providerError } : {}),
           requestId: deps.trace.requestId,
           correlationId: deps.trace.correlationId
         })
@@ -271,7 +300,8 @@ export async function processSendMessage(
         attempts,
         metadata: {
           retry: retryMetadata,
-          workerName: "message-worker"
+          workerName: "message-worker",
+          ...(providerError ? { providerError } : {})
         },
         trace: deps.trace
       },
@@ -327,6 +357,28 @@ async function scheduleFollowup(
     },
     config.FOLLOWUP_DELAY_MINUTES * 60_000
   );
+  await (input.db as unknown as OptionalFollowUpUpsertDelegate).followUp?.upsert({
+    where: { dedupeKey },
+    create: {
+      clientId: input.clientId,
+      leadId: input.leadId,
+      conversationId: input.conversationId,
+      trigger: "no_reply",
+      status: "scheduled",
+      dedupeKey,
+      scheduledAt: new Date(input.lastOutboundAt.getTime() + config.FOLLOWUP_DELAY_MINUTES * 60_000),
+      metadata: toPrismaJson({
+        expectedState: input.state,
+        lastOutboundAt: input.lastOutboundAt.toISOString()
+      })
+    },
+    update: {
+      status: "scheduled",
+      scheduledAt: new Date(input.lastOutboundAt.getTime() + config.FOLLOWUP_DELAY_MINUTES * 60_000),
+      cancelledAt: null,
+      sentAt: null
+    }
+  });
   await upsertJobMirror(input.db, {
     clientId: input.clientId,
     leadId: input.leadId,

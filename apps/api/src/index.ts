@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import { getApiConfig } from "@real-estate/config";
 import { db } from "@real-estate/db";
 import { createLogger } from "@real-estate/logger";
