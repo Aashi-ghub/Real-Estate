@@ -139,8 +139,62 @@ exports.Prisma.ApiKeyScalarFieldEnum = {
   clientId: 'clientId',
   name: 'name',
   hashedKey: 'hashedKey',
+  prefix: 'prefix',
+  scopes: 'scopes',
+  expiresAt: 'expiresAt',
+  revokedAt: 'revokedAt',
+  usageCount: 'usageCount',
   status: 'status',
   lastUsedAt: 'lastUsedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.UserScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  email: 'email',
+  passwordHash: 'passwordHash',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.RoleScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PermissionScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  description: 'description',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.UserRoleScalarFieldEnum = {
+  userId: 'userId',
+  roleId: 'roleId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.RolePermissionScalarFieldEnum = {
+  roleId: 'roleId',
+  permissionId: 'permissionId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.RefreshSessionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  tokenHash: 'tokenHash',
+  status: 'status',
+  userAgent: 'userAgent',
+  ipAddress: 'ipAddress',
+  expiresAt: 'expiresAt',
+  revokedAt: 'revokedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -247,6 +301,83 @@ exports.Prisma.AuditLogScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.AuditEventScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  actorType: 'actorType',
+  actorId: 'actorId',
+  action: 'action',
+  entity: 'entity',
+  entityId: 'entityId',
+  requestId: 'requestId',
+  correlationId: 'correlationId',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  severity: 'severity',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.BillingPeriodScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  startsAt: 'startsAt',
+  endsAt: 'endsAt',
+  planKey: 'planKey',
+  quotas: 'quotas',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.TenantUsageScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  billingPeriodId: 'billingPeriodId',
+  metric: 'metric',
+  used: 'used',
+  limit: 'limit',
+  warnedAt: 'warnedAt',
+  exceededAt: 'exceededAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.QuotaEventScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  billingPeriodId: 'billingPeriodId',
+  metric: 'metric',
+  eventType: 'eventType',
+  usageValue: 'usageValue',
+  limitValue: 'limitValue',
+  requestId: 'requestId',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.RateLimitBucketScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  subject: 'subject',
+  windowKey: 'windowKey',
+  count: 'count',
+  expiresAt: 'expiresAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.WorkerHeartbeatScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  workerName: 'workerName',
+  queueName: 'queueName',
+  processId: 'processId',
+  hostname: 'hostname',
+  status: 'status',
+  lastBeatAt: 'lastBeatAt',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.CrmSyncScalarFieldEnum = {
   id: 'id',
   clientId: 'clientId',
@@ -342,6 +473,24 @@ exports.ApiKeyStatus = exports.$Enums.ApiKeyStatus = {
   revoked: 'revoked'
 };
 
+exports.UserStatus = exports.$Enums.UserStatus = {
+  active: 'active',
+  disabled: 'disabled'
+};
+
+exports.RoleName = exports.$Enums.RoleName = {
+  SUPER_ADMIN: 'SUPER_ADMIN',
+  TENANT_ADMIN: 'TENANT_ADMIN',
+  AGENT: 'AGENT',
+  VIEWER: 'VIEWER'
+};
+
+exports.RefreshSessionStatus = exports.$Enums.RefreshSessionStatus = {
+  active: 'active',
+  revoked: 'revoked',
+  expired: 'expired'
+};
+
 exports.LeadStatus = exports.$Enums.LeadStatus = {
   new: 'new',
   contacted: 'contacted',
@@ -406,6 +555,25 @@ exports.JobStatus = exports.$Enums.JobStatus = {
   dead_letter: 'dead_letter'
 };
 
+exports.AuditEventSeverity = exports.$Enums.AuditEventSeverity = {
+  info: 'info',
+  warn: 'warn',
+  error: 'error'
+};
+
+exports.TenantUsageMetric = exports.$Enums.TenantUsageMetric = {
+  leads: 'leads',
+  api_requests: 'api_requests',
+  webhooks: 'webhooks',
+  queue_jobs: 'queue_jobs'
+};
+
+exports.QuotaEventType = exports.$Enums.QuotaEventType = {
+  warning: 'warning',
+  exceeded: 'exceeded',
+  enforced: 'enforced'
+};
+
 exports.FollowUpTrigger = exports.$Enums.FollowUpTrigger = {
   no_reply: 'no_reply',
   incomplete_qualification: 'incomplete_qualification',
@@ -424,6 +592,12 @@ exports.FollowUpStatus = exports.$Enums.FollowUpStatus = {
 exports.Prisma.ModelName = {
   Client: 'Client',
   ApiKey: 'ApiKey',
+  User: 'User',
+  Role: 'Role',
+  Permission: 'Permission',
+  UserRole: 'UserRole',
+  RolePermission: 'RolePermission',
+  RefreshSession: 'RefreshSession',
   Lead: 'Lead',
   LeadAttribute: 'LeadAttribute',
   LeadScore: 'LeadScore',
@@ -431,6 +605,12 @@ exports.Prisma.ModelName = {
   Message: 'Message',
   Job: 'Job',
   AuditLog: 'AuditLog',
+  AuditEvent: 'AuditEvent',
+  BillingPeriod: 'BillingPeriod',
+  TenantUsage: 'TenantUsage',
+  QuotaEvent: 'QuotaEvent',
+  RateLimitBucket: 'RateLimitBucket',
+  WorkerHeartbeat: 'WorkerHeartbeat',
   CrmSync: 'CrmSync',
   CrmSyncLog: 'CrmSyncLog',
   FollowUp: 'FollowUp'

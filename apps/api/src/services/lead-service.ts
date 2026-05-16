@@ -15,6 +15,7 @@ import {
 import type { ApiConfig } from "@real-estate/config";
 import type {
   AuthenticatedApiKey,
+  AuthenticatedUser,
   ClientRuntimeConfig,
   ConversationContext,
   CrmPushJobData,
@@ -25,6 +26,7 @@ import type {
   NormalizedInboundMessage,
   SendMessageJobData,
   TraceContext,
+  TenantUsageMetric,
   WhatsAppProvider
 } from "@real-estate/types";
 import {
@@ -34,7 +36,12 @@ import {
   buildTenantIdempotencyKey,
   computeLeadScore,
   computeQualificationCompleteness,
+  generateApiKey,
+  generateRefreshToken,
+  getApiKeyPrefix,
   hashApiKey,
+  hashRefreshToken,
+  signJwt,
   incrementWebhookFailure,
   leadCreatedTotal,
   normalizeEmail,
@@ -44,6 +51,8 @@ import {
   parseWhatsAppConfig,
   sanitizeFreeText,
   sanitizeJsonValue,
+  verifyJwt,
+  verifyPassword,
   setQualificationRate,
   verifyWebhookSignature
 } from "@real-estate/utils";
@@ -75,6 +84,36 @@ const dashboardFollowupSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   page_size: z.coerce.number().int().min(1).max(100).default(25),
   status: z.enum(["scheduled", "sent", "cancelled", "skipped", "failed"]).optional()
+});
+const loginSchema = z.object({
+  email: z.string().email().max(255),
+  password: z.string().min(8).max(256)
+});
+const refreshSchema = z.object({
+  refresh_token: z.string().min(32)
+});
+const apiKeyCreateSchema = z.object({
+  name: z.string().min(1).max(120),
+  scopes: z.array(z.string().min(1).max(120)).default(["leads:write"]),
+  expires_at: z.string().datetime().optional()
+});
+const listAuditSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  page_size: z.coerce.number().int().min(1).max(100).default(25),
+  action: z.string().max(120).optional(),
+  entity: z.string().max(120).optional(),
+  request_id: z.string().max(128).optional()
+});
+const adminListSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  page_size: z.coerce.number().int().min(1).max(100).default(25),
+  client_id: z.string().uuid().optional(),
+  queue: z.string().max(64).optional(),
+  status: z.string().max(40).optional()
+});
+const replaySchema = z.object({
+  job_id: z.string().min(1).max(255),
+  queue: z.string().min(1).max(64)
 });
 const interactiveTransactionOptions = {
   isolationLevel: "Serializable" as const,
@@ -130,13 +169,20 @@ export class LeadService {
 
   async authenticateApiKey(apiKey: string): Promise<AuthenticatedApiKey | null> {
     const hashed = hashApiKey(apiKey, this.config.APP_ENCRYPTION_KEY);
-    const record = await this.db.apiKey.findUnique({
+    const prefix = getApiKeyPrefix(apiKey);
+    const record = await this.db.apiKey.findFirst({
       where: {
-        hashedKey: hashed
+        OR: [
+          { hashedKey: hashed },
+          ...(prefix ? [{ prefix, hashedKey: hashed }] : [])
+        ]
       },
       select: {
         id: true,
         clientId: true,
+        prefix: true,
+        scopes: true,
+        expiresAt: true,
         status: true,
         client: {
           select: {
@@ -146,7 +192,7 @@ export class LeadService {
       }
     });
 
-    if (!record || record.status !== "active") {
+    if (!record || record.status !== "active" || (record.expiresAt && record.expiresAt <= new Date())) {
       return null;
     }
 
@@ -155,7 +201,12 @@ export class LeadService {
       "api_key.last_used.update_failed",
       this.db.apiKey.update({
         where: { id: record.id },
-        data: { lastUsedAt: new Date() }
+        data: {
+          lastUsedAt: new Date(),
+          usageCount: {
+            increment: 1
+          }
+        }
       }),
       { apiKeyId: record.id, clientId: record.clientId }
     );
@@ -163,8 +214,233 @@ export class LeadService {
     return {
       id: record.id,
       clientId: record.clientId,
-      clientStatus: record.client.status
+      clientStatus: record.client.status,
+      scopes: record.scopes ?? [],
+      prefix: record.prefix
     };
+  }
+
+  async authenticateJwt(accessToken: string): Promise<AuthenticatedUser | null> {
+    try {
+      const payload = verifyJwt(accessToken, this.config.jwtSecret);
+      const user = await this.db.user.findFirst({
+        where: {
+          id: payload.sub,
+          status: "active"
+        },
+        select: {
+          id: true,
+          clientId: true,
+          roles: {
+            select: {
+              role: {
+                select: {
+                  name: true,
+                  permissions: {
+                    select: {
+                      permission: {
+                        select: { key: true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+      if (!user) {
+        return null;
+      }
+
+      const roles = user.roles.map((entry) => entry.role.name);
+      const permissions = Array.from(new Set(user.roles.flatMap((entry) => entry.role.permissions.map((permission) => permission.permission.key))));
+      return {
+        id: user.id,
+        clientId: user.clientId,
+        roles,
+        permissions,
+        sessionId: payload.sessionId
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async login(input: { body: unknown; ipAddress?: string; userAgent?: string; trace: TraceContext }) {
+    const body = loginSchema.parse(input.body);
+    const user = await this.db.user.findUnique({
+      where: { email: body.email.toLowerCase() },
+      select: {
+        id: true,
+        clientId: true,
+        passwordHash: true,
+        status: true,
+        roles: {
+          select: {
+            role: {
+              select: {
+                name: true,
+                permissions: {
+                  select: {
+                    permission: {
+                      select: { key: true }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!user || user.status !== "active" || !(await verifyPassword(body.password, user.passwordHash, this.config.APP_ENCRYPTION_KEY))) {
+      await this.auditSecurityEvent({
+        clientId: user?.clientId,
+        actorType: "anonymous",
+        action: "auth.login_denied",
+        entity: "User",
+        entityId: body.email,
+        severity: "warn",
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent,
+        trace: input.trace,
+        metadata: {}
+      });
+      const error = new Error("Invalid credentials");
+      (error as Error & { statusCode?: number }).statusCode = 401;
+      throw error;
+    }
+
+    const roles = user.roles.map((entry) => entry.role.name);
+    const permissions = Array.from(new Set(user.roles.flatMap((entry) => entry.role.permissions.map((permission) => permission.permission.key))));
+    const refreshToken = generateRefreshToken();
+    const session = await this.db.refreshSession.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashRefreshToken(refreshToken, this.config.APP_ENCRYPTION_KEY),
+        expiresAt: new Date(Date.now() + this.config.jwtRefreshTtlSeconds * 1_000),
+        ipAddress: input.ipAddress?.slice(0, 64),
+        userAgent: input.userAgent?.slice(0, 255)
+      },
+      select: { id: true }
+    });
+
+    await this.auditSecurityEvent({
+      clientId: user.clientId,
+      actorType: "user",
+      actorId: user.id,
+      action: "auth.login",
+      entity: "RefreshSession",
+      entityId: session.id,
+      ipAddress: input.ipAddress,
+      userAgent: input.userAgent,
+      trace: input.trace,
+      metadata: {}
+    });
+
+    return {
+      access_token: signJwt(
+        {
+          sub: user.id,
+          clientId: user.clientId,
+          roles,
+          permissions,
+          sessionId: session.id
+        },
+        this.config.jwtSecret,
+        this.config.jwtAccessTtlSeconds
+      ),
+      refresh_token: refreshToken,
+      expires_in: this.config.jwtAccessTtlSeconds
+    };
+  }
+
+  async refreshSession(input: { body: unknown; ipAddress?: string; userAgent?: string; trace: TraceContext }) {
+    const body = refreshSchema.parse(input.body);
+    const tokenHash = hashRefreshToken(body.refresh_token, this.config.APP_ENCRYPTION_KEY);
+    const session = await this.db.refreshSession.findUnique({
+      where: { tokenHash },
+      include: {
+        user: {
+          include: {
+            roles: {
+              include: {
+                role: {
+                  include: {
+                    permissions: {
+                      include: { permission: true }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!session || session.status !== "active" || session.expiresAt <= new Date() || session.user.status !== "active") {
+      const error = new Error("Invalid refresh token");
+      (error as Error & { statusCode?: number }).statusCode = 401;
+      throw error;
+    }
+
+    const refreshToken = generateRefreshToken();
+    const newSession = await this.db.$transaction(async (tx) => {
+      await tx.refreshSession.update({
+        where: { id: session.id },
+        data: { status: "revoked", revokedAt: new Date() }
+      });
+      return tx.refreshSession.create({
+        data: {
+          userId: session.userId,
+          tokenHash: hashRefreshToken(refreshToken, this.config.APP_ENCRYPTION_KEY),
+          expiresAt: new Date(Date.now() + this.config.jwtRefreshTtlSeconds * 1_000),
+          ipAddress: input.ipAddress?.slice(0, 64),
+          userAgent: input.userAgent?.slice(0, 255)
+        },
+        select: { id: true }
+      });
+    });
+    const roles = session.user.roles.map((entry) => entry.role.name);
+    const permissions = Array.from(new Set(session.user.roles.flatMap((entry) => entry.role.permissions.map((permission) => permission.permission.key))));
+
+    return {
+      access_token: signJwt(
+        {
+          sub: session.user.id,
+          clientId: session.user.clientId,
+          roles,
+          permissions,
+          sessionId: newSession.id
+        },
+        this.config.jwtSecret,
+        this.config.jwtAccessTtlSeconds
+      ),
+      refresh_token: refreshToken,
+      expires_in: this.config.jwtAccessTtlSeconds
+    };
+  }
+
+  async auditUnauthorized(input: {
+    clientId?: string | null;
+    actorType: string;
+    actorId?: string | null;
+    action: string;
+    entity?: string;
+    entityId?: string | null;
+    ipAddress?: string;
+    userAgent?: string;
+    trace: TraceContext;
+  }): Promise<void> {
+    await this.auditSecurityEvent({
+      ...input,
+      entity: input.entity ?? "Route",
+      severity: "warn",
+      metadata: {}
+    });
   }
 
   async enforceRateLimit(
@@ -172,16 +448,147 @@ export class LeadService {
     options: {
       limit: number;
       windowSeconds: number;
+      clientId?: string | null;
     }
   ): Promise<void> {
-    const windowKey = `rate_limit:${subject}:${Math.floor(Date.now() / (options.windowSeconds * 1_000))}`;
+    const bucket = Math.floor(Date.now() / (options.windowSeconds * 1_000));
+    const windowKey = `rate_limit:${subject}:${bucket}`;
     const count = await this.queues.redis.incr(windowKey);
     if (count === 1) {
       await this.queues.redis.expire(windowKey, options.windowSeconds);
     }
+    if ("rateLimitBucket" in this.db) {
+      observeBackgroundTask(
+        this.logger,
+        "rate_limit.bucket_persist_failed",
+        this.db.rateLimitBucket.upsert({
+          where: {
+            subject_windowKey: {
+              subject: subject.slice(0, 180),
+              windowKey: String(bucket)
+            }
+          },
+          create: {
+            clientId: options.clientId ?? null,
+            subject: subject.slice(0, 180),
+            windowKey: String(bucket),
+            count,
+            expiresAt: new Date(Date.now() + options.windowSeconds * 1_000)
+          },
+          update: {
+            count,
+            expiresAt: new Date(Date.now() + options.windowSeconds * 1_000)
+          }
+        }),
+        { subject, clientId: options.clientId }
+      );
+    }
 
     if (count > options.limit) {
       const error = new Error("Rate limit exceeded");
+      (error as Error & { statusCode?: number }).statusCode = 429;
+      throw error;
+    }
+  }
+
+  async enforceQuota(input: {
+    clientId: string;
+    metric: TenantUsageMetric;
+    incrementBy?: number;
+    trace?: TraceContext;
+  }): Promise<void> {
+    if (!("billingPeriod" in this.db) || !("tenantUsage" in this.db)) {
+      return;
+    }
+
+    const now = new Date();
+    const periodStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const periodEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+    const limit = this.config.defaultQuotas[input.metric];
+    const incrementBy = input.incrementBy ?? 1;
+
+    const usage = await this.db.$transaction(async (tx) => {
+      const period = await tx.billingPeriod.upsert({
+        where: {
+          clientId_startsAt_endsAt: {
+            clientId: input.clientId,
+            startsAt: periodStart,
+            endsAt: periodEnd
+          }
+        },
+        create: {
+          clientId: input.clientId,
+          startsAt: periodStart,
+          endsAt: periodEnd,
+          planKey: "default",
+          quotas: toPrismaJson(this.config.defaultQuotas)
+        },
+        update: {},
+        select: { id: true }
+      });
+
+      return tx.tenantUsage.upsert({
+        where: {
+          clientId_billingPeriodId_metric: {
+            clientId: input.clientId,
+            billingPeriodId: period.id,
+            metric: input.metric
+          }
+        },
+        create: {
+          clientId: input.clientId,
+          billingPeriodId: period.id,
+          metric: input.metric,
+          used: incrementBy,
+          limit
+        },
+        update: {
+          used: { increment: incrementBy },
+          limit
+        },
+        select: { id: true, billingPeriodId: true, used: true, limit: true, warnedAt: true }
+      });
+    });
+
+    const warningAt = Math.floor((usage.limit * this.config.quotaWarningThresholdPercent) / 100);
+    if (usage.used >= warningAt && !usage.warnedAt && usage.used <= usage.limit) {
+      observeBackgroundTask(
+        this.logger,
+        "quota.warning_event_failed",
+        this.db.$transaction([
+          this.db.tenantUsage.update({ where: { id: usage.id }, data: { warnedAt: new Date() } }),
+          this.db.quotaEvent.create({
+            data: {
+              clientId: input.clientId,
+              billingPeriodId: usage.billingPeriodId,
+              metric: input.metric,
+              eventType: "warning",
+              usageValue: usage.used,
+              limitValue: usage.limit,
+              requestId: input.trace?.requestId ?? null
+            }
+          })
+        ]),
+        { clientId: input.clientId, metric: input.metric }
+      );
+    }
+
+    if (usage.used > usage.limit) {
+      await this.db.$transaction([
+        this.db.tenantUsage.update({ where: { id: usage.id }, data: { exceededAt: new Date() } }),
+        this.db.quotaEvent.create({
+          data: {
+            clientId: input.clientId,
+            billingPeriodId: usage.billingPeriodId,
+            metric: input.metric,
+            eventType: "enforced",
+            usageValue: usage.used,
+            limitValue: usage.limit,
+            requestId: input.trace?.requestId ?? null
+          }
+        })
+      ]);
+      const error = new Error(`Tenant quota exceeded: ${input.metric}`);
       (error as Error & { statusCode?: number }).statusCode = 429;
       throw error;
     }
@@ -212,6 +619,12 @@ export class LeadService {
           (error as Error & { statusCode?: number }).statusCode = 403;
           throw error;
         }
+
+        await this.enforceQuota({
+          clientId: body.client_id,
+          metric: "leads",
+          trace: input.trace
+        });
 
         const normalizedPhone = normalizePhoneE164(body.phone);
         const normalizedEmail = normalizeEmail(body.email ?? null);
@@ -371,6 +784,7 @@ export class LeadService {
             body: parsedBody
           });
           const client = await this.resolveClientForInbound(provider, normalized);
+          await this.enforceQuota({ clientId: client.id, metric: "webhooks", trace: input.trace });
           const clientRuntime = this.toClientRuntime(client);
           const signatureValid = verifyWebhookSignature({
             provider,
@@ -945,6 +1359,360 @@ export class LeadService {
       total,
       followups
     };
+  }
+
+  async createApiKey(input: { auth: AuthenticatedUser; body: unknown; trace: TraceContext }) {
+    const body = apiKeyCreateSchema.parse(input.body);
+    const clientId = this.resolveTenantForUser(input.auth, input.auth.clientId);
+    const generated = generateApiKey();
+    const record = await this.db.apiKey.create({
+      data: {
+        clientId,
+        name: body.name,
+        prefix: generated.prefix,
+        hashedKey: hashApiKey(generated.plaintext, this.config.APP_ENCRYPTION_KEY),
+        scopes: body.scopes,
+        expiresAt: body.expires_at ? new Date(body.expires_at) : null
+      },
+      select: {
+        id: true,
+        prefix: true,
+        name: true,
+        scopes: true,
+        expiresAt: true,
+        createdAt: true
+      }
+    });
+
+    await this.auditSecurityEvent({
+      clientId,
+      actorType: "user",
+      actorId: input.auth.id,
+      action: "api_key.create",
+      entity: "ApiKey",
+      entityId: record.id,
+      trace: input.trace,
+      metadata: { prefix: record.prefix, scopes: record.scopes }
+    });
+
+    return {
+      ...record,
+      api_key: generated.plaintext
+    };
+  }
+
+  async listApiKeys(input: { auth: AuthenticatedUser }) {
+    const clientId = this.resolveTenantForUser(input.auth, input.auth.clientId);
+    return this.db.apiKey.findMany({
+      where: { clientId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        prefix: true,
+        scopes: true,
+        status: true,
+        expiresAt: true,
+        revokedAt: true,
+        lastUsedAt: true,
+        usageCount: true,
+        createdAt: true
+      }
+    });
+  }
+
+  async revokeApiKey(input: { auth: AuthenticatedUser; apiKeyId: string; trace: TraceContext }) {
+    const clientId = this.resolveTenantForUser(input.auth, input.auth.clientId);
+    const result = await this.db.apiKey.updateMany({
+      where: {
+        id: input.apiKeyId,
+        clientId
+      },
+      data: {
+        status: "revoked",
+        revokedAt: new Date()
+      }
+    });
+    if (result.count === 0) {
+      const error = new Error("API key not found");
+      (error as Error & { statusCode?: number }).statusCode = 404;
+      throw error;
+    }
+
+    await this.auditSecurityEvent({
+      clientId,
+      actorType: "user",
+      actorId: input.auth.id,
+      action: "api_key.revoke",
+      entity: "ApiKey",
+      entityId: input.apiKeyId,
+      trace: input.trace,
+      metadata: {}
+    });
+
+    return { revoked: true };
+  }
+
+  async listAuditEvents(input: { auth: AuthenticatedUser; query: unknown }) {
+    const query = listAuditSchema.parse(input.query);
+    const clientId = input.auth.roles.includes("SUPER_ADMIN") ? undefined : this.resolveTenantForUser(input.auth, input.auth.clientId);
+    const where = {
+      ...(clientId ? { clientId } : {}),
+      ...(query.action ? { action: query.action } : {}),
+      ...(query.entity ? { entity: query.entity } : {}),
+      ...(query.request_id ? { requestId: query.request_id } : {})
+    };
+    const [total, events] = await Promise.all([
+      this.db.auditEvent.count({ where }),
+      this.db.auditEvent.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (query.page - 1) * query.page_size,
+        take: query.page_size
+      })
+    ]);
+
+    return {
+      page: query.page,
+      page_size: query.page_size,
+      total,
+      events
+    };
+  }
+
+  async getTenantUsage(input: { auth: AuthenticatedUser; query?: unknown }) {
+    const query = z.object({ client_id: z.string().uuid().optional() }).parse(input.query ?? {});
+    const clientId = this.resolveTenantForUser(input.auth, query.client_id ?? input.auth.clientId);
+    const now = new Date();
+    const periodStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const periodEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+    const period = await this.db.billingPeriod.findFirst({
+      where: {
+        clientId,
+        startsAt: periodStart,
+        endsAt: periodEnd
+      },
+      include: {
+        usage: true
+      }
+    });
+
+    return {
+      client_id: clientId,
+      period_start: periodStart,
+      period_end: periodEnd,
+      plan: period?.planKey ?? "default",
+      usage: period?.usage ?? []
+    };
+  }
+
+  async inspectFailedJobs(input: { auth: AuthenticatedUser; query: unknown }) {
+    const query = adminListSchema.parse(input.query);
+    const where = {
+      status: "dead_letter" as const,
+      ...(query.client_id ? { clientId: query.client_id } : {}),
+      ...(query.queue ? { queue: query.queue } : {})
+    };
+    const [total, jobs] = await Promise.all([
+      this.db.job.count({ where }),
+      this.db.job.findMany({
+        where,
+        orderBy: { updatedAt: "desc" },
+        skip: (query.page - 1) * query.page_size,
+        take: query.page_size,
+        select: {
+          id: true,
+          clientId: true,
+          leadId: true,
+          queue: true,
+          name: true,
+          idempotencyKey: true,
+          attempts: true,
+          lastError: true,
+          updatedAt: true,
+          metadata: true
+        }
+      })
+    ]);
+
+    return { page: query.page, page_size: query.page_size, total, jobs };
+  }
+
+  async inspectQueueHealth() {
+    const [failedJobs, heartbeats, queues] = await Promise.all([
+      this.db.job.groupBy({
+        by: ["queue", "status"],
+        _count: { _all: true }
+      }),
+      "workerHeartbeat" in this.db
+        ? this.db.workerHeartbeat.findMany({
+            orderBy: { lastBeatAt: "desc" },
+            take: 50
+          })
+        : Promise.resolve([])
+      ,
+      "getQueueHealth" in this.queues ? this.queues.getQueueHealth() : Promise.resolve([])
+    ]);
+
+    return {
+      jobs: failedJobs,
+      workers: heartbeats,
+      queues
+    };
+  }
+
+  async pauseQueue(input: { queue: string; auth: AuthenticatedUser; trace: TraceContext }) {
+    await this.queues.pauseQueue(input.queue);
+    await this.auditSecurityEvent({
+      actorType: "user",
+      actorId: input.auth.id,
+      action: "queue.pause",
+      entity: "Queue",
+      entityId: input.queue,
+      trace: input.trace,
+      metadata: {}
+    });
+    return { paused: true };
+  }
+
+  async resumeQueue(input: { queue: string; auth: AuthenticatedUser; trace: TraceContext }) {
+    await this.queues.resumeQueue(input.queue);
+    await this.auditSecurityEvent({
+      actorType: "user",
+      actorId: input.auth.id,
+      action: "queue.resume",
+      entity: "Queue",
+      entityId: input.queue,
+      trace: input.trace,
+      metadata: {}
+    });
+    return { resumed: true };
+  }
+
+  async replayFailedJob(input: { auth: AuthenticatedUser; body: unknown; trace: TraceContext }) {
+    const body = replaySchema.parse(input.body);
+    const replayLockKey = `replay:${body.queue}:${body.job_id}`;
+    const lock = await this.queues.redis.set(replayLockKey, "1", "EX", 300, "NX");
+    if (lock !== "OK") {
+      const error = new Error("Replay already in progress");
+      (error as Error & { statusCode?: number }).statusCode = 409;
+      throw error;
+    }
+
+    const job = await this.db.job.findFirst({
+      where: {
+        id: body.job_id,
+        queue: body.queue,
+        status: "dead_letter"
+      }
+    });
+    if (!job) {
+      const error = new Error("Dead-letter job not found");
+      (error as Error & { statusCode?: number }).statusCode = 404;
+      throw error;
+    }
+
+    const replayKey = buildJobDedupeKey(["replay", job.idempotencyKey, String(Date.now())]);
+    const payload = {
+      ...(job.payload as JsonObject),
+      dedupeKey: replayKey,
+      trace: buildJobTrace(undefined, {
+        requestId: input.trace.requestId,
+        correlationId: input.trace.correlationId,
+        source: "api"
+      })
+    };
+
+    if (job.queue === "messages") {
+      await this.queues.enqueueSendMessage(payload as SendMessageJobData);
+    } else if (job.queue === "crm") {
+      await this.queues.enqueueCrmPush(payload as CrmPushJobData);
+    } else if (job.queue === "followups") {
+      await this.queues.enqueueFollowup(payload as never, 0);
+    } else {
+      const error = new Error("Replay is not supported for this queue");
+      (error as Error & { statusCode?: number }).statusCode = 400;
+      throw error;
+    }
+
+    await this.auditSecurityEvent({
+      clientId: job.clientId,
+      actorType: "user",
+      actorId: input.auth.id,
+      action: "job.replay",
+      entity: "Job",
+      entityId: job.id,
+      trace: input.trace,
+      metadata: {
+        queue: job.queue,
+        replayKey
+      }
+    });
+
+    return { replayed: true, replay_key: replayKey };
+  }
+
+  private resolveTenantForUser(auth: AuthenticatedUser, requestedClientId?: string | null): string {
+    if (auth.roles.includes("SUPER_ADMIN")) {
+      if (!requestedClientId) {
+        const error = new Error("client_id is required");
+        (error as Error & { statusCode?: number }).statusCode = 400;
+        throw error;
+      }
+      return requestedClientId;
+    }
+
+    if (!auth.clientId || (requestedClientId && requestedClientId !== auth.clientId)) {
+      const error = new Error("Forbidden");
+      (error as Error & { statusCode?: number }).statusCode = 403;
+      throw error;
+    }
+
+    return auth.clientId;
+  }
+
+  private async auditSecurityEvent(input: {
+    clientId?: string | null;
+    actorType: string;
+    actorId?: string | null;
+    action: string;
+    entity: string;
+    entityId?: string | null;
+    severity?: "info" | "warn" | "error";
+    ipAddress?: string;
+    userAgent?: string;
+    metadata: unknown;
+    trace: TraceContext;
+  }): Promise<void> {
+    if (!("auditEvent" in this.db)) {
+      await createAuditLog(this.db, {
+        clientId: input.clientId,
+        actor: `${input.actorType}:${input.actorId ?? "anonymous"}`,
+        action: input.action,
+        entity: input.entity,
+        entityId: input.entityId ?? "unknown",
+        metadata: input.metadata,
+        trace: input.trace
+      });
+      return;
+    }
+
+    await this.db.auditEvent.create({
+      data: {
+        clientId: input.clientId ?? null,
+        actorType: input.actorType,
+        actorId: input.actorId ?? null,
+        action: input.action,
+        entity: input.entity,
+        entityId: input.entityId ?? null,
+        requestId: input.trace.requestId,
+        correlationId: input.trace.correlationId,
+        ipAddress: input.ipAddress?.slice(0, 64) ?? null,
+        userAgent: input.userAgent?.slice(0, 255) ?? null,
+        severity: input.severity ?? "info",
+        metadata: toPrismaJson(input.metadata)
+      }
+    });
   }
 
   private async resolveClientForInbound(

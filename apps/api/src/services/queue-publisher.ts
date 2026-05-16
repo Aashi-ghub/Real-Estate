@@ -43,7 +43,7 @@ export class QueuePublisher {
         jobId: data.dedupeKey,
         attempts: this.options.messageAttempts,
         backoffDelayMs: this.options.retryBackoffMs,
-        overrides
+        overrides: { priority: 1, ...overrides }
       })
     );
     await this.requeueFailedJob(job);
@@ -58,7 +58,7 @@ export class QueuePublisher {
         attempts: this.options.followupAttempts,
         backoffDelayMs: this.options.retryBackoffMs,
         delayMs,
-        overrides
+        overrides: { priority: 5, ...overrides }
       })
     );
     await this.requeueFailedJob(job);
@@ -72,7 +72,7 @@ export class QueuePublisher {
         jobId: data.dedupeKey,
         attempts: this.options.crmAttempts,
         backoffDelayMs: this.options.retryBackoffMs * 2,
-        overrides
+        overrides: { priority: 3, ...overrides }
       })
     );
     await this.requeueFailedJob(job);
@@ -112,5 +112,33 @@ export class QueuePublisher {
       { name: queueNames.followups, queue: this.followupsQueue },
       { name: queueNames.crm, queue: this.crmQueue }
     ];
+  }
+
+  async getQueueHealth() {
+    const queues = this.getMetricsTargets();
+    return Promise.all(
+      queues.map(async ({ name, queue }) => ({
+        name,
+        counts: await queue.getJobCounts("waiting", "active", "delayed", "failed", "completed", "paused"),
+        is_paused: await queue.isPaused()
+      }))
+    );
+  }
+
+  async pauseQueue(name: string): Promise<void> {
+    await this.resolveQueue(name).pause();
+  }
+
+  async resumeQueue(name: string): Promise<void> {
+    await this.resolveQueue(name).resume();
+  }
+
+  private resolveQueue(name: string): Queue {
+    const target = this.getMetricsTargets().find((entry) => entry.name === name);
+    if (!target) {
+      throw new Error(`Unknown queue: ${name}`);
+    }
+
+    return target.queue;
   }
 }

@@ -28,6 +28,14 @@ const baseEnvSchema = z
     REDIS_DB: z.coerce.number().int().min(0).default(0),
     REDIS_TLS_ENABLED: booleanishSchema.default(false),
     APP_ENCRYPTION_KEY: z.string().regex(/^[a-fA-F0-9]{64}$/, "APP_ENCRYPTION_KEY must be a 64-char hex string"),
+    JWT_SECRET: z.string().min(32).optional(),
+    JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().positive().default(900),
+    JWT_REFRESH_TTL_SECONDS: z.coerce.number().int().positive().default(2_592_000),
+    DEFAULT_MONTHLY_LEAD_LIMIT: z.coerce.number().int().positive().default(10_000),
+    DEFAULT_MONTHLY_API_REQUEST_LIMIT: z.coerce.number().int().positive().default(1_000_000),
+    DEFAULT_MONTHLY_WEBHOOK_LIMIT: z.coerce.number().int().positive().default(1_000_000),
+    DEFAULT_MONTHLY_QUEUE_JOB_LIMIT: z.coerce.number().int().positive().default(1_000_000),
+    QUOTA_WARNING_THRESHOLD_PERCENT: z.coerce.number().int().min(1).max(99).default(80),
     API_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(90),
     API_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().positive().default(60),
     WEBHOOK_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(300),
@@ -77,6 +85,14 @@ const baseEnvSchema = z
         message: "WEBHOOK_BODY_LIMIT_BYTES cannot exceed REQUEST_BODY_LIMIT_BYTES"
       });
     }
+
+    if (value.NODE_ENV === "production" && !value.JWT_SECRET) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["JWT_SECRET"],
+        message: "JWT_SECRET is required in production"
+      });
+    }
   });
 
 type BaseEnvConfig = z.infer<typeof baseEnvSchema>;
@@ -104,6 +120,16 @@ export type BaseConfig = BaseEnvConfig & {
   queueRetryBackoffMaxMs: number;
   queueMetricsSampleIntervalMs: number;
   whatsappDryRun: boolean;
+  jwtSecret: string;
+  jwtAccessTtlSeconds: number;
+  jwtRefreshTtlSeconds: number;
+  quotaWarningThresholdPercent: number;
+  defaultQuotas: {
+    leads: number;
+    api_requests: number;
+    webhooks: number;
+    queue_jobs: number;
+  };
 };
 
 let cachedConfig: BaseConfig | null = null;
@@ -212,7 +238,17 @@ export function getBaseConfig(env: NodeJS.ProcessEnv = process.env): BaseConfig 
     queueRetryBackoffMs: parsed.QUEUE_RETRY_BACKOFF_MS,
     queueRetryBackoffMaxMs: parsed.QUEUE_RETRY_BACKOFF_MAX_MS,
     queueMetricsSampleIntervalMs: parsed.QUEUE_METRICS_SAMPLE_INTERVAL_MS,
-    whatsappDryRun: parsed.WHATSAPP_DRY_RUN ?? (parsed.NODE_ENV !== "production")
+    whatsappDryRun: parsed.WHATSAPP_DRY_RUN ?? (parsed.NODE_ENV !== "production"),
+    jwtSecret: parsed.JWT_SECRET ?? parsed.APP_ENCRYPTION_KEY,
+    jwtAccessTtlSeconds: parsed.JWT_ACCESS_TTL_SECONDS,
+    jwtRefreshTtlSeconds: parsed.JWT_REFRESH_TTL_SECONDS,
+    quotaWarningThresholdPercent: parsed.QUOTA_WARNING_THRESHOLD_PERCENT,
+    defaultQuotas: {
+      leads: parsed.DEFAULT_MONTHLY_LEAD_LIMIT,
+      api_requests: parsed.DEFAULT_MONTHLY_API_REQUEST_LIMIT,
+      webhooks: parsed.DEFAULT_MONTHLY_WEBHOOK_LIMIT,
+      queue_jobs: parsed.DEFAULT_MONTHLY_QUEUE_JOB_LIMIT
+    }
   };
   return cachedConfig;
 }

@@ -56,7 +56,7 @@ export class WorkerQueues {
         jobId: data.dedupeKey,
         attempts: this.options.messageAttempts,
         backoffDelayMs: this.options.retryBackoffMs,
-        overrides
+        overrides: { priority: 1, ...overrides }
       })
     );
     await this.requeueFailedJob(job);
@@ -71,7 +71,7 @@ export class WorkerQueues {
         attempts: this.options.followupAttempts,
         backoffDelayMs: this.options.retryBackoffMs,
         delayMs,
-        overrides
+        overrides: { priority: 5, ...overrides }
       })
     );
     await this.requeueFailedJob(job);
@@ -85,7 +85,7 @@ export class WorkerQueues {
         jobId: data.dedupeKey,
         attempts: this.options.crmAttempts,
         backoffDelayMs: this.options.retryBackoffMs * 2,
-        overrides
+        overrides: { priority: 3, ...overrides }
       })
     );
     await this.requeueFailedJob(job);

@@ -20,7 +20,7 @@ import {
 import { processCrmPush } from "./processors/crm";
 import { processFollowup } from "./processors/followup";
 import { processSendMessage } from "./processors/send-message";
-import { createWorkerProcessor, attachWorkerLifecycle, persistDeadLetterRecord } from "./services/job-runtime";
+import { createWorkerProcessor, attachWorkerLifecycle, persistDeadLetterRecord, startWorkerHeartbeat } from "./services/job-runtime";
 import { WorkerQueues } from "./services/queue-runtime";
 
 async function main(): Promise<void> {
@@ -182,8 +182,23 @@ async function main(): Promise<void> {
     crmDlqWorker.waitUntilReady()
   ]);
 
+  const heartbeat = startWorkerHeartbeat({
+    db,
+    logger,
+    intervalMs: Math.max(5_000, config.queueMetricsSampleIntervalMs),
+    identities: [
+      { queueName: queueNames.messages, workerName: "message-worker" },
+      { queueName: queueNames.followups, workerName: "followup-worker" },
+      { queueName: queueNames.crm, workerName: "crm-worker" },
+      { queueName: queueNames.messagesDlq, workerName: "messages-dlq-worker" },
+      { queueName: queueNames.followupsDlq, workerName: "followups-dlq-worker" },
+      { queueName: queueNames.crmDlq, workerName: "crm-dlq-worker" }
+    ]
+  });
+
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, "shutdown.start");
+    await heartbeat.close();
     await Promise.all([
       messageWorker.close(),
       followupWorker.close(),

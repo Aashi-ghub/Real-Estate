@@ -1,4 +1,5 @@
 import { performance } from "node:perf_hooks";
+import os from "node:os";
 
 import type { Job, Worker } from "bullmq";
 import type { Logger } from "pino";
@@ -239,4 +240,73 @@ export async function persistDeadLetterRecord(
     lastError: payload.error.message,
     trace: payload.trace
   });
+}
+
+export function startWorkerHeartbeat(options: {
+  db: PrismaClient;
+  logger: Logger;
+  identities: WorkerIdentity[];
+  intervalMs: number;
+}): { close: () => Promise<void> } {
+  const hostname = os.hostname().slice(0, 120);
+  const processId = process.pid;
+  let closed = false;
+
+  const beat = async (status: "running" | "stopping"): Promise<void> => {
+    if (!("workerHeartbeat" in options.db)) {
+      return;
+    }
+
+    const now = new Date();
+    await Promise.all(
+      options.identities.map((identity) =>
+        options.db.workerHeartbeat.upsert({
+          where: {
+            workerName_queueName_processId_hostname: {
+              workerName: identity.workerName,
+              queueName: identity.queueName,
+              processId,
+              hostname
+            }
+          },
+          create: {
+            workerName: identity.workerName,
+            queueName: identity.queueName,
+            processId,
+            hostname,
+            status,
+            lastBeatAt: now,
+            metadata: sanitizeJsonValue({ intervalMs: options.intervalMs })
+          },
+          update: {
+            status,
+            lastBeatAt: now,
+            metadata: sanitizeJsonValue({ intervalMs: options.intervalMs })
+          }
+        })
+      )
+    );
+  };
+
+  void beat("running").catch((error) => {
+    options.logger.warn({ err: error }, "worker.heartbeat.failed");
+  });
+  const handle = setInterval(() => {
+    if (closed) {
+      return;
+    }
+
+    void beat("running").catch((error) => {
+      options.logger.warn({ err: error }, "worker.heartbeat.failed");
+    });
+  }, options.intervalMs);
+  handle.unref();
+
+  return {
+    close: async () => {
+      closed = true;
+      clearInterval(handle);
+      await beat("stopping");
+    }
+  };
 }

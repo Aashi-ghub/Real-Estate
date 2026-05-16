@@ -83,6 +83,12 @@ export type MessageStatus = (typeof messageStatuses)[number];
 export const jobStatuses = ["queued", "processing", "completed", "failed", "dead_letter"] as const;
 export type JobStatus = (typeof jobStatuses)[number];
 
+export const roleNames = ["SUPER_ADMIN", "TENANT_ADMIN", "AGENT", "VIEWER"] as const;
+export type RoleName = (typeof roleNames)[number];
+
+export const tenantUsageMetrics = ["leads", "api_requests", "webhooks", "queue_jobs"] as const;
+export type TenantUsageMetric = (typeof tenantUsageMetrics)[number];
+
 export const crmSyncStatuses = ["pending", "processing", "success", "failed"] as const;
 export type CrmSyncStatus = (typeof crmSyncStatuses)[number];
 
@@ -228,9 +234,11 @@ export const queueNames = {
   messages: "messages",
   followups: "followups",
   crm: "crm",
+  analytics: "analytics",
   messagesDlq: "messages-dlq",
   followupsDlq: "followups-dlq",
-  crmDlq: "crm-dlq"
+  crmDlq: "crm-dlq",
+  analyticsDlq: "analytics-dlq"
 } as const;
 
 export type QueueName = (typeof queueNames)[keyof typeof queueNames];
@@ -292,6 +300,16 @@ export interface AuthenticatedApiKey {
   id: string;
   clientId: string;
   clientStatus: ClientStatus;
+  scopes: string[];
+  prefix?: string | null;
+}
+
+export interface AuthenticatedUser {
+  id: string;
+  clientId?: string | null;
+  roles: RoleName[];
+  permissions: string[];
+  sessionId?: string;
 }
 
 export interface NormalizedInboundMessage {

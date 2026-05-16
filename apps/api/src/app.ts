@@ -23,6 +23,9 @@ const leadHeadersSchema = z.object({
 const authHeadersSchema = z.object({
   "x-api-key": z.string().min(1)
 });
+const bearerHeadersSchema = z.object({
+  authorization: z.string().regex(/^Bearer\s+\S+$/i)
+});
 
 export async function buildApp(options: {
   service: LeadService;
@@ -72,6 +75,53 @@ export async function buildApp(options: {
         "request.operation.timing"
       );
     }
+  };
+
+  const auditDenied = async (
+    request: FastifyRequest,
+    action: string,
+    actorType: string,
+    actorId?: string | null,
+    clientId?: string | null
+  ): Promise<void> => {
+    await options.service.auditUnauthorized({
+      clientId,
+      actorType,
+      actorId,
+      action,
+      entity: "Route",
+      entityId: request.routeOptions.url ?? request.url,
+      ipAddress: request.ip,
+      userAgent: request.headers["user-agent"],
+      trace: buildTrace(request)
+    });
+  };
+
+  const requireUser = (permissions: string[] = []) => async (request: FastifyRequest, reply: FastifyReply) => {
+    const headers = bearerHeadersSchema.safeParse(request.headers);
+    if (!headers.success) {
+      await auditDenied(request, "auth.missing_bearer", "anonymous");
+      void reply.code(401).send({ error: "Unauthorized" });
+      return null;
+    }
+
+    const token = headers.data.authorization.replace(/^Bearer\s+/i, "");
+    const user = await options.service.authenticateJwt(token);
+    if (!user) {
+      await auditDenied(request, "auth.invalid_bearer", "anonymous");
+      void reply.code(401).send({ error: "Unauthorized" });
+      return null;
+    }
+
+    const permitted = user.roles.includes("SUPER_ADMIN") || permissions.every((permission) => user.permissions.includes(permission));
+    if (!permitted) {
+      await auditDenied(request, "auth.permission_denied", "user", user.id, user.clientId);
+      void reply.code(403).send({ error: "Forbidden" });
+      return null;
+    }
+
+    request.auth = { ...(request.auth ?? {}), user };
+    return user;
   };
 
   const app = Fastify({
@@ -128,6 +178,10 @@ export async function buildApp(options: {
 
   app.get("/health", async () => options.service.healthCheck());
 
+  app.get("/ready", async () => options.service.healthCheck());
+
+  app.get("/live", async () => ({ ok: true }));
+
   app.get("/metrics", async (_request, reply) => {
     const registry = getMetricsRegistry();
     reply.header("Content-Type", registry.contentType);
@@ -144,13 +198,15 @@ export async function buildApp(options: {
     await Promise.all([
       options.service.enforceRateLimit(`api:${auth.id}`, {
         limit: options.config.API_RATE_LIMIT_PER_MINUTE,
-        windowSeconds: options.config.apiRateLimitWindowSeconds
+        windowSeconds: options.config.apiRateLimitWindowSeconds,
+        clientId: auth.clientId
       }),
       options.service.enforceRateLimit(`api-ip:${request.ip}`, {
         limit: options.config.API_RATE_LIMIT_PER_MINUTE * 2,
         windowSeconds: options.config.apiRateLimitWindowSeconds
       })
     ]);
+    await options.service.enforceQuota({ clientId: auth.clientId, metric: "api_requests", trace: buildTrace(request) });
     const result = await timed(request, "lead.create", () =>
       options.service.createLead({
         auth,
@@ -166,6 +222,30 @@ export async function buildApp(options: {
     });
   });
 
+  app.post("/auth/login", async (request, reply) => {
+    const result = await timed(request, "auth.login", () =>
+      options.service.login({
+        body: request.body,
+        ipAddress: request.ip,
+        userAgent: request.headers["user-agent"],
+        trace: buildTrace(request)
+      })
+    );
+    return reply.code(200).send(result);
+  });
+
+  app.post("/auth/refresh", async (request, reply) => {
+    const result = await timed(request, "auth.refresh", () =>
+      options.service.refreshSession({
+        body: request.body,
+        ipAddress: request.ip,
+        userAgent: request.headers["user-agent"],
+        trace: buildTrace(request)
+      })
+    );
+    return reply.code(200).send(result);
+  });
+
   async function authenticateDashboard(request: FastifyRequest, reply: FastifyReply) {
     const headers = authHeadersSchema.parse(request.headers);
     const auth = await options.service.authenticateApiKey(headers["x-api-key"]);
@@ -176,7 +256,8 @@ export async function buildApp(options: {
 
     await options.service.enforceRateLimit(`dashboard:${auth.id}`, {
       limit: options.config.API_RATE_LIMIT_PER_MINUTE,
-      windowSeconds: options.config.apiRateLimitWindowSeconds
+      windowSeconds: options.config.apiRateLimitWindowSeconds,
+      clientId: auth.clientId
     });
     return auth;
   }
@@ -234,6 +315,116 @@ export async function buildApp(options: {
 
     return timed(request, "dashboard.followups.list", () =>
       options.service.listDashboardFollowups({ auth, query: request.query })
+    );
+  });
+
+  app.get("/api-keys", async (request, reply) => {
+    const user = await requireUser(["api_keys:read"])(request, reply);
+    if (!user) {
+      return;
+    }
+
+    return timed(request, "api_keys.list", () => options.service.listApiKeys({ auth: user }));
+  });
+
+  app.post("/api-keys", async (request, reply) => {
+    const user = await requireUser(["api_keys:write"])(request, reply);
+    if (!user) {
+      return;
+    }
+
+    const result = await timed(request, "api_keys.create", () =>
+      options.service.createApiKey({ auth: user, body: request.body, trace: buildTrace(request) })
+    );
+    return reply.code(201).send(result);
+  });
+
+  app.post("/api-keys/:id/revoke", async (request, reply) => {
+    const user = await requireUser(["api_keys:write"])(request, reply);
+    if (!user) {
+      return;
+    }
+
+    const params = z.object({ id: z.string().uuid() }).parse(request.params);
+    return timed(request, "api_keys.revoke", () =>
+      options.service.revokeApiKey({ auth: user, apiKeyId: params.id, trace: buildTrace(request) })
+    );
+  });
+
+  app.get("/audit-events", async (request, reply) => {
+    const user = await requireUser(["audit:read"])(request, reply);
+    if (!user) {
+      return;
+    }
+
+    return timed(request, "audit_events.list", () =>
+      options.service.listAuditEvents({ auth: user, query: request.query })
+    );
+  });
+
+  app.get("/usage", async (request, reply) => {
+    const user = await requireUser(["usage:read"])(request, reply);
+    if (!user) {
+      return;
+    }
+
+    return timed(request, "usage.get", () =>
+      options.service.getTenantUsage({ auth: user, query: request.query })
+    );
+  });
+
+  app.get("/internal/admin/jobs/failed", async (request, reply) => {
+    const user = await requireUser(["admin:read"])(request, reply);
+    if (!user) {
+      return;
+    }
+
+    return timed(request, "admin.jobs.failed", () =>
+      options.service.inspectFailedJobs({ auth: user, query: request.query })
+    );
+  });
+
+  app.post("/internal/admin/jobs/replay", async (request, reply) => {
+    const user = await requireUser(["admin:write"])(request, reply);
+    if (!user) {
+      return;
+    }
+
+    return timed(request, "admin.jobs.replay", () =>
+      options.service.replayFailedJob({ auth: user, body: request.body, trace: buildTrace(request) })
+    );
+  });
+
+  app.get("/internal/admin/queues/health", async (request, reply) => {
+    const user = await requireUser(["admin:read"])(request, reply);
+    if (!user) {
+      return;
+    }
+
+    return timed(request, "admin.queues.health", () => options.service.inspectQueueHealth());
+  });
+
+  app.post("/internal/admin/queues/:queue/pause", async (request, reply) => {
+    const user = await requireUser(["admin:write"])(request, reply);
+    if (!user) {
+      return;
+    }
+
+    const params = z.object({ queue: z.string().min(1).max(64) }).parse(request.params);
+    return timed(request, "admin.queues.pause", () =>
+      options.service.pauseQueue({ queue: params.queue, auth: user, trace: buildTrace(request) })
+    );
+  });
+
+  app.post("/internal/admin/queues/:queue/resume", async (request, reply) => {
+    const user = await requireUser(["admin:write"])(request, reply);
+    if (!user) {
+      return;
+    }
+
+    const params = z.object({ queue: z.string().min(1).max(64) }).parse(request.params);
+    return timed(request, "admin.queues.resume", () =>
+      options.service.resumeQueue({ queue: params.queue, auth: user, trace: buildTrace(request) })
     );
   });
 
