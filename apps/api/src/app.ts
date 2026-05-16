@@ -285,6 +285,30 @@ export async function buildApp(options: {
     );
   });
 
+  app.get("/dashboard/leads/:id/memory", async (request, reply) => {
+    const auth = await authenticateDashboard(request, reply);
+    if (!auth) {
+      return;
+    }
+
+    const params = z.object({ id: z.string().uuid() }).parse(request.params);
+    return timed(request, "dashboard.leads.memory", () =>
+      options.service.retrieveLeadMemory({ auth, leadId: params.id, query: request.query })
+    );
+  });
+
+  app.get("/dashboard/leads/:id/memory/benchmark", async (request, reply) => {
+    const auth = await authenticateDashboard(request, reply);
+    if (!auth) {
+      return;
+    }
+
+    const params = z.object({ id: z.string().uuid() }).parse(request.params);
+    return timed(request, "dashboard.leads.memory.benchmark", () =>
+      options.service.benchmarkLeadMemoryRetrieval({ auth, leadId: params.id, query: request.query })
+    );
+  });
+
   app.get("/dashboard/analytics", async (request, reply) => {
     const auth = await authenticateDashboard(request, reply);
     if (!auth) {
@@ -304,6 +328,17 @@ export async function buildApp(options: {
 
     return timed(request, "dashboard.pipeline", () =>
       options.service.getDashboardPipeline({ auth })
+    );
+  });
+
+  app.get("/dashboard/intelligence", async (request, reply) => {
+    const user = await requireUser(["analytics:read"])(request, reply);
+    if (!user) {
+      return;
+    }
+
+    return timed(request, "dashboard.intelligence", () =>
+      options.service.getEnterpriseIntelligenceAnalytics({ auth: user, query: request.query })
     );
   });
 
@@ -393,6 +428,78 @@ export async function buildApp(options: {
     return timed(request, "admin.jobs.replay", () =>
       options.service.replayFailedJob({ auth: user, body: request.body, trace: buildTrace(request) })
     );
+  });
+
+  app.post("/internal/admin/evaluation/datasets", async (request, reply) => {
+    const user = await requireUser(["admin:write"])(request, reply);
+    if (!user) {
+      return;
+    }
+
+    const result = await timed(request, "admin.evaluation.dataset.upsert", () =>
+      options.service.createEvaluationDataset({ auth: user, body: request.body, trace: buildTrace(request) })
+    );
+    return reply.code(201).send(result);
+  });
+
+  app.post("/internal/admin/evaluation/runs", async (request, reply) => {
+    const user = await requireUser(["admin:write"])(request, reply);
+    if (!user) {
+      return;
+    }
+
+    const result = await timed(request, "admin.evaluation.run.schedule", () =>
+      options.service.scheduleEvaluationRun({ auth: user, body: request.body, trace: buildTrace(request) })
+    );
+    return reply.code(202).send(result);
+  });
+
+  app.post("/feedback", async (request, reply) => {
+    const user = await requireUser(["feedback:write"])(request, reply);
+    if (!user) {
+      return;
+    }
+
+    const result = await timed(request, "feedback.ingest", () =>
+      options.service.ingestFeedbackEvent({ auth: user, body: request.body, trace: buildTrace(request) })
+    );
+    return reply.code(201).send(result);
+  });
+
+  app.post("/internal/admin/slo/definitions", async (request, reply) => {
+    const user = await requireUser(["admin:write"])(request, reply);
+    if (!user) {
+      return;
+    }
+
+    const result = await timed(request, "admin.slo.definition.upsert", () =>
+      options.service.upsertSloDefinition({ auth: user, body: request.body, trace: buildTrace(request) })
+    );
+    return reply.code(201).send(result);
+  });
+
+  app.post("/internal/admin/slo/evaluate", async (request, reply) => {
+    const user = await requireUser(["admin:write"])(request, reply);
+    if (!user) {
+      return;
+    }
+
+    const result = await timed(request, "admin.slo.evaluate", () =>
+      options.service.evaluateSlo({ auth: user, body: request.body, trace: buildTrace(request) })
+    );
+    return reply.code(201).send(result);
+  });
+
+  app.post("/internal/admin/chaos/logs", async (request, reply) => {
+    const user = await requireUser(["admin:write"])(request, reply);
+    if (!user) {
+      return;
+    }
+
+    const result = await timed(request, "admin.chaos.log", () =>
+      options.service.recordChaosScenario({ auth: user, body: request.body, trace: buildTrace(request) })
+    );
+    return reply.code(201).send(result);
   });
 
   app.get("/internal/admin/queues/health", async (request, reply) => {

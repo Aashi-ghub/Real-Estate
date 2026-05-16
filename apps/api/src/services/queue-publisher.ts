@@ -1,7 +1,7 @@
 import { Queue, type ConnectionOptions, type Job, type JobsOptions } from "bullmq";
 import type IORedis from "ioredis";
 
-import type { CrmPushJobData, FollowupNoReplyJobData, SendMessageJobData } from "@real-estate/types";
+import type { AiLeadIntelligenceJobData, CrmPushJobData, EvaluationRunJobData, FollowupNoReplyJobData, SendMessageJobData } from "@real-estate/types";
 import { queueNames } from "@real-estate/types";
 import { buildQueueJobOptions } from "@real-estate/utils";
 
@@ -9,6 +9,8 @@ export class QueuePublisher {
   private readonly messagesQueue: Queue<SendMessageJobData>;
   private readonly followupsQueue: Queue<FollowupNoReplyJobData>;
   private readonly crmQueue: Queue<CrmPushJobData>;
+  private readonly aiQueue: Queue<AiLeadIntelligenceJobData>;
+  private readonly evaluationQueue: Queue<EvaluationRunJobData>;
 
   constructor(
     private readonly redisClient: IORedis,
@@ -18,6 +20,8 @@ export class QueuePublisher {
       messageAttempts: number;
       followupAttempts: number;
       crmAttempts: number;
+      aiAttempts?: number;
+      evaluationAttempts?: number;
       retryBackoffMs: number;
     }
   ) {
@@ -30,6 +34,14 @@ export class QueuePublisher {
       prefix: this.options.prefix
     });
     this.crmQueue = new Queue(queueNames.crm, {
+      connection: this.bullmqConnection,
+      prefix: this.options.prefix
+    });
+    this.aiQueue = new Queue(queueNames.ai, {
+      connection: this.bullmqConnection,
+      prefix: this.options.prefix
+    });
+    this.evaluationQueue = new Queue(queueNames.evaluation, {
       connection: this.bullmqConnection,
       prefix: this.options.prefix
     });
@@ -78,6 +90,34 @@ export class QueuePublisher {
     await this.requeueFailedJob(job);
   }
 
+  async enqueueAiLeadIntelligence(data: AiLeadIntelligenceJobData, overrides: JobsOptions = {}): Promise<void> {
+    const job = await this.aiQueue.add(
+      "lead_intelligence",
+      data,
+      buildQueueJobOptions({
+        jobId: data.dedupeKey,
+        attempts: this.options.aiAttempts ?? 3,
+        backoffDelayMs: this.options.retryBackoffMs * 2,
+        overrides: { priority: 10, ...overrides }
+      })
+    );
+    await this.requeueFailedJob(job);
+  }
+
+  async enqueueEvaluationRun(data: EvaluationRunJobData, overrides: JobsOptions = {}): Promise<void> {
+    const job = await this.evaluationQueue.add(
+      "evaluation_run",
+      data,
+      buildQueueJobOptions({
+        jobId: data.dedupeKey,
+        attempts: this.options.evaluationAttempts ?? 2,
+        backoffDelayMs: this.options.retryBackoffMs * 3,
+        overrides: { priority: 20, ...overrides }
+      })
+    );
+    await this.requeueFailedJob(job);
+  }
+
   private async requeueFailedJob(job: Job): Promise<void> {
     const state = await job.getState();
     if (state === "failed") {
@@ -89,7 +129,9 @@ export class QueuePublisher {
     await Promise.all([
       this.messagesQueue.close(),
       this.followupsQueue.close(),
-      this.crmQueue.close()
+      this.crmQueue.close(),
+      this.aiQueue.close(),
+      this.evaluationQueue.close()
     ]);
   }
 
@@ -98,7 +140,9 @@ export class QueuePublisher {
     await Promise.all([
       this.messagesQueue.waitUntilReady(),
       this.followupsQueue.waitUntilReady(),
-      this.crmQueue.waitUntilReady()
+      this.crmQueue.waitUntilReady(),
+      this.aiQueue.waitUntilReady(),
+      this.evaluationQueue.waitUntilReady()
     ]);
   }
 
@@ -110,7 +154,9 @@ export class QueuePublisher {
     return [
       { name: queueNames.messages, queue: this.messagesQueue },
       { name: queueNames.followups, queue: this.followupsQueue },
-      { name: queueNames.crm, queue: this.crmQueue }
+      { name: queueNames.crm, queue: this.crmQueue },
+      { name: queueNames.ai, queue: this.aiQueue },
+      { name: queueNames.evaluation, queue: this.evaluationQueue }
     ];
   }
 

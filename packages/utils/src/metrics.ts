@@ -111,6 +111,66 @@ export const crmPushFailedTotal = new Counter({
   registers: [registry]
 });
 
+export const aiExecutionLatency = new Histogram({
+  name: "ai_execution_latency_seconds",
+  help: "AI runtime execution latency in seconds",
+  labelNames: ["client_id", "task_type", "provider", "model", "status"],
+  buckets: [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 30],
+  registers: [registry]
+});
+
+export const aiTokensTotal = new Counter({
+  name: "ai_tokens_total",
+  help: "Total AI tokens consumed",
+  labelNames: ["client_id", "task_type", "provider", "model", "kind"],
+  registers: [registry]
+});
+
+export const aiFailuresTotal = new Counter({
+  name: "ai_failures_total",
+  help: "Total AI runtime failures",
+  labelNames: ["client_id", "task_type", "provider", "reason"],
+  registers: [registry]
+});
+
+export const aiConfidenceDistribution = new Histogram({
+  name: "ai_confidence",
+  help: "AI output confidence distribution",
+  labelNames: ["client_id", "task_type", "provider", "model"],
+  buckets: [0.1, 0.25, 0.4, 0.55, 0.7, 0.85, 0.95, 1],
+  registers: [registry]
+});
+
+export const evaluationScoreDistribution = new Histogram({
+  name: "evaluation_score",
+  help: "Enterprise intelligence evaluation score distribution",
+  labelNames: ["client_id", "run_type", "metric"],
+  buckets: [0.1, 0.25, 0.4, 0.55, 0.7, 0.85, 0.95, 1],
+  registers: [registry]
+});
+
+export const retrievalLatency = new Histogram({
+  name: "retrieval_latency_seconds",
+  help: "Memory retrieval benchmark latency in seconds",
+  labelNames: ["client_id", "model"],
+  buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2],
+  registers: [registry]
+});
+
+export const driftAnomaliesTotal = new Counter({
+  name: "ai_drift_anomalies_total",
+  help: "Total detected AI drift anomalies",
+  labelNames: ["client_id", "metric_type"],
+  registers: [registry]
+});
+
+export const workerSaturationGauge = new Gauge({
+  name: "worker_saturation_score",
+  help: "Worker saturation score by queue and pool",
+  labelNames: ["queue", "worker_pool"],
+  registers: [registry]
+});
+
 export function initializeMetrics(serviceName: string): void {
   if (!metricsInitialized) {
     collectDefaultMetrics({ register: registry });
@@ -196,6 +256,53 @@ export function incrementWebhookFailure(provider: string, reason: string): void 
 
 export function setQualificationRate(clientId: string, rate: number): void {
   qualificationRate.set({ client_id: clientId }, rate);
+}
+
+export function observeAiExecution(options: {
+  clientId: string;
+  taskType: string;
+  provider: string;
+  model: string;
+  status: string;
+  latencyMs: number;
+  confidence: number;
+  inputTokens?: number;
+  outputTokens?: number;
+}): void {
+  const labels = {
+    client_id: options.clientId,
+    task_type: options.taskType,
+    provider: options.provider,
+    model: options.model
+  };
+  aiExecutionLatency.observe({ ...labels, status: options.status }, options.latencyMs / 1000);
+  aiConfidenceDistribution.observe(labels, options.confidence);
+  aiTokensTotal.inc({ ...labels, kind: "input" }, options.inputTokens ?? 0);
+  aiTokensTotal.inc({ ...labels, kind: "output" }, options.outputTokens ?? 0);
+}
+
+export function incrementAiFailure(clientId: string, taskType: string, provider: string, reason: string): void {
+  aiFailuresTotal.inc({ client_id: clientId, task_type: taskType, provider, reason });
+}
+
+export function observeEvaluationScore(clientId: string, runType: string, metrics: Record<string, number>): void {
+  for (const [metric, value] of Object.entries(metrics)) {
+    if (Number.isFinite(value)) {
+      evaluationScoreDistribution.observe({ client_id: clientId, run_type: runType, metric }, value);
+    }
+  }
+}
+
+export function observeRetrievalLatency(clientId: string, model: string, latencyMs: number): void {
+  retrievalLatency.observe({ client_id: clientId, model }, latencyMs / 1000);
+}
+
+export function incrementDriftAnomaly(clientId: string, metricType: string): void {
+  driftAnomaliesTotal.inc({ client_id: clientId, metric_type: metricType });
+}
+
+export function setWorkerSaturation(queueName: string, workerPool: string, score: number): void {
+  workerSaturationGauge.set({ queue: queueName, worker_pool: workerPool }, score);
 }
 
 export interface QueueMetricsHandle {

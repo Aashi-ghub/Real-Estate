@@ -20,6 +20,8 @@ import {
 import { processCrmPush } from "./processors/crm";
 import { processFollowup } from "./processors/followup";
 import { processSendMessage } from "./processors/send-message";
+import { processAiLeadIntelligence } from "./processors/ai";
+import { processEvaluationRun } from "./processors/evaluation";
 import { createWorkerProcessor, attachWorkerLifecycle, persistDeadLetterRecord, startWorkerHeartbeat } from "./services/job-runtime";
 import { WorkerQueues } from "./services/queue-runtime";
 
@@ -53,6 +55,8 @@ async function main(): Promise<void> {
     messageAttempts: config.MESSAGE_MAX_RETRIES,
     followupAttempts: config.followupMaxRetries,
     crmAttempts: config.CRM_MAX_RETRIES,
+    aiAttempts: config.aiMaxRetries,
+    evaluationAttempts: config.evaluationMaxRetries,
     retryBackoffMs: config.queueRetryBackoffMs
   });
   await queues.waitUntilReady();
@@ -109,9 +113,35 @@ async function main(): Promise<void> {
       concurrency: Math.max(1, Math.floor(config.workerConcurrency / 2))
     }
   );
+  const aiWorker = new Worker(
+    queueNames.ai,
+    createWorkerProcessor(
+      { queueName: queueNames.ai, workerName: "ai-worker" },
+      { logger, deps: { db, config } },
+      processAiLeadIntelligence
+    ),
+    {
+      connection: bullmqConnection,
+      prefix: config.QUEUE_PREFIX,
+      concurrency: config.aiWorkerConcurrency
+    }
+  );
+  const evaluationWorker = new Worker(
+    queueNames.evaluation,
+    createWorkerProcessor(
+      { queueName: queueNames.evaluation, workerName: "evaluation-worker" },
+      { logger, deps: { db, config } },
+      processEvaluationRun
+    ),
+    {
+      connection: bullmqConnection,
+      prefix: config.QUEUE_PREFIX,
+      concurrency: config.evaluationWorkerConcurrency
+    }
+  );
 
   const createDlqWorker = (
-    queueName: typeof queueNames.messagesDlq | typeof queueNames.followupsDlq | typeof queueNames.crmDlq,
+    queueName: typeof queueNames.messagesDlq | typeof queueNames.followupsDlq | typeof queueNames.crmDlq | typeof queueNames.aiDlq | typeof queueNames.evaluationDlq,
     workerName: string
   ) =>
     new Worker<DeadLetterJobData>(
@@ -141,6 +171,8 @@ async function main(): Promise<void> {
   const messagesDlqWorker = createDlqWorker(queueNames.messagesDlq, "messages-dlq-worker");
   const followupsDlqWorker = createDlqWorker(queueNames.followupsDlq, "followups-dlq-worker");
   const crmDlqWorker = createDlqWorker(queueNames.crmDlq, "crm-dlq-worker");
+  const aiDlqWorker = createDlqWorker(queueNames.aiDlq, "ai-dlq-worker");
+  const evaluationDlqWorker = createDlqWorker(queueNames.evaluationDlq, "evaluation-dlq-worker");
 
   attachWorkerLifecycle(messageWorker, {
     db,
@@ -166,8 +198,24 @@ async function main(): Promise<void> {
     retryBackoffMs: config.queueRetryBackoffMs * 2,
     retryBackoffMaxMs: config.queueRetryBackoffMaxMs
   });
+  attachWorkerLifecycle(aiWorker, {
+    db,
+    logger,
+    identity: { queueName: queueNames.ai, workerName: "ai-worker" },
+    deadLetterQueue: queues.aiDlq,
+    retryBackoffMs: config.queueRetryBackoffMs * 2,
+    retryBackoffMaxMs: config.queueRetryBackoffMaxMs
+  });
+  attachWorkerLifecycle(evaluationWorker, {
+    db,
+    logger,
+    identity: { queueName: queueNames.evaluation, workerName: "evaluation-worker" },
+    deadLetterQueue: queues.evaluationDlq,
+    retryBackoffMs: config.queueRetryBackoffMs * 3,
+    retryBackoffMaxMs: config.queueRetryBackoffMaxMs
+  });
 
-  for (const dlqWorker of [messagesDlqWorker, followupsDlqWorker, crmDlqWorker]) {
+  for (const dlqWorker of [messagesDlqWorker, followupsDlqWorker, crmDlqWorker, aiDlqWorker, evaluationDlqWorker]) {
     dlqWorker.on("error", (error) => {
       logger.error({ err: error }, "worker.dlq.runtime.error");
     });
@@ -177,9 +225,13 @@ async function main(): Promise<void> {
     messageWorker.waitUntilReady(),
     followupWorker.waitUntilReady(),
     crmWorker.waitUntilReady(),
+    aiWorker.waitUntilReady(),
+    evaluationWorker.waitUntilReady(),
     messagesDlqWorker.waitUntilReady(),
     followupsDlqWorker.waitUntilReady(),
-    crmDlqWorker.waitUntilReady()
+    crmDlqWorker.waitUntilReady(),
+    aiDlqWorker.waitUntilReady(),
+    evaluationDlqWorker.waitUntilReady()
   ]);
 
   const heartbeat = startWorkerHeartbeat({
@@ -190,9 +242,13 @@ async function main(): Promise<void> {
       { queueName: queueNames.messages, workerName: "message-worker" },
       { queueName: queueNames.followups, workerName: "followup-worker" },
       { queueName: queueNames.crm, workerName: "crm-worker" },
+      { queueName: queueNames.ai, workerName: "ai-worker" },
+      { queueName: queueNames.evaluation, workerName: "evaluation-worker" },
       { queueName: queueNames.messagesDlq, workerName: "messages-dlq-worker" },
       { queueName: queueNames.followupsDlq, workerName: "followups-dlq-worker" },
-      { queueName: queueNames.crmDlq, workerName: "crm-dlq-worker" }
+      { queueName: queueNames.crmDlq, workerName: "crm-dlq-worker" },
+      { queueName: queueNames.aiDlq, workerName: "ai-dlq-worker" },
+      { queueName: queueNames.evaluationDlq, workerName: "evaluation-dlq-worker" }
     ]
   });
 
@@ -203,9 +259,13 @@ async function main(): Promise<void> {
       messageWorker.close(),
       followupWorker.close(),
       crmWorker.close(),
+      aiWorker.close(),
+      evaluationWorker.close(),
       messagesDlqWorker.close(),
       followupsDlqWorker.close(),
-      crmDlqWorker.close()
+      crmDlqWorker.close(),
+      aiDlqWorker.close(),
+      evaluationDlqWorker.close()
     ]);
     await queueMetrics.close();
     await queues.close();
@@ -218,7 +278,7 @@ async function main(): Promise<void> {
   process.on("SIGINT", () => void shutdown("SIGINT"));
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
 
-  logger.info({ concurrency: config.workerConcurrency }, "worker.ready");
+  logger.info({ concurrency: config.workerConcurrency, aiConcurrency: config.aiWorkerConcurrency, evaluationConcurrency: config.evaluationWorkerConcurrency }, "worker.ready");
 }
 
 main().catch(async (error) => {

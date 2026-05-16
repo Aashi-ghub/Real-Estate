@@ -46,6 +46,8 @@ async function main(): Promise<void> {
     messageAttempts: config.MESSAGE_MAX_RETRIES,
     followupAttempts: config.followupMaxRetries,
     crmAttempts: config.CRM_MAX_RETRIES,
+    aiAttempts: config.aiMaxRetries,
+    evaluationAttempts: config.evaluationMaxRetries,
     retryBackoffMs: config.queueRetryBackoffMs
   });
   await queues.healthCheck();

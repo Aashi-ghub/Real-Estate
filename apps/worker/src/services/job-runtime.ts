@@ -4,7 +4,7 @@ import os from "node:os";
 import type { Job, Worker } from "bullmq";
 import type { Logger } from "pino";
 
-import { upsertJobMirror, type PrismaClient } from "@real-estate/db";
+import { toPrismaJson, upsertJobMirror, type PrismaClient } from "@real-estate/db";
 import type { DeadLetterJobData, JobTrace, QueueName } from "@real-estate/types";
 import {
   buildJobTrace,
@@ -276,12 +276,12 @@ export function startWorkerHeartbeat(options: {
             hostname,
             status,
             lastBeatAt: now,
-            metadata: sanitizeJsonValue({ intervalMs: options.intervalMs })
+            metadata: toPrismaJson(sanitizeJsonValue({ intervalMs: options.intervalMs }))
           },
           update: {
             status,
             lastBeatAt: now,
-            metadata: sanitizeJsonValue({ intervalMs: options.intervalMs })
+            metadata: toPrismaJson(sanitizeJsonValue({ intervalMs: options.intervalMs }))
           }
         })
       )

@@ -1,6 +1,6 @@
 import { Queue, type ConnectionOptions, type Job, type JobsOptions } from "bullmq";
 
-import type { CrmPushJobData, FollowupNoReplyJobData, SendMessageJobData } from "@real-estate/types";
+import type { AiLeadIntelligenceJobData, CrmPushJobData, EvaluationRunJobData, FollowupNoReplyJobData, SendMessageJobData } from "@real-estate/types";
 import { queueNames } from "@real-estate/types";
 import { buildQueueJobOptions } from "@real-estate/utils";
 
@@ -8,9 +8,13 @@ export class WorkerQueues {
   readonly messagesQueue: Queue<SendMessageJobData>;
   readonly followupsQueue: Queue<FollowupNoReplyJobData>;
   readonly crmQueue: Queue<CrmPushJobData>;
+  readonly aiQueue: Queue<AiLeadIntelligenceJobData>;
+  readonly evaluationQueue: Queue<EvaluationRunJobData>;
   readonly messagesDlq: Queue;
   readonly followupsDlq: Queue;
   readonly crmDlq: Queue;
+  readonly aiDlq: Queue;
+  readonly evaluationDlq: Queue;
 
   constructor(
     private readonly bullmqConnection: ConnectionOptions,
@@ -19,6 +23,8 @@ export class WorkerQueues {
       messageAttempts: number;
       followupAttempts: number;
       crmAttempts: number;
+      aiAttempts: number;
+      evaluationAttempts: number;
       retryBackoffMs: number;
     }
   ) {
@@ -34,6 +40,14 @@ export class WorkerQueues {
       connection: this.bullmqConnection,
       prefix: options.prefix
     });
+    this.aiQueue = new Queue(queueNames.ai, {
+      connection: this.bullmqConnection,
+      prefix: options.prefix
+    });
+    this.evaluationQueue = new Queue(queueNames.evaluation, {
+      connection: this.bullmqConnection,
+      prefix: options.prefix
+    });
     this.messagesDlq = new Queue(queueNames.messagesDlq, {
       connection: this.bullmqConnection,
       prefix: options.prefix
@@ -43,6 +57,14 @@ export class WorkerQueues {
       prefix: options.prefix
     });
     this.crmDlq = new Queue(queueNames.crmDlq, {
+      connection: this.bullmqConnection,
+      prefix: options.prefix
+    });
+    this.aiDlq = new Queue(queueNames.aiDlq, {
+      connection: this.bullmqConnection,
+      prefix: options.prefix
+    });
+    this.evaluationDlq = new Queue(queueNames.evaluationDlq, {
       connection: this.bullmqConnection,
       prefix: options.prefix
     });
@@ -91,6 +113,34 @@ export class WorkerQueues {
     await this.requeueFailedJob(job);
   }
 
+  async enqueueAiLeadIntelligence(data: AiLeadIntelligenceJobData, overrides: JobsOptions = {}): Promise<void> {
+    const job = await this.aiQueue.add(
+      "lead_intelligence",
+      data,
+      buildQueueJobOptions({
+        jobId: data.dedupeKey,
+        attempts: this.options.aiAttempts,
+        backoffDelayMs: this.options.retryBackoffMs * 2,
+        overrides: { priority: 10, ...overrides }
+      })
+    );
+    await this.requeueFailedJob(job);
+  }
+
+  async enqueueEvaluationRun(data: EvaluationRunJobData, overrides: JobsOptions = {}): Promise<void> {
+    const job = await this.evaluationQueue.add(
+      "evaluation_run",
+      data,
+      buildQueueJobOptions({
+        jobId: data.dedupeKey,
+        attempts: this.options.evaluationAttempts,
+        backoffDelayMs: this.options.retryBackoffMs * 3,
+        overrides: { priority: 20, ...overrides }
+      })
+    );
+    await this.requeueFailedJob(job);
+  }
+
   private async requeueFailedJob(job: Job): Promise<void> {
     const state = await job.getState();
     if (state === "failed") {
@@ -103,9 +153,13 @@ export class WorkerQueues {
       this.messagesQueue.close(),
       this.followupsQueue.close(),
       this.crmQueue.close(),
+      this.aiQueue.close(),
+      this.evaluationQueue.close(),
       this.messagesDlq.close(),
       this.followupsDlq.close(),
-      this.crmDlq.close()
+      this.crmDlq.close(),
+      this.aiDlq.close(),
+      this.evaluationDlq.close()
     ]);
   }
 
@@ -114,9 +168,13 @@ export class WorkerQueues {
       this.messagesQueue.waitUntilReady(),
       this.followupsQueue.waitUntilReady(),
       this.crmQueue.waitUntilReady(),
+      this.aiQueue.waitUntilReady(),
+      this.evaluationQueue.waitUntilReady(),
       this.messagesDlq.waitUntilReady(),
       this.followupsDlq.waitUntilReady(),
-      this.crmDlq.waitUntilReady()
+      this.crmDlq.waitUntilReady(),
+      this.aiDlq.waitUntilReady(),
+      this.evaluationDlq.waitUntilReady()
     ]);
   }
 
@@ -125,9 +183,13 @@ export class WorkerQueues {
       { name: queueNames.messages, queue: this.messagesQueue },
       { name: queueNames.followups, queue: this.followupsQueue },
       { name: queueNames.crm, queue: this.crmQueue },
+      { name: queueNames.ai, queue: this.aiQueue },
+      { name: queueNames.evaluation, queue: this.evaluationQueue },
       { name: queueNames.messagesDlq, queue: this.messagesDlq },
       { name: queueNames.followupsDlq, queue: this.followupsDlq },
-      { name: queueNames.crmDlq, queue: this.crmDlq }
+      { name: queueNames.crmDlq, queue: this.crmDlq },
+      { name: queueNames.aiDlq, queue: this.aiDlq },
+      { name: queueNames.evaluationDlq, queue: this.evaluationDlq }
     ];
   }
 }

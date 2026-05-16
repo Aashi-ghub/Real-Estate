@@ -50,6 +50,16 @@ const baseEnvSchema = z
     MESSAGE_MAX_RETRIES: z.coerce.number().int().positive().default(5),
     FOLLOWUP_MAX_RETRIES: z.coerce.number().int().positive().optional(),
     CRM_MAX_RETRIES: z.coerce.number().int().positive().default(5),
+    AI_MAX_RETRIES: z.coerce.number().int().positive().default(3),
+    AI_PROVIDER: z.enum(["deterministic", "openai"]).default("deterministic"),
+    OPENAI_API_KEY: optionalNonEmptyStringSchema,
+    AI_MODEL: z.string().min(1).default("gpt-4.1-mini"),
+    AI_TIMEOUT_MS: z.coerce.number().int().positive().default(20_000),
+    AI_WORKER_CONCURRENCY: z.coerce.number().int().positive().default(2),
+    EVALUATION_WORKER_CONCURRENCY: z.coerce.number().int().positive().default(1),
+    EVALUATION_MAX_RETRIES: z.coerce.number().int().positive().default(2),
+    EVALUATION_MAX_CONCURRENCY: z.coerce.number().int().positive().default(4),
+    AI_CONFIDENCE_THRESHOLD: z.coerce.number().min(0).max(1).default(0.55),
     QUEUE_RETRY_BACKOFF_MS: z.coerce.number().int().positive().default(1_000),
     QUEUE_RETRY_BACKOFF_MAX_MS: z.coerce.number().int().positive().default(60_000),
     QUEUE_METRICS_SAMPLE_INTERVAL_MS: z.coerce.number().int().positive().default(10_000),
@@ -119,6 +129,13 @@ export type BaseConfig = BaseEnvConfig & {
   queueRetryBackoffMs: number;
   queueRetryBackoffMaxMs: number;
   queueMetricsSampleIntervalMs: number;
+  aiMaxRetries: number;
+  evaluationMaxRetries: number;
+  evaluationMaxConcurrency: number;
+  aiProvider: "deterministic" | "openai";
+  aiModel: string;
+  aiTimeoutMs: number;
+  aiConfidenceThreshold: number;
   whatsappDryRun: boolean;
   jwtSecret: string;
   jwtAccessTtlSeconds: number;
@@ -238,6 +255,13 @@ export function getBaseConfig(env: NodeJS.ProcessEnv = process.env): BaseConfig 
     queueRetryBackoffMs: parsed.QUEUE_RETRY_BACKOFF_MS,
     queueRetryBackoffMaxMs: parsed.QUEUE_RETRY_BACKOFF_MAX_MS,
     queueMetricsSampleIntervalMs: parsed.QUEUE_METRICS_SAMPLE_INTERVAL_MS,
+    aiMaxRetries: parsed.AI_MAX_RETRIES,
+    evaluationMaxRetries: parsed.EVALUATION_MAX_RETRIES,
+    evaluationMaxConcurrency: parsed.EVALUATION_MAX_CONCURRENCY,
+    aiProvider: parsed.AI_PROVIDER,
+    aiModel: parsed.AI_MODEL,
+    aiTimeoutMs: parsed.AI_TIMEOUT_MS,
+    aiConfidenceThreshold: parsed.AI_CONFIDENCE_THRESHOLD,
     whatsappDryRun: parsed.WHATSAPP_DRY_RUN ?? (parsed.NODE_ENV !== "production"),
     jwtSecret: parsed.JWT_SECRET ?? parsed.APP_ENCRYPTION_KEY,
     jwtAccessTtlSeconds: parsed.JWT_ACCESS_TTL_SECONDS,
@@ -270,6 +294,8 @@ export function getApiConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
 
 export interface WorkerConfig extends BaseConfig {
   workerConcurrency: number;
+  aiWorkerConcurrency: number;
+  evaluationWorkerConcurrency: number;
 }
 
 export function getWorkerConfig(env: NodeJS.ProcessEnv = process.env): WorkerConfig {
@@ -277,6 +303,8 @@ export function getWorkerConfig(env: NodeJS.ProcessEnv = process.env): WorkerCon
 
   return {
     ...config,
-    workerConcurrency: config.WORKER_CONCURRENCY
+    workerConcurrency: config.WORKER_CONCURRENCY,
+    aiWorkerConcurrency: config.AI_WORKER_CONCURRENCY,
+    evaluationWorkerConcurrency: config.EVALUATION_WORKER_CONCURRENCY
   };
 }

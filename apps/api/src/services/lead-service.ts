@@ -8,6 +8,7 @@ import {
   createAuditLog,
   db as defaultDb,
   isUniqueConstraintError,
+  Prisma,
   toPrismaJson,
   type PrismaClient,
   upsertJobMirror
@@ -16,6 +17,7 @@ import type { ApiConfig } from "@real-estate/config";
 import type {
   AuthenticatedApiKey,
   AuthenticatedUser,
+  AiLeadIntelligenceJobData,
   ClientRuntimeConfig,
   ConversationContext,
   CrmPushJobData,
@@ -36,6 +38,12 @@ import {
   buildTenantIdempotencyKey,
   computeLeadScore,
   computeQualificationCompleteness,
+  computeWorkerSaturation,
+  calculateSloCompliance,
+  classifyChaosRecovery,
+  detectCostAnomaly,
+  evaluateDrift,
+  feedbackAcceptanceScore,
   generateApiKey,
   generateRefreshToken,
   getApiKeyPrefix,
@@ -47,6 +55,7 @@ import {
   normalizeEmail,
   normalizePhoneE164,
   normalizeInboundMessage,
+  observeRetrievalLatency,
   observeWebhookProcessingLatency,
   parseWhatsAppConfig,
   sanitizeFreeText,
@@ -54,6 +63,10 @@ import {
   verifyJwt,
   verifyPassword,
   setQualificationRate,
+  stableHash,
+  rankRetrievalCandidates,
+  scoreRetrievalRanking,
+  promptEfficiencyScore,
   verifyWebhookSignature
 } from "@real-estate/utils";
 import { withLogContext } from "@real-estate/logger";
@@ -85,6 +98,11 @@ const dashboardFollowupSchema = z.object({
   page_size: z.coerce.number().int().min(1).max(100).default(25),
   status: z.enum(["scheduled", "sent", "cancelled", "skipped", "failed"]).optional()
 });
+const memoryRetrievalSchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+  min_relevance: z.coerce.number().min(0).max(1).default(0.35),
+  max_age_days: z.coerce.number().int().min(1).max(3650).default(365)
+});
 const loginSchema = z.object({
   email: z.string().email().max(255),
   password: z.string().min(8).max(256)
@@ -114,6 +132,77 @@ const adminListSchema = z.object({
 const replaySchema = z.object({
   job_id: z.string().min(1).max(255),
   queue: z.string().min(1).max(64)
+});
+const createEvaluationDatasetSchema = z.object({
+  client_id: z.string().uuid().optional(),
+  name: z.string().min(1).max(160),
+  dataset_type: z.enum([
+    "semantic_extraction",
+    "emotional_inference",
+    "intent_prediction",
+    "multilingual_understanding",
+    "memory_retrieval",
+    "summarization",
+    "recommendation",
+    "behavioral_accuracy",
+    "hallucination_safety",
+    "retrieval_quality"
+  ]),
+  version: z.string().min(1).max(40),
+  examples: z.array(z.record(z.string(), z.unknown())).min(1).max(1_000),
+  metadata: z.record(z.string(), z.unknown()).optional()
+});
+const createEvaluationRunSchema = z.object({
+  client_id: z.string().uuid().optional(),
+  dataset_id: z.string().uuid().optional(),
+  run_type: createEvaluationDatasetSchema.shape.dataset_type,
+  model_version: z.string().min(1).max(120).default("rules-v1"),
+  prompt_version: z.string().max(80).optional(),
+  baseline_run_id: z.string().uuid().optional(),
+  concurrency_limit: z.coerce.number().int().min(1).max(16).default(1)
+});
+const feedbackEventSchema = z.object({
+  client_id: z.string().uuid().optional(),
+  lead_id: z.string().uuid().optional(),
+  event_type: z.enum([
+    "recommendation_accepted",
+    "recommendation_rejected",
+    "summary_corrected",
+    "prediction_corrected",
+    "extraction_corrected"
+  ]),
+  target_type: z.string().min(1).max(80),
+  target_id: z.string().min(1).max(120),
+  original_value: z.unknown(),
+  corrected_value: z.unknown().optional()
+});
+const intelligenceQuerySchema = z.object({
+  client_id: z.string().uuid().optional(),
+  days: z.coerce.number().int().min(1).max(365).default(30)
+});
+const sloDefinitionSchema = z.object({
+  client_id: z.string().uuid().optional(),
+  name: z.string().min(1).max(120),
+  target_type: z.enum(["api_latency", "webhook_latency", "ai_latency", "queue_throughput", "retrieval_latency"]),
+  target: z.number().min(0.5).max(0.9999),
+  window_minutes: z.number().int().min(1).max(43_200),
+  threshold: z.record(z.string(), z.unknown()).default({})
+});
+const sloEvaluateSchema = z.object({
+  client_id: z.string().uuid().optional(),
+  slo_definition_id: z.string().uuid(),
+  good_events: z.number().int().min(0),
+  total_events: z.number().int().min(1),
+  previous_burn_rate: z.number().min(0).optional(),
+  correlation: z.record(z.string(), z.unknown()).default({})
+});
+const chaosLogSchema = z.object({
+  client_id: z.string().uuid().optional(),
+  scenario_type: z.enum(["redis_slowdown", "postgres_slowdown", "queue_corruption", "worker_crash", "malformed_embedding", "benchmark_corruption", "ai_provider_outage"]),
+  operational_queue_impacted: z.boolean().default(false),
+  fallback_activated: z.boolean().default(true),
+  recovered: z.boolean().default(true),
+  input: z.unknown().optional()
 });
 const interactiveTransactionOptions = {
   isolationLevel: "Serializable" as const,
@@ -1011,7 +1100,12 @@ export class LeadService {
                 phone: lead.phone,
                 nextState: advance.nextState,
                 outboundMessage: advance.outboundMessage,
-                qualifiedAt: nextContext.qualifiedAt
+                qualifiedAt: nextContext.qualifiedAt,
+                deterministic: {
+                  parsedAnswers: sanitizeJsonValue(advance.parsedAnswers) as JsonObject,
+                  attributes: sanitizeJsonValue(Object.fromEntries(attributeMap)) as JsonObject,
+                  confidence: advance.intentConfidence
+                }
               };
             },
             interactiveTransactionOptions
@@ -1028,6 +1122,30 @@ export class LeadService {
             correlationId: input.trace.correlationId,
             source: "webhook"
           });
+
+          const aiJob: AiLeadIntelligenceJobData = {
+            clientId: client.id,
+            leadId: outcome.leadId,
+            conversationId: outcome.conversationId,
+            rawUtterance: normalized.text,
+            deterministic: outcome.deterministic,
+            tasks: [
+              "semantic_understanding",
+              "behavioral_intelligence",
+              "buyer_intent_prediction",
+              "conversational_memory",
+              "multilingual_reasoning",
+              "engagement_prediction",
+              "conversation_summary",
+              "followup_optimization",
+              "sales_assist",
+              "analytics_intelligence"
+            ],
+            dedupeKey: buildJobDedupeKey(["ai", outcome.conversationId, normalized.providerMessageId]),
+            trace: webhookTrace
+          };
+
+          this.scheduleAiLeadIntelligence(aiJob, input.trace);
 
           if (outcome.outboundMessage) {
             const outboundDedupeKey = buildJobDedupeKey([
@@ -1319,6 +1437,44 @@ export class LeadService {
         count: row._count._all,
         average_score: row._avg.score ?? 0
       }))
+    };
+  }
+
+  async retrieveLeadMemory(input: {
+    auth: AuthenticatedApiKey;
+    leadId: string;
+    query: unknown;
+  }) {
+    const query = memoryRetrievalSchema.parse(input.query ?? {});
+    const cutoff = new Date(Date.now() - query.max_age_days * 24 * 60 * 60 * 1000);
+    const memories = await this.db.conversationalMemory.findMany({
+      where: {
+        clientId: input.auth.clientId,
+        leadId: input.leadId,
+        relevanceScore: { gte: query.min_relevance },
+        updatedAt: { gte: cutoff }
+      },
+      orderBy: [
+        { relevanceScore: "desc" },
+        { updatedAt: "desc" }
+      ],
+      take: query.limit
+    });
+
+    await this.db.memoryRetrievalLog.create({
+      data: {
+        clientId: input.auth.clientId,
+        leadId: input.leadId,
+        query: toPrismaJson(query),
+        resultIds: memories.map((memory) => memory.id),
+        relevanceScores: toPrismaJson(Object.fromEntries(memories.map((memory) => [memory.id, memory.relevanceScore]))),
+        staleFiltered: 0
+      }
+    });
+
+    return {
+      lead_id: input.leadId,
+      memories
     };
   }
 
@@ -1629,6 +1785,8 @@ export class LeadService {
       await this.queues.enqueueCrmPush(payload as CrmPushJobData);
     } else if (job.queue === "followups") {
       await this.queues.enqueueFollowup(payload as never, 0);
+    } else if (job.queue === "ai") {
+      await this.queues.enqueueAiLeadIntelligence(payload as AiLeadIntelligenceJobData);
     } else {
       const error = new Error("Replay is not supported for this queue");
       (error as Error & { statusCode?: number }).statusCode = 400;
@@ -1650,6 +1808,549 @@ export class LeadService {
     });
 
     return { replayed: true, replay_key: replayKey };
+  }
+
+  async createEvaluationDataset(input: { auth: AuthenticatedUser; body: unknown; trace: TraceContext }) {
+    const body = createEvaluationDatasetSchema.parse(input.body);
+    const clientId = this.resolveTenantForUser(input.auth, body.client_id ?? input.auth.clientId);
+    const checksum = stableHash(body.examples);
+    const existing = await this.db.evaluationDataset.findUnique({
+      where: {
+        clientId_datasetType_version: {
+          clientId,
+          datasetType: body.dataset_type,
+          version: body.version
+        }
+      }
+    });
+    if (existing && existing.checksum !== checksum) {
+      const error = new Error("Evaluation dataset versions are immutable; create a new version");
+      (error as Error & { statusCode?: number }).statusCode = 409;
+      throw error;
+    }
+    const dataset = existing ?? await this.db.evaluationDataset.create({
+      data: {
+        clientId,
+        name: sanitizeFreeText(body.name, 160),
+        datasetType: body.dataset_type,
+        version: body.version,
+        checksum,
+        examples: toPrismaJson(body.examples),
+        metadata: toPrismaJson({ ...(body.metadata ?? {}), immutable: true, manifestVersion: "phase5-v2" }),
+        createdBy: input.auth.id
+      }
+    });
+
+    await this.auditSecurityEvent({
+      clientId,
+      actorType: "user",
+      actorId: input.auth.id,
+      action: "evaluation_dataset.upsert",
+      entity: "EvaluationDataset",
+      entityId: dataset.id,
+      trace: input.trace,
+      metadata: { datasetType: body.dataset_type, version: body.version }
+    });
+
+    return dataset;
+  }
+
+  async scheduleEvaluationRun(input: { auth: AuthenticatedUser; body: unknown; trace: TraceContext }) {
+    const body = createEvaluationRunSchema.parse(input.body);
+    const clientId = this.resolveTenantForUser(input.auth, body.client_id ?? input.auth.clientId);
+    const dataset = body.dataset_id
+      ? await this.db.evaluationDataset.findFirst({
+          where: { id: body.dataset_id, clientId }
+        })
+      : null;
+    if (body.dataset_id && !dataset) {
+      const error = new Error("Evaluation dataset not found");
+      (error as Error & { statusCode?: number }).statusCode = 404;
+      throw error;
+    }
+
+    const inputChecksum = stableHash({
+      clientId,
+      datasetId: body.dataset_id ?? "synthetic",
+      datasetChecksum: dataset?.checksum ?? "synthetic",
+      runType: body.run_type,
+      modelVersion: body.model_version,
+      promptVersion: body.prompt_version ?? null,
+      baselineRunId: body.baseline_run_id ?? null
+    });
+    const dedupeKey = buildJobDedupeKey(["evaluation", inputChecksum]);
+    const run = await this.db.evaluationRun.create({
+      data: {
+        clientId,
+        datasetId: body.dataset_id ?? null,
+        runType: body.run_type,
+        status: "queued",
+        modelVersion: body.model_version,
+        promptVersion: body.prompt_version ?? null,
+        baselineRunId: body.baseline_run_id ?? null,
+        inputChecksum,
+        concurrencyLimit: Math.min(body.concurrency_limit, this.config.evaluationMaxConcurrency),
+        isolatedQueue: "evaluation"
+      }
+    });
+    const job = {
+      clientId,
+      runId: run.id,
+      datasetId: body.dataset_id,
+      runType: body.run_type,
+      modelVersion: body.model_version,
+      promptVersion: body.prompt_version,
+      baselineRunId: body.baseline_run_id,
+      concurrencyLimit: Math.min(body.concurrency_limit, this.config.evaluationMaxConcurrency),
+      dedupeKey,
+      trace: buildJobTrace(undefined, {
+        requestId: input.trace.requestId,
+        correlationId: input.trace.correlationId,
+        source: "api"
+      })
+    };
+
+    await upsertJobMirror(this.db, {
+      clientId,
+      queue: "evaluation",
+      name: "evaluation_run",
+      idempotencyKey: dedupeKey,
+      payload: job,
+      metadata: {
+        queueName: "evaluation",
+        isolatedFromProduction: true,
+        boundedConcurrency: job.concurrencyLimit
+      },
+      status: "queued",
+      trace: input.trace
+    });
+    await this.queues.enqueueEvaluationRun(job);
+
+    return { run_id: run.id, queued: true, queue: "evaluation" };
+  }
+
+  async ingestFeedbackEvent(input: { auth: AuthenticatedUser; body: unknown; trace: TraceContext }) {
+    const body = feedbackEventSchema.parse(input.body);
+    const clientId = this.resolveTenantForUser(input.auth, body.client_id ?? input.auth.clientId);
+    if (body.lead_id) {
+      const lead = await this.db.lead.findFirst({ where: { id: body.lead_id, clientId }, select: { id: true } });
+      if (!lead) {
+        const error = new Error("Feedback lead target not found for tenant");
+        (error as Error & { statusCode?: number }).statusCode = 404;
+        throw error;
+      }
+    }
+    if (body.target_type === "ai_recommendation") {
+      const recommendation = await this.db.aiRecommendation.findFirst({
+        where: { id: body.target_id, clientId },
+        select: { id: true, leadId: true, effectiveness: true }
+      });
+      if (!recommendation) {
+        const error = new Error("Feedback recommendation target not found for tenant");
+        (error as Error & { statusCode?: number }).statusCode = 404;
+        throw error;
+      }
+      if (body.lead_id && recommendation.leadId !== body.lead_id) {
+        const error = new Error("Feedback recommendation does not belong to lead");
+        (error as Error & { statusCode?: number }).statusCode = 409;
+        throw error;
+      }
+    }
+    const event = await this.db.feedbackEvent.create({
+      data: {
+        clientId,
+        leadId: body.lead_id ?? null,
+        actorId: input.auth.id,
+        eventType: body.event_type,
+        targetType: body.target_type,
+        targetId: body.target_id,
+        originalValue: toPrismaJson(body.original_value),
+        correctedValue: body.corrected_value === undefined ? Prisma.JsonNull : toPrismaJson(body.corrected_value),
+        acceptanceScore: feedbackAcceptanceScore(body.event_type),
+        auditMetadata: toPrismaJson({
+          requestId: input.trace.requestId,
+          autonomousRetraining: false,
+          evaluationAndRankingOnly: true
+        })
+      }
+    });
+
+    if (body.target_type === "ai_recommendation") {
+      const accepted = body.event_type === "recommendation_accepted";
+      const rejected = body.event_type === "recommendation_rejected";
+      if (accepted || rejected) {
+        await this.db.aiRecommendation.updateMany({
+          where: { id: body.target_id, clientId },
+          data: {
+            status: accepted ? "accepted" : "rejected",
+            acceptedAt: accepted ? new Date() : null,
+            effectiveness: toPrismaJson({
+              latestFeedbackEventId: event.id,
+              acceptanceScore: event.acceptanceScore,
+              updatedBy: input.auth.id,
+              evaluationAndRankingOnly: true
+            })
+          }
+        });
+      }
+    }
+
+    await this.auditSecurityEvent({
+      clientId,
+      actorType: "user",
+      actorId: input.auth.id,
+      action: "feedback.ingest",
+      entity: "FeedbackEvent",
+      entityId: event.id,
+      trace: input.trace,
+      metadata: { eventType: body.event_type, targetType: body.target_type, targetId: body.target_id }
+    });
+
+    return event;
+  }
+
+  async getEnterpriseIntelligenceAnalytics(input: { auth: AuthenticatedUser; query: unknown }) {
+    const query = intelligenceQuerySchema.parse(input.query ?? {});
+    const clientId = this.resolveTenantForUser(input.auth, query.client_id ?? input.auth.clientId);
+    const now = new Date();
+    const rollupEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const since = new Date(rollupEnd.getTime() - query.days * 86_400_000);
+    const [runs, feedback, drifts, recommendations, costs] = await Promise.all([
+      this.db.evaluationRun.findMany({
+        where: { clientId, createdAt: { gte: since } },
+        orderBy: { createdAt: "desc" },
+        take: 50
+      }),
+      this.db.feedbackEvent.groupBy({
+        by: ["eventType"],
+        where: { clientId, createdAt: { gte: since } },
+        _count: { _all: true },
+        _avg: { acceptanceScore: true }
+      }),
+      this.db.driftMetric.findMany({
+        where: { clientId, createdAt: { gte: since } },
+        orderBy: { createdAt: "desc" },
+        take: 50
+      }),
+      this.db.aiRecommendation.groupBy({
+        by: ["status", "recommendationType"],
+        where: { clientId, createdAt: { gte: since } },
+        _count: { _all: true },
+        _avg: { confidence: true }
+      }),
+      this.db.aiCostMetric.findMany({
+        where: { clientId, createdAt: { gte: since } },
+        orderBy: { createdAt: "asc" }
+      })
+    ]);
+    const totalCostSeries = costs.map((entry) => Number(entry.costUsd));
+    const costForecast = detectCostAnomaly(totalCostSeries);
+
+    const response = {
+      client_id: clientId,
+      window_days: query.days,
+      evaluation_runs: runs,
+      feedback,
+      drifts,
+      recommendation_effectiveness: recommendations,
+      cost_forecast: {
+        forecast_cost_usd: costForecast.forecast,
+        anomaly_score: costForecast.anomalyScore,
+        confidence: costForecast.confidence
+      }
+    };
+    await this.db.analyticsRollup.upsert({
+      where: {
+        clientId_rollupType_windowStart_windowEnd: {
+          clientId,
+          rollupType: "enterprise_intelligence",
+          windowStart: since,
+          windowEnd: rollupEnd
+        }
+      },
+      create: {
+        clientId,
+        rollupType: "enterprise_intelligence",
+        windowStart: since,
+        windowEnd: rollupEnd,
+        checksum: stableHash(response),
+        metrics: toPrismaJson(response)
+      },
+      update: {
+        checksum: stableHash(response),
+        metrics: toPrismaJson(response)
+      }
+    });
+    return response;
+  }
+
+  async benchmarkLeadMemoryRetrieval(input: { auth: AuthenticatedApiKey; leadId: string; query: unknown }) {
+    const query = memoryRetrievalSchema.extend({
+      text: z.string().min(1).max(500),
+      expected_ids: z.array(z.string()).default([])
+    }).parse(input.query ?? {});
+    const startedAt = performance.now();
+    const cutoff = new Date(Date.now() - query.max_age_days * 86_400_000);
+    const memories = await this.db.conversationalMemory.findMany({
+      where: {
+        clientId: input.auth.clientId,
+        leadId: input.leadId,
+        updatedAt: { gte: cutoff }
+      },
+      orderBy: [
+        { updatedAt: "desc" },
+        { relevanceScore: "desc" }
+      ],
+      take: Math.min(500, Math.max(query.limit * 20, 100))
+    });
+    const ranked = rankRetrievalCandidates({
+      query: query.text,
+      candidates: memories.map((memory) => ({
+        id: memory.id,
+        content: memory.content,
+        tags: memory.tags,
+        relevanceScore: memory.relevanceScore,
+        confidence: memory.confidence,
+        updatedAt: memory.updatedAt,
+        vector: Array.isArray((memory.content as { vector?: unknown }).vector)
+          ? ((memory.content as { vector: number[] }).vector).filter((value) => typeof value === "number")
+          : undefined
+      }))
+    }).filter((memory) => memory.finalScore >= query.min_relevance).slice(0, query.limit);
+    const metrics = scoreRetrievalRanking(query.expected_ids, ranked.map((memory) => memory.id));
+    const latencyMs = Math.round(performance.now() - startedAt);
+    observeRetrievalLatency(input.auth.clientId, "hash-lexical-v1", latencyMs);
+
+    await this.db.retrievalBenchmark.create({
+      data: {
+        clientId: input.auth.clientId,
+        leadId: input.leadId,
+        query: toPrismaJson(query),
+        expectedMemoryIds: query.expected_ids,
+        retrievedMemoryIds: ranked.map((memory) => memory.id),
+        relevanceScores: toPrismaJson(Object.fromEntries(ranked.map((memory) => [memory.id, memory.finalScore]))),
+        rankingMetrics: toPrismaJson(metrics),
+        explainability: toPrismaJson(Object.fromEntries(ranked.map((memory) => [memory.id, memory.explanation]))),
+        confidence: ranked.length === 0 ? 0 : ranked.reduce((sum, memory) => sum + memory.finalScore, 0) / ranked.length,
+        latencyMs,
+        staleFiltered: memories.length - ranked.length,
+        model: "hash-lexical-v1"
+      }
+    });
+
+    return {
+      lead_id: input.leadId,
+      results: ranked,
+      metrics,
+      latency_ms: latencyMs
+    };
+  }
+
+  async recordOperationalIntelligenceMetrics(): Promise<void> {
+    const health = await this.queues.getQueueHealth();
+    await Promise.all(
+      health.map(async (queue) => {
+        const counts = queue.counts as Record<string, number>;
+        const metric = computeWorkerSaturation({
+          activeJobs: counts.active ?? 0,
+          waitingJobs: counts.waiting ?? 0,
+          delayedJobs: counts.delayed ?? 0,
+          failedJobs: counts.failed ?? 0,
+          concurrency: queue.name === "evaluation" ? this.config.evaluationMaxConcurrency : this.config.WORKER_CONCURRENCY
+        });
+        await this.db.workerSaturationMetric.create({
+          data: {
+            queueName: queue.name,
+            workerPool: queue.name === "evaluation" ? "evaluation" : queue.name === "ai" ? "ai" : "operational",
+            activeJobs: counts.active ?? 0,
+            waitingJobs: counts.waiting ?? 0,
+            delayedJobs: counts.delayed ?? 0,
+            failedJobs: counts.failed ?? 0,
+            concurrency: queue.name === "evaluation" ? this.config.evaluationMaxConcurrency : this.config.WORKER_CONCURRENCY,
+            saturationScore: metric.saturationScore,
+            starvationRisk: metric.starvationRisk,
+            adaptiveConcurrency: toPrismaJson(metric.adaptiveConcurrency),
+            observedAt: new Date()
+          }
+        });
+        await this.db.queueFairnessMetric.create({
+          data: {
+            queueName: queue.name,
+            partitionKey: queue.name === "ai" || queue.name === "evaluation" ? "ai-isolated" : "operational",
+            waitingJobs: counts.waiting ?? 0,
+            activeJobs: counts.active ?? 0,
+            throughputPerMinute: counts.completed ?? 0,
+            fairnessScore: Math.max(0, 1 - metric.starvationRisk),
+            throttleApplied: Boolean(metric.adaptiveConcurrency.throttleAiHeavyTenant),
+            metadata: toPrismaJson(metric.adaptiveConcurrency),
+            observedAt: new Date()
+          }
+        });
+      })
+    );
+  }
+
+  async createDriftMetric(input: {
+    clientId: string;
+    leadId?: string;
+    metricType: string;
+    baselineVersion: string;
+    currentVersion: string;
+    baselineValue: unknown;
+    currentValue: unknown;
+    threshold: number;
+  }) {
+    const drift = evaluateDrift(input);
+    return this.db.driftMetric.create({
+      data: {
+        clientId: input.clientId,
+        leadId: input.leadId ?? null,
+        metricType: input.metricType,
+        baselineVersion: input.baselineVersion,
+        currentVersion: input.currentVersion,
+        baselineValue: toPrismaJson(input.baselineValue),
+        currentValue: toPrismaJson(input.currentValue),
+        driftScore: drift.driftScore,
+        threshold: input.threshold,
+        anomaly: drift.anomaly,
+        trend: toPrismaJson(drift.trend)
+      }
+    });
+  }
+
+  async upsertSloDefinition(input: { auth: AuthenticatedUser; body: unknown; trace: TraceContext }) {
+    const body = sloDefinitionSchema.parse(input.body);
+    const clientId = this.resolveTenantForUser(input.auth, body.client_id ?? input.auth.clientId);
+    const definition = await this.db.sloDefinition.upsert({
+      where: { clientId_name: { clientId, name: body.name } },
+      create: {
+        clientId,
+        name: body.name,
+        targetType: body.target_type,
+        target: body.target,
+        windowMinutes: body.window_minutes,
+        threshold: toPrismaJson(body.threshold)
+      },
+      update: {
+        targetType: body.target_type,
+        target: body.target,
+        windowMinutes: body.window_minutes,
+        threshold: toPrismaJson(body.threshold),
+        isActive: true
+      }
+    });
+    await this.auditSecurityEvent({
+      clientId,
+      actorType: "user",
+      actorId: input.auth.id,
+      action: "slo_definition.upsert",
+      entity: "SloDefinition",
+      entityId: definition.id,
+      trace: input.trace,
+      metadata: { targetType: body.target_type, target: body.target }
+    });
+    return definition;
+  }
+
+  async evaluateSlo(input: { auth: AuthenticatedUser; body: unknown; trace: TraceContext }) {
+    const body = sloEvaluateSchema.parse(input.body);
+    const clientId = this.resolveTenantForUser(input.auth, body.client_id ?? input.auth.clientId);
+    const definition = await this.db.sloDefinition.findFirst({
+      where: { id: body.slo_definition_id, clientId, isActive: true }
+    });
+    if (!definition) {
+      const error = new Error("SLO definition not found");
+      (error as Error & { statusCode?: number }).statusCode = 404;
+      throw error;
+    }
+    const compliance = calculateSloCompliance({
+      target: definition.target,
+      goodEvents: body.good_events,
+      totalEvents: body.total_events,
+      previousBurnRate: body.previous_burn_rate
+    });
+    const incident = compliance.degradation === "none"
+      ? null
+      : await this.db.sloIncident.create({
+          data: {
+            clientId,
+            sloDefinitionId: definition.id,
+            status: "open",
+            severity: compliance.degradation === "critical" ? "critical" : "warn",
+            burnRate: compliance.burnRate,
+            compliance: compliance.compliance,
+            errorBudgetRemaining: compliance.errorBudgetRemaining,
+            degradation: compliance.degradation,
+            correlation: toPrismaJson(body.correlation)
+          }
+        });
+    return { definition, compliance, incident };
+  }
+
+  async recordChaosScenario(input: { auth: AuthenticatedUser; body: unknown; trace: TraceContext }) {
+    const body = chaosLogSchema.parse(input.body);
+    const clientId = this.resolveTenantForUser(input.auth, body.client_id ?? input.auth.clientId);
+    const recovery = classifyChaosRecovery({
+      scenarioType: body.scenario_type,
+      operationalQueueImpacted: body.operational_queue_impacted,
+      fallbackActivated: body.fallback_activated,
+      recovered: body.recovered
+    });
+    return this.db.chaosExecutionLog.create({
+      data: {
+        clientId,
+        scenarioType: body.scenario_type,
+        status: recovery.status,
+        inputChecksum: stableHash(body.input ?? body),
+        recoveryAction: body.recovered ? "deterministic_recovery" : "manual_intervention_required",
+        operationalImpact: toPrismaJson({ operationalQueueImpacted: body.operational_queue_impacted }),
+        fallbackActivated: body.fallback_activated,
+        quarantineReason: recovery.status === "failed" ? "operational_impact_or_unrecovered" : null,
+        startedAt: new Date(),
+        completedAt: new Date()
+      }
+    });
+  }
+
+  async persistCostForecast(clientId: string, periodStart: Date, periodEnd: Date) {
+    const costs = await this.db.aiCostMetric.findMany({
+      where: { clientId, createdAt: { gte: periodStart, lt: periodEnd } },
+      orderBy: { createdAt: "asc" }
+    });
+    const byProvider = new Map<string, typeof costs>();
+    for (const cost of costs) {
+      const key = `${cost.provider}:${cost.model}`;
+      byProvider.set(key, [...(byProvider.get(key) ?? []), cost]);
+    }
+    const created = [];
+    for (const [key, entries] of byProvider.entries()) {
+      const [provider, model] = key.split(":") as ["deterministic" | "openai", string];
+      const anomaly = detectCostAnomaly(entries.map((entry) => Number(entry.costUsd)));
+      const forecastTokens = Math.round(entries.reduce((sum, entry) => sum + entry.totalTokens, 0) * 30 / Math.max(1, entries.length));
+      created.push(await this.db.costForecast.create({
+        data: {
+          clientId,
+          periodStart,
+          periodEnd,
+          provider,
+          model,
+          forecastTokens,
+          forecastCostUsd: anomaly.forecast,
+          confidence: anomaly.confidence,
+          anomalyScore: anomaly.anomalyScore,
+          recommendations: toPrismaJson({
+            providerComparison: true,
+            promptEfficiency: entries.map((entry) => promptEfficiencyScore({
+              inputTokens: entry.inputTokens,
+              outputTokens: entry.outputTokens,
+              confidence: 0.75,
+              costUsd: Number(entry.costUsd)
+            }))
+          })
+        }
+      }));
+    }
+    return created;
   }
 
   private resolveTenantForUser(auth: AuthenticatedUser, requestedClientId?: string | null): string {
@@ -1871,6 +2572,69 @@ export class LeadService {
       trace
     });
     await this.queues.enqueueSendMessage(job);
+  }
+
+  private scheduleAiLeadIntelligence(job: AiLeadIntelligenceJobData, trace: TraceContext): void {
+    observeBackgroundTask(
+      this.logger,
+      "ai.enqueue.degraded",
+      this.enqueueAiLeadIntelligenceBestEffort(job, trace),
+      {
+        clientId: job.clientId,
+        leadId: job.leadId,
+        conversationId: job.conversationId,
+        dedupeKey: job.dedupeKey,
+        queue: "ai"
+      }
+    );
+  }
+
+  private async enqueueAiLeadIntelligenceBestEffort(job: AiLeadIntelligenceJobData, trace: TraceContext): Promise<void> {
+    try {
+      await upsertJobMirror(this.db, {
+        clientId: job.clientId,
+        leadId: job.leadId,
+        queue: "ai",
+        name: "lead_intelligence",
+        idempotencyKey: job.dedupeKey,
+        payload: job,
+        metadata: {
+          queueName: "ai",
+          source: "webhook",
+          assistiveOnly: true,
+          degradationSafe: true
+        },
+        status: "queued",
+        trace
+      });
+      await this.queues.enqueueAiLeadIntelligence(job);
+    } catch (error) {
+      this.logger.warn(
+        {
+          err: error,
+          clientId: job.clientId,
+          leadId: job.leadId,
+          conversationId: job.conversationId,
+          dedupeKey: job.dedupeKey
+        },
+        "ai.enqueue.failed.degraded"
+      );
+
+      await createAuditLog(this.db, {
+        clientId: job.clientId,
+        actor: "ai:scheduler",
+        action: "ai.enqueue_failed",
+        entity: "Lead",
+        entityId: job.leadId,
+        metadata: {
+          queue: "ai",
+          dedupeKey: job.dedupeKey,
+          degradationMode: true,
+          error: error instanceof Error ? error.message : "unknown"
+        },
+        trace
+      });
+    }
   }
 
   private async refreshQualificationRate(clientId: string): Promise<void> {

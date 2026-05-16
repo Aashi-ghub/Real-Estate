@@ -42,6 +42,7 @@ class FakeQueues {
   readonly sendMessages: unknown[] = [];
   readonly followups: unknown[] = [];
   readonly crmPushes: unknown[] = [];
+  readonly aiJobs: unknown[] = [];
 
   async enqueueSendMessage(payload: unknown): Promise<void> {
     this.sendMessages.push(payload);
@@ -53,6 +54,10 @@ class FakeQueues {
 
   async enqueueCrmPush(payload: unknown): Promise<void> {
     this.crmPushes.push(payload);
+  }
+
+  async enqueueAiLeadIntelligence(payload: unknown): Promise<void> {
+    this.aiJobs.push(payload);
   }
 
   async close(): Promise<void> {
@@ -91,6 +96,13 @@ function createApiConfig(): ApiConfig {
     MESSAGE_MAX_RETRIES: 3,
     FOLLOWUP_MAX_RETRIES: 3,
     CRM_MAX_RETRIES: 3,
+    AI_MAX_RETRIES: 3,
+    AI_PROVIDER: "deterministic",
+    OPENAI_API_KEY: undefined,
+    AI_MODEL: "gpt-4.1-mini",
+    AI_TIMEOUT_MS: 20000,
+    AI_WORKER_CONCURRENCY: 1,
+    AI_CONFIDENCE_THRESHOLD: 0.55,
     QUEUE_RETRY_BACKOFF_MS: 1000,
     QUEUE_RETRY_BACKOFF_MAX_MS: 60000,
     QUEUE_METRICS_SAMPLE_INTERVAL_MS: 10000,
@@ -117,6 +129,11 @@ function createApiConfig(): ApiConfig {
     queueRetryBackoffMs: 1000,
     queueRetryBackoffMaxMs: 60000,
     queueMetricsSampleIntervalMs: 10000,
+    aiMaxRetries: 3,
+    aiProvider: "deterministic",
+    aiModel: "gpt-4.1-mini",
+    aiTimeoutMs: 20000,
+    aiConfidenceThreshold: 0.55,
     apiHost: "127.0.0.1",
     apiPort: 3000
   };
@@ -447,8 +464,10 @@ function createCreateLeadFakeDb(config: ApiConfig): FakeDb {
   db.leads.length = 0;
   db.conversations.length = 0;
 
-  db.apiKey.findFirst = async ({ where }: { where: { hashedKey: string } }) =>
-    db.apiKeysStore.find((record) => record.hashedKey === where.hashedKey) ?? null;
+  db.apiKey.findFirst = async ({ where }: { where: { hashedKey?: string; OR?: Array<{ hashedKey?: string }> } }) => {
+    const hashedKey = where.hashedKey ?? where.OR?.find((entry) => entry.hashedKey)?.hashedKey;
+    return db.apiKeysStore.find((record) => record.hashedKey === hashedKey) ?? null;
+  };
   db.apiKey.update = async () => undefined;
   db.lead.findUnique = async ({ where }: { where: { idempotencyKey: string } }) =>
     db.leads.find((lead) => lead.idempotencyKey === where.idempotencyKey) ?? null;

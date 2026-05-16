@@ -145,6 +145,96 @@ enum FollowUpStatus {
   failed
 }
 
+enum AiExecutionStatus {
+  queued
+  running
+  completed
+  failed
+  timed_out
+  fallback
+}
+
+enum AiTaskType {
+  semantic_understanding
+  behavioral_intelligence
+  buyer_intent_prediction
+  conversational_memory
+  multilingual_reasoning
+  engagement_prediction
+  conversation_summary
+  followup_optimization
+  sales_assist
+  analytics_intelligence
+}
+
+enum AiProvider {
+  deterministic
+  openai
+}
+
+enum AiRecommendationStatus {
+  proposed
+  accepted
+  rejected
+  expired
+}
+
+enum EvaluationRunStatus {
+  queued
+  running
+  completed
+  failed
+}
+
+enum EvaluationDatasetType {
+  semantic_extraction
+  emotional_inference
+  intent_prediction
+  multilingual_understanding
+  memory_retrieval
+  summarization
+  recommendation
+  behavioral_accuracy
+  hallucination_safety
+  retrieval_quality
+}
+
+enum FeedbackEventType {
+  recommendation_accepted
+  recommendation_rejected
+  summary_corrected
+  prediction_corrected
+  extraction_corrected
+}
+
+enum BenchmarkSeverity {
+  info
+  warn
+  critical
+}
+
+enum SloTargetType {
+  api_latency
+  webhook_latency
+  ai_latency
+  queue_throughput
+  retrieval_latency
+}
+
+enum SloIncidentStatus {
+  open
+  acknowledged
+  resolved
+}
+
+enum ChaosScenarioStatus {
+  running
+  passed
+  failed
+  degraded
+  quarantined
+}
+
 model Client {
   id               String      @id @default(uuid()) @db.Uuid
   name             String      @db.VarChar(120)
@@ -168,6 +258,41 @@ model Client {
   tenantUsages TenantUsage[]
   rateLimitBuckets RateLimitBucket[]
   workerHeartbeats WorkerHeartbeat[]
+  aiExecutions AiExecution[]
+  behavioralSignals BehavioralSignal[]
+  emotionalProfiles EmotionalProfile[]
+  intentPredictions IntentPrediction[]
+  conversationalMemories ConversationalMemory[]
+  aiSummaries AiSummary[]
+  aiRecommendations AiRecommendation[]
+  semanticEmbeddings SemanticEmbedding[]
+  engagementPredictions EngagementPrediction[]
+  emotionalTimelines EmotionalTimeline[]
+  semanticNormalizations SemanticNormalization[]
+  memoryRetrievalLogs MemoryRetrievalLog[]
+  aiSafetyViolations AiSafetyViolation[]
+  predictionDrifts PredictionDrift[]
+  aiExecutionRecoveries AiExecutionRecovery[]
+  multilingualNormalizations MultilingualNormalization[]
+  aiCostAllocations AiCostAllocation[]
+  evaluationDatasets EvaluationDataset[]
+  evaluationRuns EvaluationRun[]
+  evaluationResults EvaluationResult[]
+  retrievalBenchmarks RetrievalBenchmark[]
+  feedbackEvents FeedbackEvent[]
+  driftMetrics DriftMetric[]
+  hallucinationScores HallucinationScore[]
+  safetyBenchmarks SafetyBenchmark[]
+  costForecasts CostForecast[]
+  workerSaturationMetrics WorkerSaturationMetric[]
+  intelligenceRegressions IntelligenceRegression[]
+  evaluationReproducibilityManifests EvaluationReproducibilityManifest[]
+  behavioralEvaluationMetrics BehavioralEvaluationMetric[]
+  sloDefinitions SloDefinition[]
+  sloIncidents SloIncident[]
+  queueFairnessMetrics QueueFairnessMetric[]
+  chaosExecutionLogs ChaosExecutionLog[]
+  analyticsRollups AnalyticsRollup[]
 
   @@index([status])
 }
@@ -301,6 +426,28 @@ model Lead {
   scores       LeadScore[]
   followUps    FollowUp[]
   crmSyncLogs  CrmSyncLog[]
+  behavioralSignals BehavioralSignal[]
+  emotionalProfiles EmotionalProfile[]
+  intentPredictions IntentPrediction[]
+  conversationalMemories ConversationalMemory[]
+  aiSummaries AiSummary[]
+  aiRecommendations AiRecommendation[]
+  semanticEmbeddings SemanticEmbedding[]
+  engagementPredictions EngagementPrediction[]
+  emotionalTimelines EmotionalTimeline[]
+  semanticNormalizations SemanticNormalization[]
+  memoryRetrievalLogs MemoryRetrievalLog[]
+  aiSafetyViolations AiSafetyViolation[]
+  predictionDrifts PredictionDrift[]
+  aiExecutionRecoveries AiExecutionRecovery[]
+  multilingualNormalizations MultilingualNormalization[]
+  aiCostAllocations AiCostAllocation[]
+  retrievalBenchmarks RetrievalBenchmark[]
+  feedbackEvents FeedbackEvent[]
+  driftMetrics DriftMetric[]
+  hallucinationScores HallucinationScore[]
+  safetyBenchmarks SafetyBenchmark[]
+  behavioralEvaluationMetrics BehavioralEvaluationMetric[]
 
   @@index([phone])
   @@index([clientId, phone])
@@ -364,6 +511,7 @@ model Conversation {
 
   lead     Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
   messages Message[]
+  aiSummaries AiSummary[]
 
   @@index([state, lastMessageAt])
 }
@@ -603,4 +751,792 @@ model FollowUp {
   @@index([clientId, scheduledAt])
   @@index([leadId, status])
   @@index([conversationId, trigger])
+}
+
+model PromptVersion {
+  id          String   @id @default(uuid()) @db.Uuid
+  taskType    AiTaskType
+  version     String   @db.VarChar(40)
+  provider    AiProvider
+  model       String   @db.VarChar(120)
+  systemPrompt String  @db.Text
+  outputSchema Json
+  checksum    String   @db.VarChar(128)
+  isActive    Boolean  @default(true)
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  executions AiExecution[]
+  summaries AiSummary[]
+  recommendations AiRecommendation[]
+
+  @@unique([taskType, version])
+  @@index([taskType, isActive])
+}
+
+model AiExecution {
+  id             String            @id @default(uuid()) @db.Uuid
+  clientId       String            @db.Uuid
+  leadId         String?           @db.Uuid
+  conversationId String?           @db.Uuid
+  taskType       AiTaskType
+  provider       AiProvider
+  model          String            @db.VarChar(120)
+  promptVersionId String?          @db.Uuid
+  status         AiExecutionStatus @default(queued)
+  confidence     Float             @default(0)
+  inputHash      String            @db.VarChar(128)
+  output         Json?
+  reasoning      Json              @default("{}")
+  provenance     Json              @default("{}")
+  safety         Json              @default("{}")
+  tokenUsage     Json              @default("{}")
+  costUsd        Decimal           @default(0) @db.Decimal(12, 6)
+  latencyMs      Int?
+  requestId      String?           @db.VarChar(128)
+  correlationId  String?           @db.VarChar(128)
+  error          String?           @db.Text
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime          @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  promptVersion PromptVersion? @relation(fields: [promptVersionId], references: [id], onDelete: SetNull)
+  recoveries AiExecutionRecovery[]
+  costAllocations AiCostAllocation[]
+
+  @@index([clientId, taskType, createdAt])
+  @@index([leadId, taskType, createdAt])
+  @@index([requestId, correlationId])
+}
+
+model BehavioralSignal {
+  id          String   @id @default(uuid()) @db.Uuid
+  clientId    String   @db.Uuid
+  leadId      String   @db.Uuid
+  signalType  String   @db.VarChar(80)
+  value       Json
+  confidence  Float
+  explanation Json     @default("{}")
+  source      String   @db.VarChar(40)
+  observedAt  DateTime
+  createdAt   DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, signalType, observedAt])
+  @@index([leadId, observedAt])
+}
+
+model EmotionalProfile {
+  id          String   @id @default(uuid()) @db.Uuid
+  clientId    String   @db.Uuid
+  leadId      String   @db.Uuid
+  state       Json
+  confidence  Float
+  trend       Json     @default("{}")
+  frictionIndicators Json @default("[]")
+  salesResistanceMarkers Json @default("[]")
+  explanation Json     @default("{}")
+  source      String   @db.VarChar(40)
+  createdAt   DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([leadId, createdAt])
+}
+
+model IntentPrediction {
+  id          String   @id @default(uuid()) @db.Uuid
+  clientId    String   @db.Uuid
+  leadId      String   @db.Uuid
+  modelVersion String  @db.VarChar(80)
+  predictions Json
+  confidence  Float
+  explanation Json     @default("{}")
+  featureContributions Json @default("{}")
+  fallbackUsed Boolean @default(false)
+  createdAt   DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([leadId, createdAt])
+}
+
+model ConversationalMemory {
+  id          String   @id @default(uuid()) @db.Uuid
+  clientId    String   @db.Uuid
+  leadId      String   @db.Uuid
+  memoryType  String   @db.VarChar(80)
+  content     Json
+  rawUtterance String? @db.Text
+  relevanceScore Float
+  confidence  Float
+  tags        String[] @default([])
+  source      String   @db.VarChar(40)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, memoryType, relevanceScore])
+  @@index([leadId, memoryType, updatedAt])
+}
+
+model AiSummary {
+  id             String   @id @default(uuid()) @db.Uuid
+  clientId       String   @db.Uuid
+  leadId         String   @db.Uuid
+  conversationId String?  @db.Uuid
+  summaryType    String   @db.VarChar(80)
+  version        String   @db.VarChar(40)
+  content        String   @db.Text
+  confidence     Float
+  metadata       Json     @default("{}")
+  promptVersionId String? @db.Uuid
+  model          String   @db.VarChar(120)
+  createdAt      DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  promptVersion PromptVersion? @relation(fields: [promptVersionId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, summaryType, createdAt])
+  @@index([leadId, summaryType, createdAt])
+}
+
+model AiRecommendation {
+  id          String   @id @default(uuid()) @db.Uuid
+  clientId    String   @db.Uuid
+  leadId      String   @db.Uuid
+  recommendationType String @db.VarChar(80)
+  status      AiRecommendationStatus @default(proposed)
+  suggestion  Json
+  confidence  Float
+  explanation Json     @default("{}")
+  safety      Json     @default("{}")
+  promptVersionId String? @db.Uuid
+  acceptedAt  DateTime?
+  effectiveness Json?
+  createdAt   DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  promptVersion PromptVersion? @relation(fields: [promptVersionId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, status, createdAt])
+  @@index([leadId, recommendationType, createdAt])
+}
+
+model SemanticEmbedding {
+  id          String   @id @default(uuid()) @db.Uuid
+  clientId    String   @db.Uuid
+  leadId      String   @db.Uuid
+  entityType  String   @db.VarChar(80)
+  entityId    String   @db.VarChar(120)
+  model       String   @db.VarChar(120)
+  dimensions  Int
+  vector      Json
+  contentHash String   @db.VarChar(128)
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, entityType, entityId, model, contentHash])
+  @@index([leadId, entityType])
+}
+
+model EngagementPrediction {
+  id          String   @id @default(uuid()) @db.Uuid
+  clientId    String   @db.Uuid
+  leadId      String   @db.Uuid
+  bestFollowupAt DateTime?
+  bestChannel  String? @db.VarChar(40)
+  escalationRiskScore Float
+  inactivityRisk Float
+  churnRisk     Float
+  timingConfidence Float
+  strategy      Json
+  explanation   Json   @default("{}")
+  thresholds    Json   @default("{}")
+  createdAt     DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([leadId, createdAt])
+}
+
+model AiCostMetric {
+  id          String   @id @default(uuid()) @db.Uuid
+  clientId    String   @db.Uuid
+  taskType    AiTaskType
+  provider    AiProvider
+  model       String   @db.VarChar(120)
+  inputTokens Int      @default(0)
+  outputTokens Int     @default(0)
+  totalTokens Int      @default(0)
+  costUsd     Decimal  @default(0) @db.Decimal(12, 6)
+  latencyMs   Int
+  success     Boolean
+  createdAt   DateTime @default(now())
+
+  @@index([clientId, taskType, createdAt])
+  @@index([provider, model, createdAt])
+}
+
+model EmotionalTimeline {
+  id             String   @id @default(uuid()) @db.Uuid
+  clientId       String   @db.Uuid
+  leadId         String   @db.Uuid
+  executionId    String?  @db.Uuid
+  state          Json
+  drift          Json     @default("{}")
+  stabilityScore Float
+  confidence     Float
+  observedAt     DateTime
+  createdAt      DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, observedAt])
+  @@index([leadId, observedAt])
+}
+
+model SemanticNormalization {
+  id         String   @id @default(uuid()) @db.Uuid
+  clientId   String   @db.Uuid
+  leadId     String   @db.Uuid
+  rawText    String   @db.Text
+  normalized Json
+  confidence Float
+  conflicts  Json     @default("[]")
+  provenance Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([leadId, createdAt])
+}
+
+model MemoryRetrievalLog {
+  id              String   @id @default(uuid()) @db.Uuid
+  clientId        String   @db.Uuid
+  leadId          String   @db.Uuid
+  query           Json
+  resultIds       String[] @default([])
+  relevanceScores Json     @default("{}")
+  staleFiltered   Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([leadId, createdAt])
+}
+
+model AiSafetyViolation {
+  id            String   @id @default(uuid()) @db.Uuid
+  clientId      String   @db.Uuid
+  leadId        String?  @db.Uuid
+  executionId   String?  @db.Uuid
+  violationType String   @db.VarChar(80)
+  severity      String   @db.VarChar(40)
+  blockedText   String?  @db.Text
+  score         Float
+  reasons       Json     @default("[]")
+  quarantined   Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead   Lead?  @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, violationType, createdAt])
+  @@index([leadId, createdAt])
+}
+
+model PredictionDrift {
+  id             String   @id @default(uuid()) @db.Uuid
+  clientId       String   @db.Uuid
+  leadId         String   @db.Uuid
+  modelVersion   String   @db.VarChar(80)
+  previousVector Json?
+  currentVector  Json
+  driftScore     Float
+  threshold      Float
+  explanation    Json     @default("{}")
+  createdAt      DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([leadId, createdAt])
+}
+
+model AiExecutionRecovery {
+  id           String   @id @default(uuid()) @db.Uuid
+  clientId     String   @db.Uuid
+  leadId       String?  @db.Uuid
+  executionId  String?  @db.Uuid
+  recoveryType String   @db.VarChar(80)
+  status       String   @db.VarChar(40)
+  details      Json     @default("{}")
+  createdAt    DateTime @default(now())
+
+  client    Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead      Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  execution AiExecution? @relation(fields: [executionId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, status, createdAt])
+  @@index([executionId])
+}
+
+model MultilingualNormalization {
+  id               String   @id @default(uuid()) @db.Uuid
+  clientId         String   @db.Uuid
+  leadId           String   @db.Uuid
+  rawText          String   @db.Text
+  detectedLanguage String   @db.VarChar(40)
+  normalizedText   String   @db.Text
+  confidence       Float
+  mappings         Json     @default("[]")
+  createdAt        DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, detectedLanguage, createdAt])
+  @@index([leadId, createdAt])
+}
+
+model AiCostAllocation {
+  id                    String   @id @default(uuid()) @db.Uuid
+  clientId              String   @db.Uuid
+  leadId                String?  @db.Uuid
+  executionId           String?  @db.Uuid
+  taskType              AiTaskType
+  provider              AiProvider
+  model                 String   @db.VarChar(120)
+  allocatedInputTokens  Int      @default(0)
+  allocatedOutputTokens Int      @default(0)
+  allocatedCostUsd      Decimal  @default(0) @db.Decimal(12, 6)
+  allocationRatio       Float
+  retryAttempt          Int      @default(1)
+  createdAt             DateTime @default(now())
+
+  client    Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead      Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  execution AiExecution? @relation(fields: [executionId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, taskType, createdAt])
+  @@index([executionId])
+}
+
+model EvaluationDataset {
+  id             String                @id @default(uuid()) @db.Uuid
+  clientId       String                @db.Uuid
+  name           String                @db.VarChar(160)
+  datasetType    EvaluationDatasetType
+  version        String                @db.VarChar(40)
+  checksum       String                @db.VarChar(128)
+  examples       Json
+  metadata       Json                  @default("{}")
+  isActive       Boolean               @default(true)
+  createdBy      String?               @db.VarChar(120)
+  createdAt      DateTime              @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  runs EvaluationRun[]
+
+  @@unique([clientId, datasetType, version])
+  @@index([clientId, datasetType, isActive])
+  @@index([clientId, createdAt])
+}
+
+model EvaluationRun {
+  id                String              @id @default(uuid()) @db.Uuid
+  clientId          String              @db.Uuid
+  datasetId         String?             @db.Uuid
+  runType           EvaluationDatasetType
+  status            EvaluationRunStatus @default(queued)
+  modelVersion      String              @db.VarChar(120)
+  promptVersion     String?             @db.VarChar(80)
+  baselineRunId     String?             @db.Uuid
+  inputChecksum     String              @db.VarChar(128)
+  resultChecksum    String?             @db.VarChar(128)
+  aggregateMetrics  Json                @default("{}")
+  regressionSummary Json                @default("{}")
+  concurrencyLimit  Int                 @default(1)
+  isolatedQueue     String              @default("evaluation") @db.VarChar(64)
+  startedAt         DateTime?
+  completedAt       DateTime?
+  error             String?             @db.Text
+  createdAt         DateTime            @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  dataset EvaluationDataset? @relation(fields: [datasetId], references: [id], onDelete: SetNull)
+  results EvaluationResult[]
+  regressions IntelligenceRegression[]
+  reproducibilityManifests EvaluationReproducibilityManifest[]
+
+  @@index([clientId, runType, createdAt])
+  @@index([clientId, status, createdAt])
+  @@index([datasetId, createdAt])
+}
+
+model EvaluationResult {
+  id             String   @id @default(uuid()) @db.Uuid
+  clientId       String   @db.Uuid
+  runId          String   @db.Uuid
+  datasetExampleId String @db.VarChar(120)
+  taskType       String   @db.VarChar(80)
+  expected       Json
+  actual         Json
+  scores         Json
+  confidence     Float
+  passed         Boolean
+  latencyMs      Int      @default(0)
+  explanation    Json     @default("{}")
+  createdAt      DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  run EvaluationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, datasetExampleId, taskType])
+  @@index([clientId, taskType, createdAt])
+  @@index([runId, passed])
+}
+
+model RetrievalBenchmark {
+  id                 String   @id @default(uuid()) @db.Uuid
+  clientId           String   @db.Uuid
+  leadId             String?  @db.Uuid
+  datasetId          String?  @db.Uuid
+  query              Json
+  expectedMemoryIds  String[] @default([])
+  retrievedMemoryIds String[] @default([])
+  relevanceScores    Json     @default("{}")
+  rankingMetrics     Json     @default("{}")
+  explainability     Json     @default("{}")
+  confidence         Float
+  latencyMs          Int
+  staleFiltered      Int      @default(0)
+  model              String   @db.VarChar(120)
+  createdAt          DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, createdAt])
+  @@index([leadId, createdAt])
+  @@index([datasetId, createdAt])
+}
+
+model FeedbackEvent {
+  id               String            @id @default(uuid()) @db.Uuid
+  clientId         String            @db.Uuid
+  leadId           String?           @db.Uuid
+  actorId          String?           @db.VarChar(120)
+  eventType        FeedbackEventType
+  targetType       String            @db.VarChar(80)
+  targetId         String            @db.VarChar(120)
+  originalValue    Json
+  correctedValue   Json?
+  acceptanceScore  Float             @default(0)
+  auditMetadata    Json              @default("{}")
+  createdAt        DateTime          @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, eventType, createdAt])
+  @@index([targetType, targetId, createdAt])
+  @@index([leadId, createdAt])
+}
+
+model DriftMetric {
+  id              String   @id @default(uuid()) @db.Uuid
+  clientId        String   @db.Uuid
+  leadId          String?  @db.Uuid
+  metricType      String   @db.VarChar(80)
+  baselineVersion String   @db.VarChar(120)
+  currentVersion  String   @db.VarChar(120)
+  baselineValue   Json
+  currentValue    Json
+  driftScore      Float
+  threshold       Float
+  anomaly         Boolean  @default(false)
+  trend           Json     @default("{}")
+  createdAt       DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, metricType, createdAt])
+  @@index([clientId, anomaly, createdAt])
+  @@index([leadId, createdAt])
+}
+
+model HallucinationScore {
+  id              String   @id @default(uuid()) @db.Uuid
+  clientId        String   @db.Uuid
+  leadId          String?  @db.Uuid
+  runId           String?  @db.Uuid
+  outputHash      String   @db.VarChar(128)
+  factualityScore Float
+  hallucinationRate Float
+  unsupportedClaims Json   @default("[]")
+  evidenceCoverage Float
+  createdAt       DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, createdAt])
+  @@index([runId, createdAt])
+}
+
+model SafetyBenchmark {
+  id               String            @id @default(uuid()) @db.Uuid
+  clientId         String            @db.Uuid
+  leadId           String?           @db.Uuid
+  suiteName        String            @db.VarChar(120)
+  promptHash       String            @db.VarChar(128)
+  attackType       String            @db.VarChar(80)
+  blocked          Boolean
+  falseBlock       Boolean           @default(false)
+  safetyScore      Float
+  severity         BenchmarkSeverity @default(info)
+  reasons          Json              @default("[]")
+  moderationVersion String           @db.VarChar(80)
+  createdAt        DateTime          @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, suiteName, createdAt])
+  @@index([clientId, attackType, createdAt])
+}
+
+model CostForecast {
+  id                  String   @id @default(uuid()) @db.Uuid
+  clientId            String   @db.Uuid
+  periodStart         DateTime
+  periodEnd           DateTime
+  provider            AiProvider
+  model               String   @db.VarChar(120)
+  forecastTokens      Int
+  forecastCostUsd     Decimal  @db.Decimal(12, 6)
+  confidence          Float
+  anomalyScore        Float    @default(0)
+  recommendations     Json     @default("[]")
+  createdAt           DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, periodStart, periodEnd])
+  @@index([clientId, provider, model, createdAt])
+}
+
+model WorkerSaturationMetric {
+  id                    String   @id @default(uuid()) @db.Uuid
+  clientId              String?  @db.Uuid
+  queueName             String   @db.VarChar(64)
+  workerPool            String   @db.VarChar(80)
+  activeJobs            Int
+  waitingJobs           Int
+  delayedJobs           Int
+  failedJobs            Int
+  concurrency           Int
+  saturationScore       Float
+  starvationRisk        Float
+  adaptiveConcurrency   Json     @default("{}")
+  observedAt            DateTime
+  createdAt             DateTime @default(now())
+
+  client Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  @@index([queueName, observedAt])
+  @@index([clientId, observedAt])
+}
+
+model IntelligenceRegression {
+  id              String            @id @default(uuid()) @db.Uuid
+  clientId        String            @db.Uuid
+  runId           String?           @db.Uuid
+  metricName      String            @db.VarChar(120)
+  baselineValue   Float
+  currentValue    Float
+  delta           Float
+  threshold       Float
+  severity        BenchmarkSeverity @default(warn)
+  details         Json              @default("{}")
+  resolvedAt      DateTime?
+  createdAt       DateTime          @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  run EvaluationRun? @relation(fields: [runId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, metricName, createdAt])
+  @@index([runId, createdAt])
+}
+
+model EvaluationReproducibilityManifest {
+  id                  String   @id @default(uuid()) @db.Uuid
+  clientId            String   @db.Uuid
+  runId               String   @db.Uuid
+  manifestVersion     String   @db.VarChar(40)
+  inputChecksum       String   @db.VarChar(128)
+  semanticChecksum    String   @db.VarChar(128)
+  datasetChecksum     String   @db.VarChar(128)
+  deterministic       Boolean  @default(true)
+  excludedFields      String[] @default([])
+  replayOfRunId       String?  @db.Uuid
+  replayMatches       Boolean?
+  metadata            Json     @default("{}")
+  createdAt           DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  run EvaluationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([runId, createdAt])
+  @@index([semanticChecksum])
+}
+
+model BehavioralEvaluationMetric {
+  id                    String   @id @default(uuid()) @db.Uuid
+  clientId              String   @db.Uuid
+  leadId                String?  @db.Uuid
+  runId                 String?  @db.Uuid
+  windowStart           DateTime
+  windowEnd             DateTime
+  stabilityScore        Float
+  hesitationConsistency Float
+  urgencyEscalation     Float
+  trustRecoveryScore    Float
+  ghostingRiskStability Float
+  confidenceDrift       Float
+  details               Json     @default("{}")
+  createdAt             DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, windowStart, windowEnd])
+  @@index([leadId, createdAt])
+  @@index([runId, createdAt])
+}
+
+model SloDefinition {
+  id              String        @id @default(uuid()) @db.Uuid
+  clientId        String        @db.Uuid
+  name            String        @db.VarChar(120)
+  targetType      SloTargetType
+  target          Float
+  windowMinutes   Int
+  threshold       Json          @default("{}")
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  incidents SloIncident[]
+
+  @@unique([clientId, name])
+  @@index([clientId, targetType, isActive])
+}
+
+model SloIncident {
+  id                  String            @id @default(uuid()) @db.Uuid
+  clientId            String            @db.Uuid
+  sloDefinitionId     String            @db.Uuid
+  status              SloIncidentStatus @default(open)
+  severity            BenchmarkSeverity @default(warn)
+  burnRate            Float
+  compliance          Float
+  errorBudgetRemaining Float
+  degradation         String            @db.VarChar(40)
+  correlation         Json              @default("{}")
+  openedAt            DateTime          @default(now())
+  resolvedAt          DateTime?
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  sloDefinition SloDefinition @relation(fields: [sloDefinitionId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, status, openedAt])
+  @@index([sloDefinitionId, openedAt])
+}
+
+model QueueFairnessMetric {
+  id                 String   @id @default(uuid()) @db.Uuid
+  clientId           String?  @db.Uuid
+  queueName          String   @db.VarChar(64)
+  partitionKey       String   @db.VarChar(120)
+  waitingJobs        Int
+  activeJobs         Int
+  throughputPerMinute Float
+  fairnessScore      Float
+  throttleApplied    Boolean  @default(false)
+  metadata           Json     @default("{}")
+  observedAt         DateTime
+  createdAt          DateTime @default(now())
+
+  client Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  @@index([queueName, observedAt])
+  @@index([clientId, observedAt])
+  @@index([partitionKey, observedAt])
+}
+
+model ChaosExecutionLog {
+  id                  String              @id @default(uuid()) @db.Uuid
+  clientId            String?             @db.Uuid
+  scenarioType        String              @db.VarChar(80)
+  status              ChaosScenarioStatus
+  inputChecksum       String              @db.VarChar(128)
+  recoveryAction      String?             @db.VarChar(120)
+  operationalImpact   Json                @default("{}")
+  fallbackActivated   Boolean             @default(false)
+  quarantineReason    String?             @db.VarChar(160)
+  startedAt           DateTime
+  completedAt         DateTime?
+  createdAt           DateTime            @default(now())
+
+  client Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, scenarioType, createdAt])
+  @@index([status, createdAt])
+}
+
+model AnalyticsRollup {
+  id             String   @id @default(uuid()) @db.Uuid
+  clientId       String   @db.Uuid
+  rollupType     String   @db.VarChar(80)
+  windowStart    DateTime
+  windowEnd      DateTime
+  checksum       String   @db.VarChar(128)
+  metrics        Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, rollupType, windowStart, windowEnd])
+  @@index([clientId, rollupType, updatedAt])
 }

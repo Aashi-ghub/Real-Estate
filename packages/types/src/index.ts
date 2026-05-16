@@ -234,10 +234,14 @@ export const queueNames = {
   messages: "messages",
   followups: "followups",
   crm: "crm",
+  ai: "ai",
+  evaluation: "evaluation",
   analytics: "analytics",
   messagesDlq: "messages-dlq",
   followupsDlq: "followups-dlq",
   crmDlq: "crm-dlq",
+  aiDlq: "ai-dlq",
+  evaluationDlq: "evaluation-dlq",
   analyticsDlq: "analytics-dlq"
 } as const;
 
@@ -273,6 +277,63 @@ export interface CrmPushJobData {
   conversationId: string;
   dedupeKey: string;
   qualifiedAt: string;
+  trace?: JobTrace;
+}
+
+export const aiTaskTypes = [
+  "semantic_understanding",
+  "behavioral_intelligence",
+  "buyer_intent_prediction",
+  "conversational_memory",
+  "multilingual_reasoning",
+  "engagement_prediction",
+  "conversation_summary",
+  "followup_optimization",
+  "sales_assist",
+  "analytics_intelligence"
+] as const;
+export type AiTaskType = (typeof aiTaskTypes)[number];
+
+export interface AiLeadIntelligenceJobData {
+  clientId: string;
+  leadId: string;
+  conversationId: string;
+  messageId?: string;
+  rawUtterance: string;
+  deterministic: {
+    parsedAnswers?: JsonObject;
+    attributes?: JsonObject;
+    confidence?: number;
+  };
+  tasks: AiTaskType[];
+  dedupeKey: string;
+  trace?: JobTrace;
+}
+
+export const evaluationDatasetTypes = [
+  "semantic_extraction",
+  "emotional_inference",
+  "intent_prediction",
+  "multilingual_understanding",
+  "memory_retrieval",
+  "summarization",
+  "recommendation",
+  "behavioral_accuracy",
+  "hallucination_safety",
+  "retrieval_quality"
+] as const;
+export type EvaluationDatasetType = (typeof evaluationDatasetTypes)[number];
+
+export interface EvaluationRunJobData {
+  clientId: string;
+  runId: string;
+  datasetId?: string;
+  runType: EvaluationDatasetType;
+  modelVersion: string;
+  promptVersion?: string;
+  baselineRunId?: string;
+  concurrencyLimit: number;
+  dedupeKey: string;
   trace?: JobTrace;
 }
 

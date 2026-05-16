@@ -423,6 +423,559 @@ exports.Prisma.FollowUpScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.PromptVersionScalarFieldEnum = {
+  id: 'id',
+  taskType: 'taskType',
+  version: 'version',
+  provider: 'provider',
+  model: 'model',
+  systemPrompt: 'systemPrompt',
+  outputSchema: 'outputSchema',
+  checksum: 'checksum',
+  isActive: 'isActive',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.AiExecutionScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  conversationId: 'conversationId',
+  taskType: 'taskType',
+  provider: 'provider',
+  model: 'model',
+  promptVersionId: 'promptVersionId',
+  status: 'status',
+  confidence: 'confidence',
+  inputHash: 'inputHash',
+  output: 'output',
+  reasoning: 'reasoning',
+  provenance: 'provenance',
+  safety: 'safety',
+  tokenUsage: 'tokenUsage',
+  costUsd: 'costUsd',
+  latencyMs: 'latencyMs',
+  requestId: 'requestId',
+  correlationId: 'correlationId',
+  error: 'error',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.BehavioralSignalScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  signalType: 'signalType',
+  value: 'value',
+  confidence: 'confidence',
+  explanation: 'explanation',
+  source: 'source',
+  observedAt: 'observedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.EmotionalProfileScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  state: 'state',
+  confidence: 'confidence',
+  trend: 'trend',
+  frictionIndicators: 'frictionIndicators',
+  salesResistanceMarkers: 'salesResistanceMarkers',
+  explanation: 'explanation',
+  source: 'source',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.IntentPredictionScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  modelVersion: 'modelVersion',
+  predictions: 'predictions',
+  confidence: 'confidence',
+  explanation: 'explanation',
+  featureContributions: 'featureContributions',
+  fallbackUsed: 'fallbackUsed',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ConversationalMemoryScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  memoryType: 'memoryType',
+  content: 'content',
+  rawUtterance: 'rawUtterance',
+  relevanceScore: 'relevanceScore',
+  confidence: 'confidence',
+  tags: 'tags',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.AiSummaryScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  conversationId: 'conversationId',
+  summaryType: 'summaryType',
+  version: 'version',
+  content: 'content',
+  confidence: 'confidence',
+  metadata: 'metadata',
+  promptVersionId: 'promptVersionId',
+  model: 'model',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.AiRecommendationScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  recommendationType: 'recommendationType',
+  status: 'status',
+  suggestion: 'suggestion',
+  confidence: 'confidence',
+  explanation: 'explanation',
+  safety: 'safety',
+  promptVersionId: 'promptVersionId',
+  acceptedAt: 'acceptedAt',
+  effectiveness: 'effectiveness',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SemanticEmbeddingScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  entityType: 'entityType',
+  entityId: 'entityId',
+  model: 'model',
+  dimensions: 'dimensions',
+  vector: 'vector',
+  contentHash: 'contentHash',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.EngagementPredictionScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  bestFollowupAt: 'bestFollowupAt',
+  bestChannel: 'bestChannel',
+  escalationRiskScore: 'escalationRiskScore',
+  inactivityRisk: 'inactivityRisk',
+  churnRisk: 'churnRisk',
+  timingConfidence: 'timingConfidence',
+  strategy: 'strategy',
+  explanation: 'explanation',
+  thresholds: 'thresholds',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.AiCostMetricScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  taskType: 'taskType',
+  provider: 'provider',
+  model: 'model',
+  inputTokens: 'inputTokens',
+  outputTokens: 'outputTokens',
+  totalTokens: 'totalTokens',
+  costUsd: 'costUsd',
+  latencyMs: 'latencyMs',
+  success: 'success',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.EmotionalTimelineScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  executionId: 'executionId',
+  state: 'state',
+  drift: 'drift',
+  stabilityScore: 'stabilityScore',
+  confidence: 'confidence',
+  observedAt: 'observedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SemanticNormalizationScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  rawText: 'rawText',
+  normalized: 'normalized',
+  confidence: 'confidence',
+  conflicts: 'conflicts',
+  provenance: 'provenance',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.MemoryRetrievalLogScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  query: 'query',
+  resultIds: 'resultIds',
+  relevanceScores: 'relevanceScores',
+  staleFiltered: 'staleFiltered',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.AiSafetyViolationScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  executionId: 'executionId',
+  violationType: 'violationType',
+  severity: 'severity',
+  blockedText: 'blockedText',
+  score: 'score',
+  reasons: 'reasons',
+  quarantined: 'quarantined',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PredictionDriftScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  modelVersion: 'modelVersion',
+  previousVector: 'previousVector',
+  currentVector: 'currentVector',
+  driftScore: 'driftScore',
+  threshold: 'threshold',
+  explanation: 'explanation',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.AiExecutionRecoveryScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  executionId: 'executionId',
+  recoveryType: 'recoveryType',
+  status: 'status',
+  details: 'details',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.MultilingualNormalizationScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  rawText: 'rawText',
+  detectedLanguage: 'detectedLanguage',
+  normalizedText: 'normalizedText',
+  confidence: 'confidence',
+  mappings: 'mappings',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.AiCostAllocationScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  executionId: 'executionId',
+  taskType: 'taskType',
+  provider: 'provider',
+  model: 'model',
+  allocatedInputTokens: 'allocatedInputTokens',
+  allocatedOutputTokens: 'allocatedOutputTokens',
+  allocatedCostUsd: 'allocatedCostUsd',
+  allocationRatio: 'allocationRatio',
+  retryAttempt: 'retryAttempt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.EvaluationDatasetScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  name: 'name',
+  datasetType: 'datasetType',
+  version: 'version',
+  checksum: 'checksum',
+  examples: 'examples',
+  metadata: 'metadata',
+  isActive: 'isActive',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.EvaluationRunScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  datasetId: 'datasetId',
+  runType: 'runType',
+  status: 'status',
+  modelVersion: 'modelVersion',
+  promptVersion: 'promptVersion',
+  baselineRunId: 'baselineRunId',
+  inputChecksum: 'inputChecksum',
+  resultChecksum: 'resultChecksum',
+  aggregateMetrics: 'aggregateMetrics',
+  regressionSummary: 'regressionSummary',
+  concurrencyLimit: 'concurrencyLimit',
+  isolatedQueue: 'isolatedQueue',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  error: 'error',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.EvaluationResultScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  runId: 'runId',
+  datasetExampleId: 'datasetExampleId',
+  taskType: 'taskType',
+  expected: 'expected',
+  actual: 'actual',
+  scores: 'scores',
+  confidence: 'confidence',
+  passed: 'passed',
+  latencyMs: 'latencyMs',
+  explanation: 'explanation',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.RetrievalBenchmarkScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  datasetId: 'datasetId',
+  query: 'query',
+  expectedMemoryIds: 'expectedMemoryIds',
+  retrievedMemoryIds: 'retrievedMemoryIds',
+  relevanceScores: 'relevanceScores',
+  rankingMetrics: 'rankingMetrics',
+  explainability: 'explainability',
+  confidence: 'confidence',
+  latencyMs: 'latencyMs',
+  staleFiltered: 'staleFiltered',
+  model: 'model',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FeedbackEventScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  actorId: 'actorId',
+  eventType: 'eventType',
+  targetType: 'targetType',
+  targetId: 'targetId',
+  originalValue: 'originalValue',
+  correctedValue: 'correctedValue',
+  acceptanceScore: 'acceptanceScore',
+  auditMetadata: 'auditMetadata',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DriftMetricScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  metricType: 'metricType',
+  baselineVersion: 'baselineVersion',
+  currentVersion: 'currentVersion',
+  baselineValue: 'baselineValue',
+  currentValue: 'currentValue',
+  driftScore: 'driftScore',
+  threshold: 'threshold',
+  anomaly: 'anomaly',
+  trend: 'trend',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.HallucinationScoreScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  runId: 'runId',
+  outputHash: 'outputHash',
+  factualityScore: 'factualityScore',
+  hallucinationRate: 'hallucinationRate',
+  unsupportedClaims: 'unsupportedClaims',
+  evidenceCoverage: 'evidenceCoverage',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SafetyBenchmarkScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  suiteName: 'suiteName',
+  promptHash: 'promptHash',
+  attackType: 'attackType',
+  blocked: 'blocked',
+  falseBlock: 'falseBlock',
+  safetyScore: 'safetyScore',
+  severity: 'severity',
+  reasons: 'reasons',
+  moderationVersion: 'moderationVersion',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.CostForecastScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  periodStart: 'periodStart',
+  periodEnd: 'periodEnd',
+  provider: 'provider',
+  model: 'model',
+  forecastTokens: 'forecastTokens',
+  forecastCostUsd: 'forecastCostUsd',
+  confidence: 'confidence',
+  anomalyScore: 'anomalyScore',
+  recommendations: 'recommendations',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.WorkerSaturationMetricScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  queueName: 'queueName',
+  workerPool: 'workerPool',
+  activeJobs: 'activeJobs',
+  waitingJobs: 'waitingJobs',
+  delayedJobs: 'delayedJobs',
+  failedJobs: 'failedJobs',
+  concurrency: 'concurrency',
+  saturationScore: 'saturationScore',
+  starvationRisk: 'starvationRisk',
+  adaptiveConcurrency: 'adaptiveConcurrency',
+  observedAt: 'observedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.IntelligenceRegressionScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  runId: 'runId',
+  metricName: 'metricName',
+  baselineValue: 'baselineValue',
+  currentValue: 'currentValue',
+  delta: 'delta',
+  threshold: 'threshold',
+  severity: 'severity',
+  details: 'details',
+  resolvedAt: 'resolvedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.EvaluationReproducibilityManifestScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  runId: 'runId',
+  manifestVersion: 'manifestVersion',
+  inputChecksum: 'inputChecksum',
+  semanticChecksum: 'semanticChecksum',
+  datasetChecksum: 'datasetChecksum',
+  deterministic: 'deterministic',
+  excludedFields: 'excludedFields',
+  replayOfRunId: 'replayOfRunId',
+  replayMatches: 'replayMatches',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.BehavioralEvaluationMetricScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  leadId: 'leadId',
+  runId: 'runId',
+  windowStart: 'windowStart',
+  windowEnd: 'windowEnd',
+  stabilityScore: 'stabilityScore',
+  hesitationConsistency: 'hesitationConsistency',
+  urgencyEscalation: 'urgencyEscalation',
+  trustRecoveryScore: 'trustRecoveryScore',
+  ghostingRiskStability: 'ghostingRiskStability',
+  confidenceDrift: 'confidenceDrift',
+  details: 'details',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SloDefinitionScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  name: 'name',
+  targetType: 'targetType',
+  target: 'target',
+  windowMinutes: 'windowMinutes',
+  threshold: 'threshold',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SloIncidentScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  sloDefinitionId: 'sloDefinitionId',
+  status: 'status',
+  severity: 'severity',
+  burnRate: 'burnRate',
+  compliance: 'compliance',
+  errorBudgetRemaining: 'errorBudgetRemaining',
+  degradation: 'degradation',
+  correlation: 'correlation',
+  openedAt: 'openedAt',
+  resolvedAt: 'resolvedAt'
+};
+
+exports.Prisma.QueueFairnessMetricScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  queueName: 'queueName',
+  partitionKey: 'partitionKey',
+  waitingJobs: 'waitingJobs',
+  activeJobs: 'activeJobs',
+  throughputPerMinute: 'throughputPerMinute',
+  fairnessScore: 'fairnessScore',
+  throttleApplied: 'throttleApplied',
+  metadata: 'metadata',
+  observedAt: 'observedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ChaosExecutionLogScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  scenarioType: 'scenarioType',
+  status: 'status',
+  inputChecksum: 'inputChecksum',
+  recoveryAction: 'recoveryAction',
+  operationalImpact: 'operationalImpact',
+  fallbackActivated: 'fallbackActivated',
+  quarantineReason: 'quarantineReason',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.AnalyticsRollupScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  rollupType: 'rollupType',
+  windowStart: 'windowStart',
+  windowEnd: 'windowEnd',
+  checksum: 'checksum',
+  metrics: 'metrics',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -589,6 +1142,96 @@ exports.FollowUpStatus = exports.$Enums.FollowUpStatus = {
   failed: 'failed'
 };
 
+exports.AiTaskType = exports.$Enums.AiTaskType = {
+  semantic_understanding: 'semantic_understanding',
+  behavioral_intelligence: 'behavioral_intelligence',
+  buyer_intent_prediction: 'buyer_intent_prediction',
+  conversational_memory: 'conversational_memory',
+  multilingual_reasoning: 'multilingual_reasoning',
+  engagement_prediction: 'engagement_prediction',
+  conversation_summary: 'conversation_summary',
+  followup_optimization: 'followup_optimization',
+  sales_assist: 'sales_assist',
+  analytics_intelligence: 'analytics_intelligence'
+};
+
+exports.AiProvider = exports.$Enums.AiProvider = {
+  deterministic: 'deterministic',
+  openai: 'openai'
+};
+
+exports.AiExecutionStatus = exports.$Enums.AiExecutionStatus = {
+  queued: 'queued',
+  running: 'running',
+  completed: 'completed',
+  failed: 'failed',
+  timed_out: 'timed_out',
+  fallback: 'fallback'
+};
+
+exports.AiRecommendationStatus = exports.$Enums.AiRecommendationStatus = {
+  proposed: 'proposed',
+  accepted: 'accepted',
+  rejected: 'rejected',
+  expired: 'expired'
+};
+
+exports.EvaluationDatasetType = exports.$Enums.EvaluationDatasetType = {
+  semantic_extraction: 'semantic_extraction',
+  emotional_inference: 'emotional_inference',
+  intent_prediction: 'intent_prediction',
+  multilingual_understanding: 'multilingual_understanding',
+  memory_retrieval: 'memory_retrieval',
+  summarization: 'summarization',
+  recommendation: 'recommendation',
+  behavioral_accuracy: 'behavioral_accuracy',
+  hallucination_safety: 'hallucination_safety',
+  retrieval_quality: 'retrieval_quality'
+};
+
+exports.EvaluationRunStatus = exports.$Enums.EvaluationRunStatus = {
+  queued: 'queued',
+  running: 'running',
+  completed: 'completed',
+  failed: 'failed'
+};
+
+exports.FeedbackEventType = exports.$Enums.FeedbackEventType = {
+  recommendation_accepted: 'recommendation_accepted',
+  recommendation_rejected: 'recommendation_rejected',
+  summary_corrected: 'summary_corrected',
+  prediction_corrected: 'prediction_corrected',
+  extraction_corrected: 'extraction_corrected'
+};
+
+exports.BenchmarkSeverity = exports.$Enums.BenchmarkSeverity = {
+  info: 'info',
+  warn: 'warn',
+  critical: 'critical'
+};
+
+exports.SloTargetType = exports.$Enums.SloTargetType = {
+  api_latency: 'api_latency',
+  webhook_latency: 'webhook_latency',
+  ai_latency: 'ai_latency',
+  queue_throughput: 'queue_throughput',
+  retrieval_latency: 'retrieval_latency'
+};
+
+exports.SloIncidentStatus = exports.$Enums.SloIncidentStatus = {
+  open: 'open',
+  acknowledged: 'acknowledged',
+  resolved: 'resolved'
+};
+
+exports.ChaosScenarioStatus = exports.$Enums.ChaosScenarioStatus = {
+  running: 'running',
+  passed: 'passed',
+  failed: 'failed',
+  degraded: 'degraded',
+  quarantined: 'quarantined'
+};
+
 exports.Prisma.ModelName = {
   Client: 'Client',
   ApiKey: 'ApiKey',
@@ -613,7 +1256,44 @@ exports.Prisma.ModelName = {
   WorkerHeartbeat: 'WorkerHeartbeat',
   CrmSync: 'CrmSync',
   CrmSyncLog: 'CrmSyncLog',
-  FollowUp: 'FollowUp'
+  FollowUp: 'FollowUp',
+  PromptVersion: 'PromptVersion',
+  AiExecution: 'AiExecution',
+  BehavioralSignal: 'BehavioralSignal',
+  EmotionalProfile: 'EmotionalProfile',
+  IntentPrediction: 'IntentPrediction',
+  ConversationalMemory: 'ConversationalMemory',
+  AiSummary: 'AiSummary',
+  AiRecommendation: 'AiRecommendation',
+  SemanticEmbedding: 'SemanticEmbedding',
+  EngagementPrediction: 'EngagementPrediction',
+  AiCostMetric: 'AiCostMetric',
+  EmotionalTimeline: 'EmotionalTimeline',
+  SemanticNormalization: 'SemanticNormalization',
+  MemoryRetrievalLog: 'MemoryRetrievalLog',
+  AiSafetyViolation: 'AiSafetyViolation',
+  PredictionDrift: 'PredictionDrift',
+  AiExecutionRecovery: 'AiExecutionRecovery',
+  MultilingualNormalization: 'MultilingualNormalization',
+  AiCostAllocation: 'AiCostAllocation',
+  EvaluationDataset: 'EvaluationDataset',
+  EvaluationRun: 'EvaluationRun',
+  EvaluationResult: 'EvaluationResult',
+  RetrievalBenchmark: 'RetrievalBenchmark',
+  FeedbackEvent: 'FeedbackEvent',
+  DriftMetric: 'DriftMetric',
+  HallucinationScore: 'HallucinationScore',
+  SafetyBenchmark: 'SafetyBenchmark',
+  CostForecast: 'CostForecast',
+  WorkerSaturationMetric: 'WorkerSaturationMetric',
+  IntelligenceRegression: 'IntelligenceRegression',
+  EvaluationReproducibilityManifest: 'EvaluationReproducibilityManifest',
+  BehavioralEvaluationMetric: 'BehavioralEvaluationMetric',
+  SloDefinition: 'SloDefinition',
+  SloIncident: 'SloIncident',
+  QueueFairnessMetric: 'QueueFairnessMetric',
+  ChaosExecutionLog: 'ChaosExecutionLog',
+  AnalyticsRollup: 'AnalyticsRollup'
 };
 
 /**
